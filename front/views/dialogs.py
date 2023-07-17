@@ -234,7 +234,16 @@ class RulesDialog(wx.Dialog):
         # end wxGlade
 
     def OnSave(self,event):
-        IOManage.OnSaveAs(self,event,self.rules_to_string)
+        result=IOManage.OnSaveAs(self,event,self.rules_to_string).getResponse()
+        if result['status']:
+            print(f"Imagen guardada con éxito en {result['data']}")
+            cadena=str("Imagen guardada con éxito en "+result['data'])
+            dialog=MessageDialog(self,False,cadena)
+            dialog.ShowModal()
+        else:
+            dialog=MessageDialog(self,False,"error")
+            dialog.ShowModal()
+
 
     def writeRules(self,rules):
         cadena="Rules:\n"
@@ -248,3 +257,37 @@ class RulesDialog(wx.Dialog):
 
 
 
+class MessageDialog(wx.Dialog):
+    def __init__(self,parent,status,message):
+        # begin wxGlade: MessageDialog.__init__
+        super(MessageDialog, self).__init__(parent)
+        
+        
+        self.SetSize((450, 150))
+        self.SetTitle("Information")
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+        print(message)
+        label_message = wx.StaticText(self, wx.ID_ANY, message)
+        sizer_3.Add(label_message, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 15)
+
+        if status:
+            print("ICON OK")
+        else:
+            print("ICON NO OK")
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
+        sizer_2.AddButton(self.button_CLOSE)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+
+        self.SetEscapeId(self.button_CLOSE.GetId())
+
+        self.Layout()

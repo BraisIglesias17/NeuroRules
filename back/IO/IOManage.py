@@ -1,5 +1,6 @@
 import wx
 import pandas as pd
+from ..respuestas import Response,Status
 
 class IOManage():
     
@@ -36,9 +37,15 @@ class IOManage():
 
             # save the current contents in the file
             pathname = fileDialog.GetPath()
+            toret=Response()
             try:
                 with open(pathname, 'w') as file:
                     file.write(data)
+                    
+                    toret=Response(data=pathname,status=Status.OK)
             except IOError:
                 wx.LogError("Cannot save current data in file '%s'." % pathname)
+                toret=Response(data=None,status=Status.IO_ERROR)
+            finally:
+                return toret
 

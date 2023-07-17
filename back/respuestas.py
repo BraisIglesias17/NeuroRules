@@ -4,6 +4,7 @@ class Status():
     OK=1
     VALIDATION_ERROR=2
     GENERAL_ERROR=3
+    IO_ERROR=4
 
 class Response():
 
