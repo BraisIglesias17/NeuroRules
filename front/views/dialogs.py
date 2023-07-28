@@ -30,11 +30,11 @@ class VariableTypeDialog(wx.Dialog):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select information for rules "), wx.VERTICAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND, 10)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 20)
 
         self.grid = wx.grid.Grid(self, wx.ID_ANY)
-        self.grid=self.createDataGrid(self.grid,len(self.names),8)
-        sizer_3.Add(self.grid, 1, wx.EXPAND, 15)
+        self.grid=self.createDataGrid(self.grid,len(self.names))
+        sizer_3.Add(self.grid, 1,wx.CENTER, 30)
 
         sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 15)
@@ -113,60 +113,40 @@ class VariableTypeDialog(wx.Dialog):
             
         
 
-    def createDataGrid(self,myGrid,rows,cols):
+    def createDataGrid(self,myGrid,rows):
         
-        myGrid.CreateGrid(rows,cols)
+        
+        myGrid.CreateGrid(rows,1)
         myGrid.SetRowLabelSize(0)
-        labels=self.metrics.index
+        
         names=self.controller.get_names().getResponse()['data']
 
         myGrid.SetColLabelValue(0,'Variable')
+        """
+        labels=self.metrics.index
         for i in range(1,cols):
+            print(i)
             myGrid.SetColLabelValue(i,labels[i])
         myGrid.SetGridLineColour(wx.Colour('#8a8a81'))
         #myGrid.SetCellEditor(6, 0, gridlib.GridCellFloatEditor())
-        
+        """        
         i=0 
         j=0
-        
     
-        described=self.metrics
         for variable in names:
-            j=0
             
-            if not (variable in described):
-                myGrid.SetCellValue(i,j,names[i])
-                i+=1
-            else:
-                myGrid.SetCellValue(i,j,str(variable))
-                #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
-                
-                for index in self.metrics.index:
+            
+            myGrid.SetCellValue(i,j,str(variable))
+            i+=1
+            #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
+            """
+            for index in self.metrics.index:
                     if index != 'count':
                         value=self.metrics[[variable]].loc[index]
                         myGrid.SetCellValue(i,j," "+str(round(value.values[0],2))+" ")
                         myGrid.SetReadOnly(i,j,True)
                     j+=1
-                i+=1
-        """
-        for variable in self.metrics:
-            j=0
-            print(names[i])
-            if str(variable)!=names[i]:
-                myGrid.SetCellValue(i,j,names[i])
-                i+=1
-            
-            myGrid.SetCellValue(i,j,str(variable))
-            #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
-            
-            for index in self.metrics.index:
-                if index != 'count':
-                    value=self.metrics[[variable]].loc[index]
-                    myGrid.SetCellValue(i,j," "+str(round(value.values[0],2))+" ")
-                    myGrid.SetReadOnly(i,j,True)
-                j+=1
-            i+=1
-        """
+            """     
         myGrid.AppendCols(1)
         myGrid.SetColLabelValue(myGrid.GetNumberCols() - 1," Type ")
         
@@ -182,9 +162,6 @@ class VariableTypeDialog(wx.Dialog):
         myGrid.AutoSize()
         myGrid.SetColSize(myGrid.GetNumberCols() - 1,100)
         return myGrid
-
-
-
 
 
 class RulesDialog(wx.Dialog):
