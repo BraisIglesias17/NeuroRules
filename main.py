@@ -89,10 +89,12 @@ class MainWindow(wx.Frame):
         self.Bind(wx.grid.EVT_GRID_CELL_CHANGED,self.OnCellEdit)
         self.Bind(wx.EVT_BUTTON,self.OnNext,self.next_button)
         self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
+        self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
         """
         self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
         self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
         """
+        
     
         self.enableButtons(False)
         self.panel.SetSizer(sizer_1)
@@ -102,9 +104,19 @@ class MainWindow(wx.Frame):
         self.Center()
         self.Show(True)
 
+    def OnPreprocess(self,event):
+        wx.MessageBox('Prueba', 'Prueba', wx.OK | wx.ICON_WARNING)
+
+
     def OnTrain(self,event):
+
+
         print("ON TRAIN")
+
+        #Validar datos
+
         rules=self.controller.create_models("model","params")
+        
         dialog=RulesDialog(self,rules)
         dialog.ShowModal()
 
@@ -161,6 +173,8 @@ class MainWindow(wx.Frame):
 
         if not response['status'] == Status.OK:
             self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).getResponse()['data']))
+            self.updateGrid(self.controller.get_data())
+            
 
     def OnClearGrid(self,event):
         self.ClearGrid()
@@ -168,6 +182,7 @@ class MainWindow(wx.Frame):
         self.train_button.Enable(False)
 
     def ClearGrid(self):
+        
         self.grid.ClearGrid()
 
         rows,cols=self.controller.get_data_shape().getResponse()['data']
@@ -179,6 +194,7 @@ class MainWindow(wx.Frame):
         
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
+        
                 
     def updateGrid(self,df):
        
