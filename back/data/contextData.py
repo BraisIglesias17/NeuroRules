@@ -36,6 +36,8 @@ class ContextData():
     def update_set(self,df):
         self.__init__(df)
         
+    def get_data(self):
+        return self.data
     def get_types(self):
         '''
         Check  the type of the variables saved on Dataframe: int, float or string
@@ -77,6 +79,7 @@ class ContextData():
             else:
                 return False
         elif i == self.data.shape[0]:
+            print("nueva fila")
             # Nueva Fila
             values={}
             i=0
@@ -85,13 +88,16 @@ class ContextData():
                 if var==names[j]:
                     if self._validate_update(var,value):
                     
-                        values[var]=value
+                        values[var]=[value]
                     else:
                         return False
                 else:   
-                    values[var]=None
-
-            self.data=pd.concat([self.data,values],ignore_index=True)
+                    values[var]=[None]
+            
+            temp=pd.DataFrame(values)
+            self.data=pd.concat([self.data,temp],ignore_index=True)
+            self.values=self.data.to_numpy()
+            print(self.data)
 
         elif j == self.data.shape[1]:
             # Nueva columna
