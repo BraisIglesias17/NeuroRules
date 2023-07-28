@@ -11,7 +11,7 @@ class IOManage():
                         style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return  None# the user changed their mind
+                return Response(data=None,status=Status.CANCEL)# the user changed their mind
 
             # Proceed loading the file chosen by the user
             pathname = fileDialog.GetPath()
