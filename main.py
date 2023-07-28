@@ -164,7 +164,8 @@ class MainWindow(wx.Frame):
     def OnOpenFile(self,event):
         
         response=self.controller.load_content(self,event).getResponse()
-        self.updateGrid(response['data'])
+        if response['status']==Status.OK:
+            self.updateGrid(response['data'])
  
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
@@ -190,8 +191,7 @@ class MainWindow(wx.Frame):
         for row in range(rows):
             for col in range(cols):
                 self.grid.SetCellBackgroundColour(row, col, wx.WHITE)
-        
-        
+    
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
         
@@ -242,23 +242,23 @@ class MainWindow(wx.Frame):
         return myGrid
  
     def createMenuBar(self):
-        menubar = wx.MenuBar()  # Crea la barra de menú
+        menubar = wx.MenuBar()  
         
-        fileMenu = wx.Menu()  # Crea el menú "Archivo"
-        fileMenu.Append(wx.ID_NEW, '&Import') # Agrega un elemento al menú
+        fileMenu = wx.Menu()  
+        fileMenu.Append(wx.ID_NEW, '&Import') 
         fileMenu.Append(wx.ID_OPEN, '&Save')
-        fileMenu.AppendSeparator()  # Agrega un separador
+        fileMenu.AppendSeparator()  
         fileMenu.Append(wx.ID_SAVE, '&Clear sheet')
-        fileMenu.AppendSeparator()  # Agrega un separador
+        fileMenu.AppendSeparator()  
         fileMenu.Append(wx.ID_EXIT, '&Create set')
 
-        helpMenu = wx.Menu()  # Crea el menú "Ayuda"
+        helpMenu = wx.Menu()  
         helpMenu.Append(wx.ID_ABOUT, '&Acerca de')
 
-        menubar.Append(fileMenu, '&File')  # Agrega el menú "Archivo" a la barra de menú
+        menubar.Append(fileMenu, '&File')  
         menubar.Append(helpMenu, '&Help')
 
-        self.SetMenuBar(menubar)  # Asigna la barra de menú a la ventana
+        self.SetMenuBar(menubar)  
 
 if __name__ == '__main__':
     app = wx.App()
