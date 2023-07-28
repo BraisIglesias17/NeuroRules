@@ -10,3 +10,5 @@ __pycache__
 
 ./front/views/__pycache__
 ./front/settings/__pycache__
+
+./back/__pycache__
