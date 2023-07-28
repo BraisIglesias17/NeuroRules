@@ -7,11 +7,11 @@ class IOManage():
     @staticmethod
     def LoadFile(self,event):
         # otherwise ask the user what new file to open
-        with wx.FileDialog(self, "Open CSV file", wildcard="CSV files (*.csv)|*.csv",
+        with wx.FileDialog(self, "Open file", wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx",
                         style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return     # the user changed their mind
+                return  None# the user changed their mind
 
             # Proceed loading the file chosen by the user
             pathname = fileDialog.GetPath()
@@ -23,7 +23,17 @@ class IOManage():
     
     @staticmethod
     def load_file(self,file):
-        data = pd.read_csv(file)
+        
+        if str(file.name).endswith(".csv"):
+            
+            data = pd.read_csv(file)
+        elif str(file.name).endswith(".xlsx"):
+            
+            data = pd.read_excel(file.name)
+            
+        else:
+            df=None
+        
         df = pd.DataFrame(data)
         return df
         
