@@ -37,50 +37,90 @@ class Controller():
             return Response(data="",status=Status.OK)
         else:
             return Response(data="",status=Status.VALIDATION_ERROR)
-        
+    
+    def get_data(self):
+        try:
+            return Response(data=self.contextData.get_data(),status=Status.OK)
+        except Exception as exc:
+                return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    
     def get_data_shape(self):
-        return Response(data=self.contextData.get_shape(),status=Status.OK)
+        try:
+            return Response(data=self.contextData.get_shape(),status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
 
     def get_independent_indexes(self):
-        return Response(data=self.contextData.variables_index,status=Status.OK)
+        try:
+            return Response(data=self.contextData.variables_index,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_target_indexes(self):
-        return Response(data=self.contextData.targets_index,status=Status.OK)
+        try:
+            return Response(data=self.contextData.targets_index,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_summary(self):
-        return Response(data=self.contextData.get_data_summary(),status=Status.OK)
+        try: 
+            data=self.contextData.get_data_summary()
+            return Response(data=data,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def set_independent_variables(self,indexes):
-        self.contextData.set_variables(indexes)
+        try:
+            self.contextData.set_variables(indexes)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_names(self):
-        return Response(data=self.contextData.get_names(),status=Status.OK)
+        try:
+            data=self.contextData.get_names()
+            return Response(data=data,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
 
     def set_targets(self,indexes):
-        self.contextData.set_target(indexes)
+
+        try:
+            self.contextData.set_target(indexes)
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_position(self,row,col):
 
-        state=True
         try:
             value=self.contextData.get_position(row,col)
-        except Exception as exc:
-            state=False
-
-        if state:
             return Response(data=value,status=Status.OK)
-        else:
-            return Response(data="",status=Status.GENERAL_ERROR)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+
         
     
     def update_context_data(self,df):
-
-        if self.contextData==None:
-            self.contextData=ContextData(df)
-        else:
-            self.contextData.update_set(df)
+        try:
+            if self.contextData==None:
+                self.contextData=ContextData(df)
+            else:
+                self.contextData.update_set(df)
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    
+    def clear_data(self):
+        try:
+            self.contextData=ContextData()
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
 
     def create_models(self,model,params):
