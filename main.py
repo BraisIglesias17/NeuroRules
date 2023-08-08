@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog
+from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog
 
 class MainWindow(wx.Frame):    
     def __init__(self,*args, **kwds):
@@ -34,8 +34,8 @@ class MainWindow(wx.Frame):
         self.import_file_button = wx.Button(self.panel, wx.ID_ANY, "Import data\n")
         sizer_4.Add(self.import_file_button, 1, wx.ALL | wx.EXPAND, 5)
 
-        self.create_set_button = wx.Button(self.panel, wx.ID_ANY, "Create set")
-        sizer_4.Add(self.create_set_button, 1, wx.ALL | wx.EXPAND, 5)
+        #self.create_set_button = wx.Button(self.panel, wx.ID_ANY, "Create set")
+        #sizer_4.Add(self.create_set_button, 1, wx.ALL | wx.EXPAND, 5)
 
         self.clear_set_button = wx.Button(self.panel, wx.ID_ANY, "Clear")
         sizer_4.Add(self.clear_set_button, 1, wx.ALL | wx.EXPAND, 5)
@@ -90,10 +90,12 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnNext,self.next_button)
         self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
         self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
-        """
-        self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
-        self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
-        """
+        self.Bind(wx.EVT_BUTTON,self.OnCleanData,self.clean_data_button)
+        self.Bind(wx.EVT_BUTTON,self.OnGraph,self.plot_data_button)
+        self.Bind(wx.EVT_BUTTON,self.OnSummary,self.summary_button)
+        #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
+        #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
+        
         
     
         self.enableButtons(False)
@@ -104,6 +106,20 @@ class MainWindow(wx.Frame):
         self.Center()
         self.Show(True)
 
+
+    def OnSummary(self,evt):
+        dialog=SummaryDialog(self)
+        dialog.ShowModal()
+
+
+    def OnGraph(self,evt):
+        dialog=GraphDialog(self)
+        dialog.ShowModal()
+
+    def OnCleanData(self,evt):
+        dialog=CleanDataDialog(self,self.controller,self.setting)
+        dialog.ShowModal()
+        
     def OnPreprocess(self,event):
         wx.MessageBox('Prueba', 'Prueba', wx.OK | wx.ICON_WARNING)
 
@@ -123,9 +139,12 @@ class MainWindow(wx.Frame):
     
     def OnNext(self,event):
         dialog=VariableTypeDialog(self,self.setting,self.controller)
-        code=dialog.ShowModal()
+        code=dialog.ShowModal()    
+    
+        #if code == wx.OK:
         self.train_button.Enable(True)
         self.updateColors()
+        
 
     def updateColors(self):
         independent=self.controller.get_independent_indexes().getResponse()['data']
@@ -142,16 +161,7 @@ class MainWindow(wx.Frame):
                 else:
                     self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.defaultColor))
         
-    """
-    def OnCreateData(self,event):
-        dialog = CreateSetDialog(self, "Create a set")
-        
-        if dialog.ShowModal() == wx.ID_OK:
-            df=dialog.GetValue()
-            self.controller.update_context_data(df)
-            self.updateGrid(df)
-        dialog.Destroy()
-    """
+       
     def enableButtons(self,val):
         self.clean_data_button.Enable(val)
         self.clear_set_button.Enable(val)
@@ -165,7 +175,10 @@ class MainWindow(wx.Frame):
         
         response=self.controller.load_content(self,event).getResponse()
         if response['status']==Status.OK:
+            self.ClearGrid()
             self.updateGrid(response['data'])
+
+            ##Inicializar settings de clean,process  y model
  
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
@@ -245,17 +258,22 @@ class MainWindow(wx.Frame):
         menubar = wx.MenuBar()  
         
         fileMenu = wx.Menu()  
-        fileMenu.Append(wx.ID_NEW, '&Import') 
-        fileMenu.Append(wx.ID_OPEN, '&Save')
-        fileMenu.AppendSeparator()  
-        fileMenu.Append(wx.ID_SAVE, '&Clear sheet')
-        fileMenu.AppendSeparator()  
-        fileMenu.Append(wx.ID_EXIT, '&Create set')
+        fileMenu.Append(wx.ID_NEW, '&Import file') 
+        fileMenu.Append(wx.ID_ANY, '&Save')
+        fileMenu.Append(wx.ID_ANY, '&Save as')
+
+        modelMenu= wx.Menu()
+        modelMenu.Append(wx.ID_ANY, '&Options')
+
+        settingsMenu= wx.Menu()
+        settingsMenu.Append(wx.ID_ANY, '&Settings')
 
         helpMenu = wx.Menu()  
-        helpMenu.Append(wx.ID_ABOUT, '&Acerca de')
+        helpMenu.Append(wx.ID_ABOUT, '&About us')
 
-        menubar.Append(fileMenu, '&File')  
+        menubar.Append(fileMenu, '&File') 
+        menubar.Append(modelMenu,'&Model') 
+        menubar.Append(settingsMenu,'&Settings') 
         menubar.Append(helpMenu, '&Help')
 
         self.SetMenuBar(menubar)  

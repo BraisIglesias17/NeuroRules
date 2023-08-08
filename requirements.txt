@@ -1,0 +1,7 @@
+pandas
+scipy
+sklearn
+wx
+matplotlib
+mpl_toolkits
+skfuzzy

@@ -18,6 +18,10 @@ class Settings():
         self.independentColor="#5a8f68"
         self.defaultColor="#ffffff"
 
+        self.cleanSettings=[]
+        self.preprocessSettings=[]
+        self.modelSettings=[]
+
     def SetCellSize(self,height,width):
         self.height_cell_size=height
         self.width_cell_size=80
@@ -32,3 +36,19 @@ class Settings():
     def GetCellSize(self):
         return self.height_cell_size,self.width_cell_size
         
+
+
+class CleanSettings():
+
+    def __init__(self,name,delete_outliers,delete_missing,strategy_outliers,strategy_missing,highlight_outliers):
+        
+        self.name=name
+        self.conf={'delete_outliers':delete_outliers,'delete_missing':delete_missing,'strategy_outliers':strategy_outliers,'strategy_missing':strategy_missing,'highlight_outliers':highlight_outliers}
+
+    
+    def getName(self):
+        return self.name
+    
+
+    def getConfiguration(self):
+        return self.conf

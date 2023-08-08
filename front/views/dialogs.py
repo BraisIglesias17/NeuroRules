@@ -59,6 +59,7 @@ class VariableTypeDialog(wx.Dialog):
 
         self.Bind(wx.grid.EVT_GRID_CELL_CHANGED,self.OnUpdateType)
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+        #self.Bind(wx.EVT_BUTTON,self.OnCancel,self.button_CANCEL)
         #self.Bind(wx.CHK_CHECKED,self.OnCheck,self.checkbox_1)
 
         sizer_2.Realize()
@@ -68,21 +69,25 @@ class VariableTypeDialog(wx.Dialog):
 
         self.SetEscapeId(self.button_CANCEL.GetId())
         
+        self.Center()
         self.Layout()
         # end wxGlade
+
+    def OnCancel(self,event):
+        self.Close(wx.CANCEL)
 
     def OnCheck(self,event):
         print(event)
 
     def OnApply(self,event):
         if len(self.independent_variables)==0:
-            print("ERROR")
+            wx.MessageBox('You must select one or more ingredients', 'Error', wx.OK | wx.ICON_WARNING)
         elif len(self.targets)==0:
-            print("ERROR")
+            wx.MessageBox('You must select one or more properties', 'Error', wx.OK | wx.ICON_WARNING)
         else:
             self.controller.set_independent_variables(self.independent_variables)
             self.controller.set_targets(self.targets)
-            print(f'{self.independent_variables},{self.targets}')
+            
             self.Close(wx.OK)
 
 
@@ -206,15 +211,15 @@ class RulesDialog(wx.Dialog):
         self.SetEscapeId(self.button_CANCEL.GetId())
         self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         
-        
+        self.Center()
         self.Layout()
         # end wxGlade
 
     def OnSave(self,event):
-        result=IOManage.OnSaveAs(self,event,self.rules_to_string).getResponse()
+        result=IOManage.OnSaveAs(self,event,self.rules_to_string,message="Save rules",wildcard=".txt files (*.txt)|*.txt").getResponse()
         if result['status']:
-            print(f"Imagen guardada con éxito en {result['data']}")
-            cadena=str("Imagen guardada con éxito en "+result['data'])
+            
+            cadena=str("Archivo guardado con éxito en "+result['data'])
             dialog=MessageDialog(self,False,cadena)
             dialog.ShowModal()
         else:
@@ -268,3 +273,363 @@ class MessageDialog(wx.Dialog):
         self.SetEscapeId(self.button_CLOSE.GetId())
 
         self.Layout()
+
+
+class CleanDataDialog(wx.Dialog):
+    def __init__(self,parent,controller,settings):
+        # begin wxGlade: CleanDataDialog.__init__
+        super(CleanDataDialog, self).__init__(parent)
+        self.SetTitle("Clean data")
+        
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND | wx.TOP, 5)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Missing Values"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 1, wx.EXPAND, 15)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4.Add(sizer_6, 1, wx.EXPAND,10)
+
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.checkbox_delete_missing = wx.CheckBox(self, wx.ID_ANY, "Delete rows with missing values")
+       
+        sizer_7.Add(self.checkbox_delete_missing, 1, wx.ALL, 5)
+
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.label_2 = wx.StaticText(self, wx.ID_ANY, "Sustitution strategy")
+        sizer_8.Add(self.label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        
+        self.combo_box_missing_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median"],style=wx.CB_READONLY,value="None")
+        sizer_8.Add(self.combo_box_missing_sustitution, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Outliers"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_5, 1, wx.EXPAND, 0)
+
+        sizer_9 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_9, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9.Add(sizer_12, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.checkbox_delete_outliers = wx.CheckBox(self, wx.ID_ANY, "Delete rows with outliers")
+        sizer_12.Add(self.checkbox_delete_outliers, 0, wx.ALL, 5)
+
+        sizer_11 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9.Add(sizer_11, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.checkbox_highlight_outliers = wx.CheckBox(self, wx.ID_ANY, "Highlight outliers")
+        sizer_11.Add(self.checkbox_highlight_outliers, 0, wx.ALL, 5)
+
+
+        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9.Add(sizer_10, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.label_3 = wx.StaticText(self, wx.ID_ANY, "Sustitution strategy")
+        sizer_10.Add(self.label_3, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.combo_box_outlier_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median"],style=wx.CB_READONLY,value="None")
+        sizer_10.Add(self.combo_box_outlier_sustitution, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+
+        sizer_12 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_12, 0, wx.EXPAND, 5)
+        options=parent.controller.get_names().getResponse()['data']
+        
+        options=list(options)
+        options.append("All")
+        self.combo_box_variable = wx.ComboBox(self, wx.ID_ANY, choices=options,style=wx.CB_READONLY,value="All")
+        sizer_12.Add(self.combo_box_variable, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+
+        
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+
+
+        self.Bind(wx.EVT_CHECKBOX,self.OnCheckMissing,self.checkbox_delete_missing)
+        self.Bind(wx.EVT_CHECKBOX,self.OnCheckDeleteOutliers,self.checkbox_delete_outliers)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+        self.Center()
+        self.Layout()
+        # end wxGlade
+
+    
+    def OnCheckDeleteOutliers(self,event):
+        checked=self.checkbox_delete_outliers.GetValue()
+
+        if checked:
+            self.combo_box_outlier_sustitution.Enable(False)
+            self.checkbox_highlight_outliers.Enable(False)
+            self.label_3.Enable(False)
+        else:
+            self.combo_box_outlier_sustitution.Enable(True)
+            self.checkbox_highlight_outliers.Enable(True)
+            self.label_3.Enable(True)
+
+
+    def OnCheckMissing(self,event):
+
+        checked=self.checkbox_delete_missing.GetValue()
+        variable=self.combo_box_variable.GetValue()
+        print(variable)
+        if checked:
+
+            self.combo_box_missing_sustitution.Enable(False)
+            self.label_2.Enable(False)
+        else:
+            self.combo_box_missing_sustitution.Enable(True)
+            self.label_2.Enable(True)
+
+
+class GraphDialog(wx.Dialog):
+    def __init__(self,parent):
+        # begin wxGlade: GraphDialog.__init__
+
+
+        super(GraphDialog, self).__init__(parent)
+        self.SetTitle("Graph")
+
+        self.controller=parent.controller
+
+        resp=self.controller.get_names().getResponse()
+        if resp['status'] == Status.OK:
+            names=resp['data']
+            names=list(names)
+        else:
+            wx.MessageBox("A problem has occurred")
+            self.Close()
+        
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, ""), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
+
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_5, 1, wx.EXPAND, 0)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "X Axis")
+        sizer_6.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        self.listbox_x_axis = wx.ListBox(self, wx.ID_ANY, choices=names)
+        sizer_6.Add(self.listbox_x_axis, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        sizer_7 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_7, 1, wx.EXPAND, 0)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, "Y Axis")
+        sizer_7.Add(label_2, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        self.listbox_y_axis = wx.ListBox(self, wx.ID_ANY, choices=names)
+        sizer_7.Add(self.listbox_y_axis, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        sizer_8 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_8, 1, wx.EXPAND, 0)
+
+        label_3 = wx.StaticText(self, wx.ID_ANY, "Z Axis")
+        sizer_8.Add(label_3, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        self.listbox_z_axis = wx.ListBox(self, wx.ID_ANY, choices=names)
+        sizer_8.Add(self.listbox_z_axis, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_9, 0, wx.EXPAND, 0)
+
+        sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Type"), wx.HORIZONTAL)
+        sizer_9.Add(sizer_10, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_11 = wx.GridBagSizer(0, 0)
+        sizer_10.Add(sizer_11, 1, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
+
+        self.radio_btn_2d_graph = wx.RadioButton(self, wx.ID_ANY, "2D Graph")
+        sizer_11.Add(self.radio_btn_2d_graph, (0, 0), (1, 1), wx.ALL, 5)
+
+        self.radio_btn_3d_graph = wx.RadioButton(self, wx.ID_ANY, "3D Graph")
+        sizer_11.Add(self.radio_btn_3d_graph, (0, 1), (1, 1), wx.ALL, 5)
+
+        self.radio_btn_frequency = wx.RadioButton(self, wx.ID_ANY, "Frequency")
+        sizer_11.Add(self.radio_btn_frequency, (0, 2), (1, 1), wx.ALL, 5)
+
+        sizer_12 = wx.BoxSizer(wx.VERTICAL)
+        sizer_9.Add(sizer_12, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.checkbox_regression_line = wx.CheckBox(self, wx.ID_ANY, "Show Linear Regression Fit Line")
+        sizer_12.Add(self.checkbox_regression_line, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_13 = wx.GridBagSizer(0, 0)
+        sizer_12.Add(sizer_13, 1, wx.ALL | wx.EXPAND, 5)
+
+        label_number_bins = wx.StaticText(self, wx.ID_ANY, "Number of Bins")
+        sizer_13.Add(label_number_bins, (0, 0), (1, 1), wx.ALL, 10)
+
+        self.input_number_bins = wx.SpinCtrl(self, wx.ID_ANY, min=0, max=100,initial=10)
+        sizer_13.Add(self.input_number_bins, (0, 1), (1, 1), wx.ALL | wx.EXPAND, 10)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_HELP = wx.Button(self, wx.ID_HELP, "")
+        sizer_2.AddButton(self.button_HELP)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+
+        self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_frequency)
+        self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_3d_graph)
+        self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_2d_graph)
+        self.SetAffirmativeId(self.button_OK.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Center()
+        self.Layout()
+        # end wxGlade
+
+
+    def OnChangeType(self,evt):
+        
+        if self.radio_btn_frequency.GetValue():
+            
+            self.listbox_y_axis.Enable(False)
+            self.listbox_z_axis.Enable(False)
+        elif self.radio_btn_2d_graph.GetValue():
+            
+            self.listbox_y_axis.Enable(True)
+            self.listbox_z_axis.Enable(False)
+        else:
+            
+            self.listbox_y_axis.Enable(True)
+            self.listbox_z_axis.Enable(True)
+
+
+
+
+class SummaryDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        super(SummaryDialog, self).__init__(parent)
+        self.SetSize((850, 481))
+        self.SetTitle("Summary")
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.IO=parent.IO
+        self.names=parent.controller.get_names().getResponse()
+        self.summary=parent.controller.get_summary().getResponse()
+
+        if self.names['status']== Status.OK and self.summary['status']== Status.OK:
+            self.names=self.names['data']
+            self.summary=self.summary['data']
+        else:
+            wx.MessageBox("A problem has occurred")
+
+        
+        self.grid_1 = wx.grid.Grid(self, wx.ID_ANY)
+        self.grid_1=self.createDataGrid(self.grid_1,len(self.names))
+        
+        sizer_3.Add(self.grid_1, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "Save")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+
+        #self.SetAffirmativeId(self.button_OK.GetId())
+        self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_OK)
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Center()
+        self.Layout()
+        # end wxGlade
+
+    def OnSave(self,event):
+        result=self.IO.OnSaveAs(self,event,self.summary,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
+        if result['status'] == Status.OK:
+            
+            cadena=str("Info","Imagen guardada con éxito en "+result['data'])
+            wx.MessageBox(cadena)
+        elif result['status'] != Status.CANCEL:
+            wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
+
+
+    def createDataGrid(self,myGrid,rows):
+        
+        myGrid.CreateGrid(rows,9)
+        myGrid.SetRowLabelSize(0)
+        col=0
+        myGrid.SetColLabelValue(col,'Variable')
+        col+=1
+        names=self.names
+
+        metrics=self.summary.index
+
+        for index in metrics:
+            myGrid.SetColLabelValue(col,index)
+            col+=1
+
+        i=0 
+        j=0
+        
+        for variable in names:
+            j=0
+            myGrid.SetCellValue(i,j,str(variable))
+            j+=1
+            #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
+            
+            for index in self.summary.index:
+                value=self.summary[[variable]].loc[index]
+                
+                myGrid.SetCellValue(i,j," "+str(round(value.values[0],2))+" ")
+                myGrid.SetReadOnly(i,j,True)
+                j+=1        
+            i+=1
+
+        myGrid.AutoSizeColumn(0,True)
+
+        return myGrid
+               

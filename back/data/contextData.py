@@ -32,6 +32,9 @@ class ContextData():
         self.targets=[]
         self.variables_index=[]
         self.targets_index=[]
+
+        self.data_cleanse={} # 'lubricant':{'delete_missing':0,'substitute_missing':'Mean','delete_outliers':0,'substitute_outliers':'Mean'}
+        self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
     
     def update_set(self,df):
         self.__init__(df)

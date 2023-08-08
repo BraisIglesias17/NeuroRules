@@ -38,12 +38,12 @@ class IOManage():
         return df
         
     @staticmethod
-    def OnSaveAs(self, event,data):
-        with wx.FileDialog(self, "Save XYZ file", wildcard=".txt files (*.txt)|*.txt",
+    def OnSaveAs(self, event,data,message,wildcard):
+        with wx.FileDialog(self, message, wildcard=wildcard,
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return     # the user changed their mind
+                return  Response(data="",status=Status.CANCEL)# the user changed their mind
 
             # save the current contents in the file
             pathname = fileDialog.GetPath()
