@@ -24,7 +24,7 @@ class ContextData():
         self.floatValues=[]
         self.characterValues=[]
         self.integerValues=[]
-        self.get_types()
+        self._get_types()
 
         self.values=self.data.to_numpy()
 
@@ -35,13 +35,20 @@ class ContextData():
 
         self.data_cleanse={} # 'lubricant':{'delete_missing':0,'substitute_missing':'Mean','delete_outliers':0,'substitute_outliers':'Mean'}
         self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
+
+        self.set_initial_cleanse()
     
+    def set_initial_cleanse(self):
+        for variable in self.data.columns:
+            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':True,'highlight_outliers':False,'substitute_outliers':'None'}
+    
+        
     def update_set(self,df):
         self.__init__(df)
         
     def get_data(self):
         return self.data
-    def get_types(self):
+    def _get_types(self):
         '''
         Check  the type of the variables saved on Dataframe: int, float or string
         '''
@@ -124,6 +131,8 @@ class ContextData():
           
         
         return toret
+    
+
     def print(self):
         print(f'filename: {self.pathname} \n Data: {self.data} \n State: {self.state}')
 
@@ -198,5 +207,15 @@ class ContextData():
         return toret
     
         
+    def get_cleanse(self):
+        return self.data_cleanse
+    
+    def set_cleanse(self,variable,options):
+        if variable in self.data.columns:
+            self.data_cleanse[variable]=options
+           
+            return True
+        else:
+            raise ValueError("Not a valid variable")
     
 

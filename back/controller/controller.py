@@ -165,7 +165,21 @@ class Controller():
             #toret={'R2':,'rules':}
             
         return toret
+    
+    def set_cleanse_option(self,variable,options):
+        try:
+            self.contextData.set_cleanse(variable,options)
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
+    def get_cleanse(self):
+        try:
+            ret=self.contextData.get_cleanse()
+            return Response(data=ret,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
 
             
 

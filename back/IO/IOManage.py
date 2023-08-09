@@ -49,13 +49,24 @@ class IOManage():
             pathname = fileDialog.GetPath()
             toret=Response()
             try:
-                with open(pathname, 'w') as file:
-                    file.write(data)
+                pathname=str(pathname).replace("\\","/")
+                if str(pathname).endswith(".xlsx"):
                     
-                    toret=Response(data=pathname,status=Status.OK)
+                    data.to_csv(pathname)
+                elif str(pathname).endswith(".csv"):
+                    
+                    print(type(data))
+                    data.to_excel(pathname)
+                elif str(pathname).endswith(".txt"):
+                    with open(pathname, 'w') as file:
+                        file.write(data)    
+                    
+                toret=Response(data=pathname,status=Status.OK)
             except IOError:
                 wx.LogError("Cannot save current data in file '%s'." % pathname)
                 toret=Response(data=None,status=Status.IO_ERROR)
+            except Exception as exc:
+                print(exc)
             finally:
                 return toret
 

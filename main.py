@@ -93,6 +93,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnCleanData,self.clean_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnGraph,self.plot_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnSummary,self.summary_button)
+        self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.statistics_button)
         #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
         #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
         
@@ -121,7 +122,7 @@ class MainWindow(wx.Frame):
         dialog.ShowModal()
         
     def OnPreprocess(self,event):
-        wx.MessageBox('Prueba', 'Prueba', wx.OK | wx.ICON_WARNING)
+        wx.MessageBox('To do', 'To do', wx.OK | wx.ICON_WARNING)
 
 
     def OnTrain(self,event):

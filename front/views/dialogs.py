@@ -280,14 +280,14 @@ class CleanDataDialog(wx.Dialog):
         # begin wxGlade: CleanDataDialog.__init__
         super(CleanDataDialog, self).__init__(parent)
         self.SetTitle("Clean data")
-        
+        self.parent=parent
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND | wx.TOP, 5)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND | wx.TOP, 15)
 
         sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Missing Values"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_4, 1, wx.EXPAND, 15)
+        sizer_3.Add(sizer_4, 1, wx.ALL| wx.EXPAND, 10)
 
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
         sizer_4.Add(sizer_6, 1, wx.EXPAND,10)
@@ -309,7 +309,7 @@ class CleanDataDialog(wx.Dialog):
         sizer_8.Add(self.combo_box_missing_sustitution, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Outliers"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_5, 1, wx.EXPAND, 0)
+        sizer_3.Add(sizer_5, 1, wx.ALL|wx.EXPAND,10)
 
         sizer_9 = wx.BoxSizer(wx.VERTICAL)
         sizer_5.Add(sizer_9, 1, wx.ALL | wx.EXPAND, 5)
@@ -338,9 +338,9 @@ class CleanDataDialog(wx.Dialog):
 
 
         sizer_12 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_12, 0, wx.EXPAND, 5)
+        sizer_3.Add(sizer_12, 0, wx.ALL| wx.EXPAND, 10)
         options=parent.controller.get_names().getResponse()['data']
-        
+        self.names=options
         options=list(options)
         options.append("All")
         self.combo_box_variable = wx.ComboBox(self, wx.ID_ANY, choices=options,style=wx.CB_READONLY,value="All")
@@ -351,17 +351,17 @@ class CleanDataDialog(wx.Dialog):
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
 
-        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
-        sizer_2.AddButton(self.button_CANCEL)
 
         self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
         sizer_2.AddButton(self.button_APPLY)
 
-
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "Close")
+        sizer_2.AddButton(self.button_CANCEL)
 
         self.Bind(wx.EVT_CHECKBOX,self.OnCheckMissing,self.checkbox_delete_missing)
         self.Bind(wx.EVT_CHECKBOX,self.OnCheckDeleteOutliers,self.checkbox_delete_outliers)
-
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeVariable,self.combo_box_variable)
         sizer_2.Realize()
 
         self.SetSizer(sizer_1)
@@ -372,7 +372,23 @@ class CleanDataDialog(wx.Dialog):
         self.Layout()
         # end wxGlade
 
-    
+    def OnChangeVariable(self,event):
+        target=self.combo_box_variable.GetValue()
+        if target != "All":
+            options=self.parent.controller.get_cleanse().getResponse()
+            if options['status']==Status.OK:
+                options=options['data'][target]
+                
+                self.checkbox_delete_missing.SetValue(options['delete_missing'])
+                self.combo_box_missing_sustitution.SetValue(options['substitute_missing'])
+                self.checkbox_delete_outliers.SetValue(options['delete_outliers'])
+                self.combo_box_outlier_sustitution.SetValue(options['substitute_outliers'])
+                self.checkbox_highlight_outliers.SetValue(options['highlight_outliers'])
+                
+            else:
+                wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
+
+
     def OnCheckDeleteOutliers(self,event):
         checked=self.checkbox_delete_outliers.GetValue()
 
@@ -389,8 +405,8 @@ class CleanDataDialog(wx.Dialog):
     def OnCheckMissing(self,event):
 
         checked=self.checkbox_delete_missing.GetValue()
-        variable=self.combo_box_variable.GetValue()
-        print(variable)
+        #variable=self.combo_box_variable.GetValue()
+        
         if checked:
 
             self.combo_box_missing_sustitution.Enable(False)
@@ -398,6 +414,30 @@ class CleanDataDialog(wx.Dialog):
         else:
             self.combo_box_missing_sustitution.Enable(True)
             self.label_2.Enable(True)
+
+    def OnApply(self,event):
+        try:
+            target=self.combo_box_variable.GetValue()
+            dm=self.checkbox_delete_missing.GetValue()
+            sm=self.combo_box_missing_sustitution.GetValue()
+            do=self.checkbox_delete_outliers.GetValue()
+            so=self.combo_box_outlier_sustitution.GetValue()
+            ho=self.checkbox_highlight_outliers.GetValue()
+            if target == "All":
+                #Cambiar todos
+                for variable in self.names:
+                    result=self.parent.controller.set_cleanse_option(variable,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so}).getResponse()
+                    
+            else:
+                result=self.parent.controller.set_cleanse_option(target,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so}).getResponse()
+            
+            if result['status']== Status.OK:
+                wx.MessageBox("Changed succesfully submited ")
+        except Exception as exc:
+            wx.MessageBox(str(exc),"Error",wx.OK|wx.ICON_ERROR)
+                
+            
+            
 
 
 class GraphDialog(wx.Dialog):
@@ -591,8 +631,8 @@ class SummaryDialog(wx.Dialog):
         result=self.IO.OnSaveAs(self,event,self.summary,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
         if result['status'] == Status.OK:
             
-            cadena=str("Info","Imagen guardada con éxito en "+result['data'])
-            wx.MessageBox(cadena)
+            cadena=str("File saved succesfully in "+result['data'])
+            wx.MessageBox(cadena,"Info")
         elif result['status'] != Status.CANCEL:
             wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
 
