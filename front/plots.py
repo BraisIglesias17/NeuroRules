@@ -56,6 +56,12 @@ def plot_hist(data,option):
     plt.show()
 
 
+def plot_boxplot(data,option):
+    x=data['x']['data']
+    plt.boxplot(x)
+    plt.title(str(data['x']['name']+" boxplot"))
+    plt.show()
+
 def plot_regression(data,options):
     x=data['x']['data']
     y=data['y']['data']
