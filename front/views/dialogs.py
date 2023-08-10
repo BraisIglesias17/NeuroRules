@@ -5,7 +5,7 @@ import pandas as pd
 from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.respuestas import Status
-from ..plots import plot_2d,plot_3d,plot_hist, plot_regression
+from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot
 
 
 class VariableTypeDialog(wx.Dialog):
@@ -319,13 +319,14 @@ class CleanDataDialog(wx.Dialog):
 
         self.checkbox_delete_outliers = wx.CheckBox(self, wx.ID_ANY, "Delete rows with outliers")
         sizer_12.Add(self.checkbox_delete_outliers, 0, wx.ALL, 5)
+        
 
         sizer_11 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_9.Add(sizer_11, 1, wx.ALL | wx.EXPAND, 5)
 
         self.checkbox_highlight_outliers = wx.CheckBox(self, wx.ID_ANY, "Highlight outliers")
         sizer_11.Add(self.checkbox_highlight_outliers, 0, wx.ALL, 5)
-
+        self.checkbox_delete_missing.SetValue(1)
 
         sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_9.Add(sizer_10, 1, wx.ALL | wx.EXPAND, 5)
@@ -354,14 +355,18 @@ class CleanDataDialog(wx.Dialog):
 
         self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
         sizer_2.AddButton(self.button_APPLY)
+        
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "Save")
+        sizer_2.AddButton(self.button_SAVE)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "Close")
         sizer_2.AddButton(self.button_CANCEL)
 
         self.Bind(wx.EVT_CHECKBOX,self.OnCheckMissing,self.checkbox_delete_missing)
         self.Bind(wx.EVT_CHECKBOX,self.OnCheckDeleteOutliers,self.checkbox_delete_outliers)
-        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+        self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeVariable,self.combo_box_variable)
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
         sizer_2.Realize()
 
         self.SetSizer(sizer_1)
@@ -415,7 +420,7 @@ class CleanDataDialog(wx.Dialog):
             self.combo_box_missing_sustitution.Enable(True)
             self.label_2.Enable(True)
 
-    def OnApply(self,event):
+    def OnSave(self,event):
         try:
             target=self.combo_box_variable.GetValue()
             dm=self.checkbox_delete_missing.GetValue()
@@ -432,11 +437,29 @@ class CleanDataDialog(wx.Dialog):
                 result=self.parent.controller.set_cleanse_option(target,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so}).getResponse()
             
             if result['status']== Status.OK:
-                wx.MessageBox("Changed succesfully submited ")
+                wx.MessageBox("Changed succesfully saved ")
         except Exception as exc:
             wx.MessageBox(str(exc),"Error",wx.OK|wx.ICON_ERROR)
                 
+    def OnApply(self,event):
+        options=self.parent.controller.get_cleanse().getResponse()
+        deleted=0
+        if options['status']==Status.OK:
+            #HERE
+
+            for variable in options['data']:
+                response=self.parent.controller.apply_cleanse(variable).getResponse()
+                if response['status']==Status.OK:
+                    d=response['data']['deleted_rows']
+                    deleted+=d
+                else:
+                    wx.MessageBox(str("A problem has ocurred with "+variable+" process"),"Error",wx.OK|wx.ICON_ERROR)
             
+            wx.MessageBox(str("A total of "+str(deleted)+" rows will be deleted"),"Info")
+            self.Close()
+
+        else:
+            wx.MessageBox("A problem has occurred in the controller class or deeper","Error",wx.OK|wx.ICON_ERROR)
             
 
 
@@ -601,7 +624,6 @@ class GraphDialog(wx.Dialog):
 
     def _validate_selection(self,value,name):
         if value=="":
-            wx.MessageBox(str(name+" must be selected"),"Error",wx.OK|wx.ICON_ERROR)
             return False
         else:
             return True
@@ -616,32 +638,56 @@ class GraphDialog(wx.Dialog):
         y_right=self.listbox_yb_axis.GetStringSelection()
         z=self.listbox_z_axis.GetStringSelection()
 
-        self._validate_selection(x,"x")
-        if self.radio_btn_2d_graph.GetValue():
-            
-            options={}
-            if self._validate_selection(y,"left y") and self._validate_selection(y_right,"right y"):
-
-                plot_2d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},
-                        'y_right':{'name':y_right,'data':data[y_right]}},options)
-                if self.checkbox_regression_line.GetValue():
-                    plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]}},options)
-                    plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y_right,'data':data[y_right]}},options)
-
-        if self.radio_btn_3d_graph.GetValue():
-            
-            if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
+        entered_x=self._validate_selection(x,"x")
+        if not entered_x:
+            wx.MessageBox("You must be select X axis variable","Error",wx.OK|wx.ICON_ERROR)
+        else:
+            if self.radio_btn_2d_graph.GetValue():
+                
                 options={}
-                plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}},options)
+                arg={'x':{'name':x,'data':data[x]},'y':{'name':'','data':''},
+                            'y_right':{'name':'','data':''}}
+                
+                entered_y=self._validate_selection(y,"left y")
+                if entered_y:
+                    arg['y']['name']=y
+                    arg['y']['data']=data[y]
 
-        if self.radio_btn_frequency.GetValue():
-            bins=self.input_number_bins.GetValue()
-            if bins<1:
-                wx.MessageBox("Invalid number of bins","Error",wx.OK|wx.ICON_ERROR)
-            else:
-                options={'bins':bins}
+                entered_y_right=self._validate_selection(y_right,"right y")
+                if entered_y_right:
+                    arg['y_right']['name']=y_right
+                    arg['y_right']['data']=data[y_right]
 
-                plot_hist({'x':{'name':x,'data':data[x]}},options)
+                if not entered_y and not entered_y_right:
+                    wx.MessageBox(str("You must be select either left or right Y axis variable"),"Error",wx.OK|wx.ICON_ERROR)
+                else:
+                    plot_2d(arg,options)
+                    if self.checkbox_regression_line.GetValue():
+                        if self._validate_selection(y,"left y"):
+                            plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]}},options)
+                        if self._validate_selection(y_right,"right y"):
+                            plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y_right,'data':data[y_right]}},options)
+
+            if self.radio_btn_3d_graph.GetValue():
+                
+                if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
+                    options={}
+                    plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}},options)
+                else:
+                    wx.MessageBox("You must select Y and Z axis","Error",wx.OK|wx.ICON_ERROR)
+            if self.radio_btn_frequency.GetValue():
+                bins=self.input_number_bins.GetValue()
+                if bins<1:
+                    wx.MessageBox("Invalid number of bins","Error",wx.OK|wx.ICON_ERROR)
+                else:
+                    options={'bins':bins}
+
+                    plot_hist({'x':{'name':x,'data':data[x]}},options)
+
+            if self.radio_btn_box_plot.GetValue():
+                options={}
+                plot_boxplot({'x':{'name':x,'data':data[x]}},options)
+
 
 
 class SummaryDialog(wx.Dialog):
@@ -709,6 +755,7 @@ class SummaryDialog(wx.Dialog):
         myGrid.CreateGrid(rows,9)
         myGrid.SetRowLabelSize(0)
         col=0
+        
         myGrid.SetColLabelValue(col,'Variable')
         col+=1
         names=self.names
