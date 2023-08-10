@@ -181,6 +181,12 @@ class Controller():
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
 
+    def apply_cleanse(self,variable):
+        try:
+            deleted_rows=self.contextData.apply_cleanse(variable)
+            return Response(data={'deleted_rows':deleted_rows},status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
             
 
     
