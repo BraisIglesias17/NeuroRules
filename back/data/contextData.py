@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from ..validation.validation import Validator
-
+from .process import substitute_outliers,susbstitute_missing,remove_missing,remove_outliers
 
 class ContextData():
     """
@@ -40,7 +40,7 @@ class ContextData():
     
     def set_initial_cleanse(self):
         for variable in self.data.columns:
-            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':True,'highlight_outliers':False,'substitute_outliers':'None'}
+            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None'}
     
         
     def update_set(self,df):
@@ -206,7 +206,35 @@ class ContextData():
         
         return toret
     
+    
+    def apply_cleanse(self,variable):
+        settings=self.data_cleanse[variable]
+
+        n_rows_begin=self.data.shape[0]
+
+        if settings['delete_missing']:
+            self.data=remove_missing(self.data,variable)
+        else:
+            if settings['substitute_missing']!="None":
+                self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])
+
+        if settings['delete_outliers']:
+            self.data=remove_outliers(self.data,variable,0.75,0.25)
+        else:
+            if settings['substitute_outliers']!="None":
+                
+                self.data=substitute_outliers(self.data,variable,settings['substitute_outliers'],0.75,0.25)
+                
         
+        
+
+        self.data=self.data.reset_index(drop=True)
+        self.values=self.data.to_numpy()
+        n_rows_end=self.data.shape[0]
+
+        return (n_rows_begin-n_rows_end)
+
+
     def get_cleanse(self):
         return self.data_cleanse
     
