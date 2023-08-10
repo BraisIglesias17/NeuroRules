@@ -5,7 +5,7 @@ import pandas as pd
 from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.respuestas import Status
-
+from ..plots import plot_2d,plot_3d,plot_hist, plot_regression
 
 
 class VariableTypeDialog(wx.Dialog):
@@ -481,12 +481,24 @@ class GraphDialog(wx.Dialog):
         sizer_7 = wx.BoxSizer(wx.VERTICAL)
         sizer_5.Add(sizer_7, 1, wx.EXPAND, 0)
 
-        label_2 = wx.StaticText(self, wx.ID_ANY, "Y Axis")
+        label_2 = wx.StaticText(self, wx.ID_ANY, "Left Y Axis")
         sizer_7.Add(label_2, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
         self.listbox_y_axis = wx.ListBox(self, wx.ID_ANY, choices=names)
         sizer_7.Add(self.listbox_y_axis, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
+        ##
+
+        sizer_7b = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_7b, 1, wx.EXPAND, 0)
+
+        label_2b = wx.StaticText(self, wx.ID_ANY, "Right Y Axis")
+        sizer_7b.Add(label_2b, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        self.listbox_yb_axis = wx.ListBox(self, wx.ID_ANY, choices=names)
+        sizer_7b.Add(self.listbox_yb_axis, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        self.listbox_yb_axis.Enable(False)
+        ##
         sizer_8 = wx.BoxSizer(wx.VERTICAL)
         sizer_5.Add(sizer_8, 1, wx.EXPAND, 0)
 
@@ -507,18 +519,23 @@ class GraphDialog(wx.Dialog):
 
         self.radio_btn_2d_graph = wx.RadioButton(self, wx.ID_ANY, "2D Graph")
         sizer_11.Add(self.radio_btn_2d_graph, (0, 0), (1, 1), wx.ALL, 5)
-
+        
         self.radio_btn_3d_graph = wx.RadioButton(self, wx.ID_ANY, "3D Graph")
         sizer_11.Add(self.radio_btn_3d_graph, (0, 1), (1, 1), wx.ALL, 5)
+        self.radio_btn_3d_graph.SetValue(1)
 
-        self.radio_btn_frequency = wx.RadioButton(self, wx.ID_ANY, "Frequency")
+        self.radio_btn_frequency = wx.RadioButton(self, wx.ID_ANY, "Histogram")
         sizer_11.Add(self.radio_btn_frequency, (0, 2), (1, 1), wx.ALL, 5)
+
+        self.radio_btn_box_plot = wx.RadioButton(self, wx.ID_ANY, "Box plot")
+        sizer_11.Add(self.radio_btn_box_plot, (0, 3), (1, 1), wx.ALL, 5)
 
         sizer_12 = wx.BoxSizer(wx.VERTICAL)
         sizer_9.Add(sizer_12, 1, wx.ALL | wx.EXPAND, 10)
 
         self.checkbox_regression_line = wx.CheckBox(self, wx.ID_ANY, "Show Linear Regression Fit Line")
         sizer_12.Add(self.checkbox_regression_line, 1, wx.ALL | wx.EXPAND, 10)
+        self.checkbox_regression_line.Enable(False)
 
         sizer_13 = wx.GridBagSizer(0, 0)
         sizer_12.Add(sizer_13, 1, wx.ALL | wx.EXPAND, 5)
@@ -532,8 +549,8 @@ class GraphDialog(wx.Dialog):
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
-        self.button_OK = wx.Button(self, wx.ID_OK, "")
-        self.button_OK.SetDefault()
+        self.button_OK = wx.Button(self, wx.ID_OK, "Plot")
+        #self.button_OK.SetDefault()
         sizer_2.AddButton(self.button_OK)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
@@ -551,6 +568,8 @@ class GraphDialog(wx.Dialog):
         self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_frequency)
         self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_3d_graph)
         self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_2d_graph)
+
+        self.Bind(wx.EVT_BUTTON,self.generate_graph,self.button_OK)
         self.SetAffirmativeId(self.button_OK.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
 
@@ -558,23 +577,71 @@ class GraphDialog(wx.Dialog):
         self.Layout()
         # end wxGlade
 
-
     def OnChangeType(self,evt):
         
         if self.radio_btn_frequency.GetValue():
             
             self.listbox_y_axis.Enable(False)
             self.listbox_z_axis.Enable(False)
+            self.listbox_yb_axis.Enable(False)
+            self.checkbox_regression_line.Enable(False)
+
         elif self.radio_btn_2d_graph.GetValue():
             
             self.listbox_y_axis.Enable(True)
+            self.listbox_yb_axis.Enable(True)
             self.listbox_z_axis.Enable(False)
+            self.checkbox_regression_line.Enable(True)
         else:
             
             self.listbox_y_axis.Enable(True)
+            self.listbox_yb_axis.Enable(False)
             self.listbox_z_axis.Enable(True)
+            self.checkbox_regression_line.Enable(False)
 
+    def _validate_selection(self,value,name):
+        if value=="":
+            wx.MessageBox(str(name+" must be selected"),"Error",wx.OK|wx.ICON_ERROR)
+            return False
+        else:
+            return True
+    def generate_graph(self,evt):
+        data=self.controller.get_data().getResponse()
+        if data['status']==Status.OK:
+            data=data['data']
+        else:
+            wx.MessageBox("An error has ocurred","Error",wx.OK|wx.ICON_ERROR)
+        x=self.listbox_x_axis.GetStringSelection()
+        y=self.listbox_y_axis.GetStringSelection()
+        y_right=self.listbox_yb_axis.GetStringSelection()
+        z=self.listbox_z_axis.GetStringSelection()
 
+        self._validate_selection(x,"x")
+        if self.radio_btn_2d_graph.GetValue():
+            
+            options={}
+            if self._validate_selection(y,"left y") and self._validate_selection(y_right,"right y"):
+
+                plot_2d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},
+                        'y_right':{'name':y_right,'data':data[y_right]}},options)
+                if self.checkbox_regression_line.GetValue():
+                    plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]}},options)
+                    plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y_right,'data':data[y_right]}},options)
+
+        if self.radio_btn_3d_graph.GetValue():
+            
+            if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
+                options={}
+                plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}},options)
+
+        if self.radio_btn_frequency.GetValue():
+            bins=self.input_number_bins.GetValue()
+            if bins<1:
+                wx.MessageBox("Invalid number of bins","Error",wx.OK|wx.ICON_ERROR)
+            else:
+                options={'bins':bins}
+
+                plot_hist({'x':{'name':x,'data':data[x]}},options)
 
 
 class SummaryDialog(wx.Dialog):
