@@ -9,6 +9,8 @@ from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
 from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog
+from back.validation.validation import Validator
+import numpy as np
 
 class MainWindow(wx.Frame):    
     def __init__(self,*args, **kwds):
@@ -21,8 +23,10 @@ class MainWindow(wx.Frame):
         self.setting=Settings()
         self.IO=IOManage()
         self.controller=Controller()
-        self.init=False  
-        
+        self.init=False
+        self.highlighted_cells=[]  
+        self.highlighted_cols=[]
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -120,20 +124,25 @@ class MainWindow(wx.Frame):
     def OnCleanData(self,evt):
         dialog=CleanDataDialog(self,self.controller,self.setting)
         dialog.ShowModal()
+        response=self.controller.get_data().getResponse()
+        
+        if response['status']==Status.OK:
+            self.ClearGrid()
+            self.updateGrid(response['data'])
+        else:
+            wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
+    
+        
+
         
     def OnPreprocess(self,event):
         wx.MessageBox('To do', 'To do', wx.OK | wx.ICON_WARNING)
 
 
     def OnTrain(self,event):
-
-
         print("ON TRAIN")
-
         #Validar datos
-
         rules=self.controller.create_models("model","params")
-        
         dialog=RulesDialog(self,rules)
         dialog.ShowModal()
 
@@ -157,8 +166,10 @@ class MainWindow(wx.Frame):
             for col in range(cols):
                 if col in targets:
                     self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.targetColor))
+                    self.highlighted_cols.append([row,col])
                 elif col in independent:
                     self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.independentColor))
+                    self.highlighted_cols.append([row,col])
                 else:
                     self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.defaultColor))
         
@@ -188,7 +199,9 @@ class MainWindow(wx.Frame):
 
         if not response['status'] == Status.OK:
             self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).getResponse()['data']))
-            self.updateGrid(self.controller.get_data())
+            self.updateGrid(self.controller.get_data().getResponse()['data'])
+        else:
+            self.grid.SetCellBackgroundColour(row, col, wx.Colour('#FFFFFF'))
             
 
     def OnClearGrid(self,event):
@@ -198,20 +211,19 @@ class MainWindow(wx.Frame):
 
     def ClearGrid(self):
         
-        self.grid.ClearGrid()
+        self.grid.ClearGrid()     
+        for coords in self.highlighted_cells:
+            self.grid.SetCellBackgroundColour(coords[1], coords[0], wx.WHITE)
 
-        rows,cols=self.controller.get_data_shape().getResponse()['data']
-        
-        for row in range(rows):
-            for col in range(cols):
-                self.grid.SetCellBackgroundColour(row, col, wx.WHITE)
-    
-        #self.grid_sizer.Layout()
-        #self.grid.AutoSize()
+        for coords in self.highlighted_cols:
+            self.grid.SetCellBackgroundColour(coords[0], coords[1], wx.WHITE)
+
+        self.highlighted_cells=[]
+        self.highlighted_cols=[]
         
                 
     def updateGrid(self,df):
-       
+        
         i=0 
         rows,cols = df.shape
         if rows==0:
@@ -237,8 +249,13 @@ class MainWindow(wx.Frame):
             for j in range(len(df.axes[0])):
                 if(i<50 and j<50):
                     value=str(df.loc[j][i])
+                    
+                    if Validator.check_float(df.loc[j][i]):
+                        value=str(np.round(df.loc[j][i],2))
+
                     if value=="" or value=="nan":
                         self.grid.SetCellBackgroundColour(j, i, wx.Colour('#ba4941'))
+                        self.highlighted_cells.append([i,j])
                     self.grid.SetCellValue(j,i,value)
                    
         if self.controller.contextData != None:
