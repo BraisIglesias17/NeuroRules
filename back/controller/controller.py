@@ -187,7 +187,20 @@ class Controller():
             return Response(data={'deleted_rows':deleted_rows},status=Status.OK)
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
-            
+        
+    def delete_row(self,row):
+        try:
+            value=self.contextData.delete_row(row)
+            return Response(data={},status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def delete_col(self,col):
+        try:
+            value=self.contextData.delete_column(col)
+            return Response(data={},status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     
 
