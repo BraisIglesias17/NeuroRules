@@ -381,7 +381,7 @@ class CleanDataDialog(wx.Dialog):
                 self.checkbox_highlight_outliers.SetValue(options['highlight_outliers'])
                 
             else:
-                wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
+                wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
 
 
     def OnCheckDeleteOutliers(self,event):
@@ -449,7 +449,7 @@ class CleanDataDialog(wx.Dialog):
             self.Close()
 
         else:
-            wx.MessageBox("A problem has occurred in the controller class or deeper","Error",wx.OK|wx.ICON_ERROR)
+            wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
             
 
 
