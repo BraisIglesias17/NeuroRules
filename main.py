@@ -11,6 +11,7 @@ from back.respuestas import Status
 from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog
 from back.validation.validation import Validator
 import numpy as np
+import sys
 
 class MainWindow(wx.Frame):    
     def __init__(self,*args, **kwds):
@@ -26,7 +27,8 @@ class MainWindow(wx.Frame):
         self.init=False
         self.highlighted_cells=[]  
         self.highlighted_cols=[]
-
+        self.initial_col_names=[]
+        self.start=True
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -98,11 +100,11 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnGraph,self.plot_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnSummary,self.summary_button)
         self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.statistics_button)
+        self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,self.OnCickLabelCell)
+        self.Bind(wx.EVT_CLOSE,self.OnExit)
         #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
         #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
         
-        
-    
         self.enableButtons(False)
         self.panel.SetSizer(sizer_1)
 
@@ -134,6 +136,8 @@ class MainWindow(wx.Frame):
     
         
 
+    def OnExit(self,event):
+        sys.exit(0)
         
     def OnPreprocess(self,event):
         wx.MessageBox('To do', 'To do', wx.OK | wx.ICON_WARNING)
@@ -148,12 +152,13 @@ class MainWindow(wx.Frame):
 
     
     def OnNext(self,event):
+        
         dialog=VariableTypeDialog(self,self.setting,self.controller)
         code=dialog.ShowModal()    
     
-        #if code == wx.OK:
-        self.train_button.Enable(True)
-        self.updateColors()
+        if code == wx.OK:
+            self.train_button.Enable(True)
+            self.updateColors()
         
 
     def updateColors(self):
@@ -190,7 +195,7 @@ class MainWindow(wx.Frame):
             self.ClearGrid()
             self.updateGrid(response['data'])
 
-            ##Inicializar settings de clean,process  y model
+           
  
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
@@ -209,6 +214,7 @@ class MainWindow(wx.Frame):
         self.enableButtons(False)
         self.train_button.Enable(False)
 
+
     def ClearGrid(self):
         
         self.grid.ClearGrid()     
@@ -220,31 +226,40 @@ class MainWindow(wx.Frame):
 
         self.highlighted_cells=[]
         self.highlighted_cols=[]
+
+        for i in range(0,len(self.initial_col_names)):
+            self.grid.SetColLabelValue(i,self.initial_col_names[i])
+        self.initial_col_names=[]
+        self.start=True
         
                 
     def updateGrid(self,df):
-        
+       
         i=0 
         rows,cols = df.shape
         if rows==0:
             rows=self.setting.initial_rows
 
         rows+=5
-        #new_grid=self.createDataGrid(rows,cols)
-
-        
-        #self.grid_sizer.Replace(self.grid,new_grid)
-        #self.grid.Destroy()
-
-        #self.grid=new_grid
-        
+           
+        i=0
         for column in list(df.columns.values):
+            if self.start:
+                self.initial_col_names.append(self.grid.GetColLabelValue(i))
             self.grid.SetColLabelValue(i,column)
             #Verifico el tipo 
             self.types=df[column].dtypes
             i+=1
-            
+        self.start=False
+
         
+        
+        for j in range(i,len(self.initial_col_names),1):   
+            
+            self.grid.SetColLabelValue(j,self.initial_col_names.pop(j))
+
+        
+
         for i in range(len(df.axes[1])):
             for j in range(len(df.axes[0])):
                 if(i<50 and j<50):
@@ -258,8 +273,10 @@ class MainWindow(wx.Frame):
                         self.highlighted_cells.append([i,j])
                     self.grid.SetCellValue(j,i,value)
                    
-        if self.controller.contextData != None:
+        if not df.empty:
             self.enableButtons(True)
+        else:
+            self.enableButtons(False)
         
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
@@ -271,6 +288,100 @@ class MainWindow(wx.Frame):
         myGrid.SetGridLineColour(wx.Colour('#8a8a81'))
         #myGrid.SetCellEditor(6, 0, gridlib.GridCellFloatEditor())
         return myGrid
+    
+    def OnCickLabelCell(self,evt):
+        position = evt.GetPosition()
+        row = evt.GetRow()
+        col = evt.GetCol()
+
+        shape=self.controller.get_data_shape().getResponse()
+        if col !=-1:
+            if shape['status']==Status.OK:
+                shape=shape['data']
+
+                if shape[1]>col:
+                    position[1]+=80
+                    menu = wx.Menu()
+                    changeName=menu.Append(wx.ID_ANY, "Change column name")
+                    hideColumn=menu.Append(wx.ID_ANY, "Hide column")
+                    deleteColumn=menu.Append(wx.ID_ANY, "Delete column")
+                    
+                    self.Bind(wx.EVT_MENU,self.OnChangeName,changeName)
+                    self.Bind(wx.EVT_MENU,lambda event: self.OnDeleteColumn(event,col),deleteColumn)
+                    self.Bind(wx.EVT_MENU,lambda event: self.OnHideColumn(event,col),hideColumn)
+                    self.PopupMenu(menu, position)
+
+                    
+                    menu.Destroy()
+        else:
+            if shape['status']==Status.OK:
+                shape=shape['data']
+
+                if shape[0]>row:
+                    position[1]+=100
+                    position[0]+=10
+                    menu = wx.Menu()
+                    deleteColumn=menu.Append(wx.ID_ANY, "Delete row")
+                    
+                    self.Bind(wx.EVT_MENU,lambda event: self.OnDeleteRow(event,row),deleteColumn)
+                    self.PopupMenu(menu, position)
+
+                    
+                    menu.Destroy()
+
+
+        
+    
+    def OnChangeName(self,event):
+        print("CHANGE NAME")
+
+    def OnDeleteColumn(self,event,col):
+        label=self.grid.GetColLabelValue(col)
+        message=str("Are you sure you want to delete "+label+" ?")
+        
+        col=[col]
+        cols=self.grid.GetSelectedCols()
+        if len(cols) > 1:
+            col=cols
+            message="Are you sure you want to delete"+str(len(cols))+" cols ?"
+
+        code=wx.MessageBox(message,"Info",wx.YES_NO| wx.ICON_INFORMATION)
+        if code==wx.YES:
+            result=self.controller.delete_col(col).getResponse()
+            if result['status']!=Status.OK:
+                wx.MessageBox(result['data'],"Error",wx.OK| wx.ICON_ERROR)
+            else:
+                response=self.controller.get_data().getResponse()
+                if response['status']==Status.OK:
+                    self.ClearGrid()
+                    self.updateGrid(response['data'])
+
+    def OnDeleteRow(self,event,row):
+        message="Are you sure you want to delete this row ?"
+        row=[row]
+        rows=self.grid.GetSelectedRows()
+        if len(rows) > 1:
+            row=rows
+            message="Are you sure you want to delete"+str(len(rows))+" rows ?"
+
+        code=wx.MessageBox(str(message),"Info",wx.YES_NO| wx.ICON_INFORMATION)
+        if code==wx.YES:
+            result=self.controller.delete_row(row).getResponse()
+            if result['status']!=Status.OK:
+                wx.MessageBox(result['data'],"Error",wx.OK| wx.ICON_ERROR)
+            
+            else:
+                
+                response=self.controller.get_data().getResponse()
+                if response['status']==Status.OK:
+                    
+                    self.ClearGrid()
+                    self.updateGrid(response['data'])
+                
+
+    def OnHideColumn(self,event,col):
+        self.grid.HideCol(col)
+        
  
     def createMenuBar(self):
         menubar = wx.MenuBar()  
