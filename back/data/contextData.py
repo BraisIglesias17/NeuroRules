@@ -235,6 +235,54 @@ class ContextData():
         return (n_rows_begin-n_rows_end)
 
 
+    def delete_row(self,rows):
+       
+        rows=self._list_validation(rows,self.data.shape[0],0)
+                
+        self.data=self.data.drop(rows,axis=0)
+        self.data=self.data.reset_index(drop=True)
+        self.values=self.data.to_numpy()
+    
+            
+        return True
+    
+    def _list_validation(self,list,upper_bound,lower_bound):
+        toDel=[]
+        
+        for row in list:   
+            if not (upper_bound>row and row >= lower_bound):
+                toDel.append(row)
+        for val in toDel:
+            list.remove(val)
+        
+        return list
+    
+    def delete_column(self,cols):
+
+        cols=self._list_validation(cols,self.data.shape[1],0)
+        names=self.get_names()
+        toDel=names[cols]
+        
+        self.data=self.data.drop(toDel,axis=1)
+        self.data=self.data.reset_index(drop=True)
+        self.values=self.data.to_numpy()
+        
+        for col in cols:
+            if col in self.variables_index:
+                index=self.varaibles_index.index(col)
+                self.variables_index.pop(index)
+                self.variables.pop(index)
+                
+            if col in self.targets_index:
+                index=self.targets_index.index(col)
+                self.targets_index.pop(index)
+                self.targets_index.pop(index)
+
+            self._get_types()
+
+        
+        return True
+
     def get_cleanse(self):
         return self.data_cleanse
     
