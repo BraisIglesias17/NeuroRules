@@ -30,7 +30,7 @@ class VariableTypeDialog(wx.Dialog):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select information for rules "), wx.VERTICAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND, 20)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 30)
 
         self.grid = wx.grid.Grid(self, wx.ID_ANY)
         self.grid=self.createDataGrid(self.grid,len(self.names))
@@ -67,7 +67,7 @@ class VariableTypeDialog(wx.Dialog):
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
-        self.SetEscapeId(self.button_CANCEL.GetId())
+        #self.SetEscapeId(self.button_CANCEL.GetId())
         
         self.Center()
         self.Layout()
@@ -88,7 +88,7 @@ class VariableTypeDialog(wx.Dialog):
             self.controller.set_independent_variables(self.independent_variables)
             self.controller.set_targets(self.targets)
             
-            self.Close(wx.OK)
+            self.EndModal(wx.OK)
 
 
     def OnUpdateType(self,event):
@@ -120,52 +120,40 @@ class VariableTypeDialog(wx.Dialog):
 
     def createDataGrid(self,myGrid,rows):
         
-        
-        myGrid.CreateGrid(rows,1)
-        myGrid.SetRowLabelSize(0)
-        
-        names=self.controller.get_names().getResponse()['data']
+        try:
+            myGrid.CreateGrid(rows,1)
+            myGrid.SetRowLabelSize(0)
+            
+            names=self.controller.get_names().getResponse()['data']
 
-        myGrid.SetColLabelValue(0,'Variable')
-        """
-        labels=self.metrics.index
-        for i in range(1,cols):
-            print(i)
-            myGrid.SetColLabelValue(i,labels[i])
-        myGrid.SetGridLineColour(wx.Colour('#8a8a81'))
-        #myGrid.SetCellEditor(6, 0, gridlib.GridCellFloatEditor())
-        """        
-        i=0 
-        j=0
-    
-        for variable in names:
+            myGrid.SetColLabelValue(0,'Variable')
+                
+            i=0 
+            j=0
             
             
-            myGrid.SetCellValue(i,j,str(variable))
-            i+=1
-            #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
-            """
-            for index in self.metrics.index:
-                    if index != 'count':
-                        value=self.metrics[[variable]].loc[index]
-                        myGrid.SetCellValue(i,j," "+str(round(value.values[0],2))+" ")
-                        myGrid.SetReadOnly(i,j,True)
-                    j+=1
-            """     
-        myGrid.AppendCols(1)
-        myGrid.SetColLabelValue(myGrid.GetNumberCols() - 1," Type ")
-        
-        opciones_dropdown = ['Ignore','Property', 'Ingredient']
+            for variable in names:
+                myGrid.SetCellValue(i,j,str(variable))
+                i+=1
+                    
+            myGrid.AppendCols(1)
+            myGrid.SetColLabelValue(myGrid.GetNumberCols() - 1," Type ")
+            
+            opciones_dropdown = ['Ignore','Property', 'Ingredient']
 
-        
-        editor_dropdown = gridlib.GridCellChoiceEditor(opciones_dropdown, allowOthers=False)
-        for row in range(myGrid.GetNumberRows()):
-            col = myGrid.GetNumberCols() - 1
-            myGrid.SetCellValue(row, col, opciones_dropdown[0])
-            myGrid.SetCellEditor(row, col, editor_dropdown)
-
-        myGrid.AutoSize()
-        myGrid.SetColSize(myGrid.GetNumberCols() - 1,100)
+            
+            editor_dropdown = gridlib.GridCellChoiceEditor(opciones_dropdown, allowOthers=False)
+            
+            for row in range(myGrid.GetNumberRows()):
+                col = myGrid.GetNumberCols() - 1
+                myGrid.SetCellEditor(row, col, editor_dropdown) ## LANZA EXCEPCION
+                myGrid.SetCellValue(row, col, opciones_dropdown[0])
+                
+            
+            myGrid.AutoSize()
+            myGrid.SetColSize(myGrid.GetNumberCols() - 1,100)
+        except Exception as exc:
+            print("Error"+str(exc))
         return myGrid
 
 
@@ -220,11 +208,13 @@ class RulesDialog(wx.Dialog):
         if result['status']:
             
             cadena=str("Archivo guardado con éxito en "+result['data'])
-            dialog=MessageDialog(self,False,cadena)
-            dialog.ShowModal()
+            #dialog=MessageDialog(self,False,cadena)
+            wx.MessageBox(cadena,"Info")
+            
         else:
-            dialog=MessageDialog(self,False,"error")
-            dialog.ShowModal()
+            wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
+            #dialog=MessageDialog(self,False,"error")
+            
 
 
     def writeRules(self,rules):
