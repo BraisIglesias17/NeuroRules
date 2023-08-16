@@ -267,6 +267,9 @@ class ContextData():
         self.data=self.data.reset_index(drop=True)
         self.values=self.data.to_numpy()
         
+        for var in toDel:
+            self.data_cleanse.pop(var)
+
         for col in cols:
             if col in self.variables_index:
                 index=self.varaibles_index.index(col)
