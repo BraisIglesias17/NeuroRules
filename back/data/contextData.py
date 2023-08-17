@@ -16,7 +16,8 @@ class ContextData():
     pahtname: string
     """
 
-    def __init__(self, dataFrame=None):    
+    def __init__(self, dataFrame=pd.DataFrame()):    
+        
         self.pathname=""
         self.data=dataFrame
             

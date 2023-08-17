@@ -202,6 +202,14 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
-    
+    def clear_data(self):
+        try:
+            
+            self.contextData=ContextData()
+            
+            return Response(data={},status=Status.OK)
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
 

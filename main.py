@@ -217,9 +217,10 @@ class MainWindow(wx.Frame):
 
     def OnClearGrid(self,event):
         self.ClearGrid()
+        self.controller.clear_data()
         self.enableButtons(False)
         self.train_button.Enable(False)
-        print(self.controller.contextData.get_data().getResponse()['data'])
+        
 
 
     def ClearGrid(self):
