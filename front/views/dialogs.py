@@ -777,3 +777,87 @@ class SummaryDialog(wx.Dialog):
 
         return myGrid
                
+
+
+class AboutUsDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        super(AboutUsDialog, self).__init__(parent)
+        self.SetTitle("About us")
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("C:\\Users\\USUARIO\\Desktop\\NeuroRule\\front\\resources\\logo_128x128.png", wx.BITMAP_TYPE_ANY))
+        sizer_3.Add(bitmap_1, 0, wx.ALL | wx.EXPAND, 30)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "NeuroRule")
+        label_1.SetFont(wx.Font(30, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, 0, ""))
+        sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, "V 1.0.0")
+        label_2.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(label_2, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_OK.GetId())
+        self.Center()
+        self.Layout()
+        # end wxGlade
+
+class ShowHiddenDialog(wx.Dialog):
+    def __init__(self,parent):
+        # begin wxGlade: ShowHiddenDialog.__init__
+        super(ShowHiddenDialog, self).__init__(parent)
+        self.SetTitle("Show Hidden Columns")
+        self.parent=parent
+        self.names=parent.names[parent.hidden_columns]
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select hidden variables"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.list_box_1 = wx.ListBox(self, wx.ID_ANY, choices=self.names,style=wx.LB_MULTIPLE)
+        sizer_3.Add(self.list_box_1, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+        sizer_2.Realize()
+
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Layout()
+        # end wxGlade
+
+    def OnApply(self,event):
+        choices=self.list_box_1.GetSelections()
+        if len(choices)==0:
+            wx.MessageBox("You have not selected any variable","Info")
+        else:
+            self.parent.names_to_show=self.names[choices]
+            self.EndModal(wx.OK)
