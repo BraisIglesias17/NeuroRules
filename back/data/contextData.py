@@ -77,18 +77,24 @@ class ContextData():
         return df
     
     def update_position(self,i,j,value):
+        
         if i < self.data.shape[0] and j < self.data.shape[1]:
             
             col_name=self.data.columns[j]
             if self._validate_update(col_name,value):
-               
+                if col_name in self.floatValues:
+                    value=np.float64(value)
+                elif col_name in self.integerValues:
+                    value=np.int64(value)
+                #convertir al tipo que sea
                 self.data.iloc[i,j]=value
                 self.values[i,j]=value
                 self.state=False
-
+                
                 return True
             else:
-                return False
+                raise ValueError("Tipo de dato no valido")
+            
         elif i == self.data.shape[0]:
             print("nueva fila")
             # Nueva Fila
@@ -101,7 +107,7 @@ class ContextData():
                     
                         values[var]=[value]
                     else:
-                        return False
+                        raise ValueError("Tipo de dato no valido")
                 else:   
                     values[var]=[None]
             
@@ -114,6 +120,7 @@ class ContextData():
             # Nueva columna
             print("HOLA")
 
+        
         return True
         
             
@@ -124,9 +131,9 @@ class ContextData():
     def _validate_update(self,col_name,value):
         toret=True
         if col_name in self.floatValues:
-            toret=Validator.check_float(value)         
+            toret=Validator.check_float(float(value))         
         elif col_name in self.integerValues:
-            toret=Validator.check_integer(value)            
+            toret=Validator.check_integer(int(value))            
         else:
             toret=Validator.check_string(value)
           
@@ -259,7 +266,8 @@ class ContextData():
         return list
     
     def delete_column(self,cols):
-
+        
+        
         cols=self._list_validation(cols,self.data.shape[1],0)
         names=self.get_names()
         toDel=names[cols]
@@ -284,7 +292,7 @@ class ContextData():
 
             self._get_types()
 
-        
+        print(self.data)
         return True
 
     def get_cleanse(self):
@@ -297,5 +305,28 @@ class ContextData():
             return True
         else:
             raise ValueError("Not a valid variable")
+        
+    
+    def rename_col(self,new_name,old_name):
+        
+        if not old_name in list(self.data.columns):
+            raise ValueError("Old name not found in current data")
+            
+            
+        if not Validator.validate_name(new_name):
+            raise ValueError("Invalid name format")
+        
+        change={old_name:new_name}
+        self.data.rename(columns=change,inplace=True)
+        
+        return True
+            
+        
+    """
+    Añadir columna
+    """
+    """
+    Añadir fila
+    """
     
 

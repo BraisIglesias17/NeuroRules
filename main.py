@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog
+from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,StatisticDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -20,8 +20,9 @@ class MainWindow(wx.Frame):
         wx.Frame.__init__(self, *args, **kwds)
         
         self.SetIcon(wx.Icon('./front/resources/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
-        self.SetTitle("NeuroRule v1.0")
-
+        self.SetTitle("NeuroRule 1.0.0")
+        font=self.GetFont()
+        print(f'Size:{font.GetPointSize()}, family:{font.GetFamily()}')
         self.createMenuBar()
         self.panel = wx.Panel(self, wx.ID_ANY)
         self.setting=Settings()
@@ -35,6 +36,7 @@ class MainWindow(wx.Frame):
         self.names=[]
         self.hidden_columns=[]
         self.names_to_show=[]
+        self.filename=""
         sizer_1 = wx.BoxSizer(wx.VERTICAL)  
         
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -88,11 +90,14 @@ class MainWindow(wx.Frame):
        
         
         sizer_1.Add(self.grid_sizer, 1, wx.EXPAND, 0)
-
         self.grid = wx.grid.Grid(self.panel, wx.ID_ANY)
         self.grid.CreateGrid(1000,25)
         self.grid_sizer.Add(self.grid, 1, wx.EXPAND, 0)
         
+        self.status_bar=self.CreateStatusBar(2)
+        self.status_bar.SetStatusWidths([-1,300])
+        self.status_bar.SetStatusText("  Empty sheet")
+        self.status_bar.SetStatusText("None data",1)
 
         #Declaracion de eventos
         
@@ -106,6 +111,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnGraph,self.plot_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnSummary,self.summary_button)
         self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.statistics_button)
+        self.Bind(wx.EVT_BUTTON,self.OnStatistics,self.statistics_button)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,self.OnCickLabelCell)
         self.Bind(wx.EVT_CLOSE,self.OnExit)
         #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
@@ -119,6 +125,10 @@ class MainWindow(wx.Frame):
         self.Center()
         self.Show(True)
 
+
+    def OnStatistics(self,evt):
+        dialog=StatisticDialog(self)
+        dialog.ShowModal()
 
     def OnSummary(self,evt):
         dialog=SummaryDialog(self)
@@ -199,7 +209,10 @@ class MainWindow(wx.Frame):
         response=self.controller.load_content(self,event).getResponse()
         if response['status']==Status.OK:
             self.ClearGrid()
-            self.updateGrid(response['data'])
+            self.updateGrid(response['data']['data'])
+            self.filename=response['data']['file']
+            
+            self.SetStatusText(str(" Working on "+self.filename))
 
            
  
@@ -210,7 +223,7 @@ class MainWindow(wx.Frame):
 
         if not response['status'] == Status.OK:
             self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).getResponse()['data']))
-            self.updateGrid(self.controller.get_data().getResponse()['data'])
+            wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
         else:
             self.grid.SetCellBackgroundColour(row, col, wx.Colour('#FFFFFF'))
             
@@ -220,6 +233,7 @@ class MainWindow(wx.Frame):
         self.controller.clear_data()
         self.enableButtons(False)
         self.train_button.Enable(False)
+        self.restoreStatus()
         
 
 
@@ -240,13 +254,24 @@ class MainWindow(wx.Frame):
         self.initial_col_names=[]
         self.start=True
         
-                
+
+    def updateStatus(self,rows,cols):
+        message=str(rows)+" rows, "+str(cols)+" cols"
+        self.SetStatusText(message,1)
+    
+
+    def restoreStatus(self):
+        self.SetStatusText(" None existing file")
+        self.SetStatusText("None data",1)
+
     def updateGrid(self,df):
-       
+        
         i=0 
         rows,cols = df.shape
         if rows==0:
             rows=self.setting.initial_rows
+
+        self.updateStatus(rows,cols)
 
         rows+=5
            
@@ -275,12 +300,17 @@ class MainWindow(wx.Frame):
                 if(i<50 and j<50):
                     value=str(df.loc[j][i])
                     
-                    if Validator.check_float(df.loc[j][i]):
+                    
+                    if value=="" or value=="nan":
+                        self.grid.SetCellBackgroundColour(j, i, wx.Colour(self.setting.NanColor))
+                        self.highlighted_cells.append([i,j])
+                    
+                    elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
+                        
                         value=str(np.round(df.loc[j][i],2))
 
-                    if value=="" or value=="nan":
-                        self.grid.SetCellBackgroundColour(j, i, wx.Colour('#ba4941'))
-                        self.highlighted_cells.append([i,j])
+                    
+            
                     self.grid.SetCellValue(j,i,value)
                    
         if not df.empty:
@@ -349,6 +379,12 @@ class MainWindow(wx.Frame):
 
         if code == wx.ID_OK:
             new_value=dialog.GetValue()
+            result=self.controller.rename_col(new_value,current_name).getResponse()
+
+            if result['status']!=Status.OK:
+                wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
+            else:
+                self.updateGrid(self.controller.get_data().getResponse()['data'])
             
         
 
@@ -414,6 +450,7 @@ class MainWindow(wx.Frame):
             if code==wx.OK:
                 for name in self.names_to_show:
                     index=list(self.names).index(name)
+                    self.hidden_columns.remove(index)
                     self.grid.ShowCol(index)
         
  

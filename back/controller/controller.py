@@ -19,24 +19,30 @@ class Controller():
 
     def load_content(self,window,event):
         state=True
+        message=""
         try:
-            self.contextData=ContextData(IOManage.LoadFile(window,event))
+            df,filename=IOManage.LoadFile(window,event)
+            self.contextData=ContextData(df)
         except Exception as exc:
             state=False
+            message=str(exc)
 
         if state:
-            return Response(data=self.contextData.data,status=Status.OK)
+            info={'data':self.contextData.data,'file':filename}
+            return Response(data=info,status=Status.OK)
         else:
-            return Response(data="",status=Status.GENERAL_ERROR)
+            return Response(data=message,status=Status.GENERAL_ERROR)
 
 
 
     def update_data_position(self,row,col,value):
 
-        if self.contextData.update_position(row,col,value):
+        try:
+            self.contextData.update_position(row,col,value)
             return Response(data="",status=Status.OK)
-        else:
-            return Response(data="",status=Status.VALIDATION_ERROR)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.VALIDATION_ERROR)
+            
     
     def get_data(self):
         try:
@@ -102,7 +108,12 @@ class Controller():
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
 
-        
+    def get_column(self,col):
+        try:
+            value=self.contextData.get_column(col)
+            return Response(data=value,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def update_context_data(self,df):
         try:
@@ -213,3 +224,14 @@ class Controller():
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
 
+    def rename_col(self,new_name,old_name):
+        try:
+            
+            res=self.contextData.rename_col(new_name,old_name)
+            
+            if res:
+                return Response(data={},status=Status.OK)
+        
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)

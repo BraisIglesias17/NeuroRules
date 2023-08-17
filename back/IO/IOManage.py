@@ -35,7 +35,7 @@ class IOManage():
             df=None
         
         df = pd.DataFrame(data)
-        return df
+        return df,file.name
         
     @staticmethod
     def OnSaveAs(self, event,data,message,wildcard):
