@@ -1,0 +1,57 @@
+from scipy.stats import chi2,pearsonr,wilcoxon,shapiro,kruskal,kstest,t,f_oneway
+
+
+class StatisticTest():
+
+    @staticmethod
+    def get_tests():
+        return ['T Student','ANOVA','Kruskal Wallis','Wilcoxon','Pearson','Shapiro','McNemar','Shapiro-Wilk','Chi Squared','Kolmorov']
+    
+    @staticmethod
+    def t_student():
+        return 0.0
+
+    @staticmethod
+    def ANOVA(x,y):
+        return f_oneway(x,y)
+    
+    @staticmethod
+    def chi_squared(input):
+        return chi2(input)
+    
+    @staticmethod
+    def wilcoxon(x,y):
+        return wilcoxon(x,y)
+    
+    @staticmethod
+    def kruskal_wallis(x,y):
+        return kruskal(x,y)
+    
+    @staticmethod
+    def kolmorov_smirnov(x,y):
+        return kstest(x,y)
+    
+    @staticmethod
+    def shapiro_wilk(x):
+        return shapiro(x)
+    
+    @staticmethod
+    def mcNemar():
+        return 0.0
+
+    @staticmethod
+    def pearson(x,y):
+        return pearsonr(x,y)
+    
+"""
+import pandas as pd
+data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/invitro_g.csv",sep=",")
+
+x=data['PolymerA']
+y=data['1hr']
+print(StatisticTest.kruskal_wallis(x,y))
+"""
+
+
+
+
