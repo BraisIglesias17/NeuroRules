@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog
+from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -19,6 +19,9 @@ class MainWindow(wx.Frame):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         
+        self.SetIcon(wx.Icon('./front/resources/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
+        self.SetTitle("NeuroRule v1.0")
+
         self.createMenuBar()
         self.panel = wx.Panel(self, wx.ID_ANY)
         self.setting=Settings()
@@ -29,7 +32,10 @@ class MainWindow(wx.Frame):
         self.highlighted_cols=[]
         self.initial_col_names=[]
         self.start=True
-        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+        self.names=[]
+        self.hidden_columns=[]
+        self.names_to_show=[]
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)  
         
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 0, wx.ALL | wx.EXPAND, 15)
@@ -213,6 +219,7 @@ class MainWindow(wx.Frame):
         self.ClearGrid()
         self.enableButtons(False)
         self.train_button.Enable(False)
+        print(self.controller.contextData.get_data().getResponse()['data'])
 
 
     def ClearGrid(self):
@@ -243,6 +250,8 @@ class MainWindow(wx.Frame):
         rows+=5
            
         i=0
+        self.names=[]
+        self.names=df.columns.values
         for column in list(df.columns.values):
             if self.start:
                 self.initial_col_names.append(self.grid.GetColLabelValue(i))
@@ -306,7 +315,7 @@ class MainWindow(wx.Frame):
                     hideColumn=menu.Append(wx.ID_ANY, "Hide column")
                     deleteColumn=menu.Append(wx.ID_ANY, "Delete column")
                     
-                    self.Bind(wx.EVT_MENU,self.OnChangeName,changeName)
+                    self.Bind(wx.EVT_MENU,lambda event: self.OnChangeName(event,col),changeName)
                     self.Bind(wx.EVT_MENU,lambda event: self.OnDeleteColumn(event,col),deleteColumn)
                     self.Bind(wx.EVT_MENU,lambda event: self.OnHideColumn(event,col),hideColumn)
                     self.PopupMenu(menu, position)
@@ -332,8 +341,15 @@ class MainWindow(wx.Frame):
 
         
     
-    def OnChangeName(self,event):
-        print("CHANGE NAME")
+    def OnChangeName(self,event,col):
+        current_name=self.names[col]
+        dialog=wx.TextEntryDialog(self,"New name","Enter new name for "+current_name,value="")
+        code=dialog.ShowModal()
+
+        if code == wx.ID_OK:
+            new_value=dialog.GetValue()
+            
+        
 
     def OnDeleteColumn(self,event,col):
         label=self.grid.GetColLabelValue(col)
@@ -343,7 +359,7 @@ class MainWindow(wx.Frame):
         cols=self.grid.GetSelectedCols()
         if len(cols) > 1:
             col=cols
-            message="Are you sure you want to delete"+str(len(cols))+" cols ?"
+            message="Are you sure you want to delete "+str(len(cols))+" cols ?"
 
         code=wx.MessageBox(message,"Info",wx.YES_NO| wx.ICON_INFORMATION)
         if code==wx.YES:
@@ -362,7 +378,7 @@ class MainWindow(wx.Frame):
         rows=self.grid.GetSelectedRows()
         if len(rows) > 1:
             row=rows
-            message="Are you sure you want to delete"+str(len(rows))+" rows ?"
+            message="Are you sure you want to delete "+str(len(rows))+" rows ?"
 
         code=wx.MessageBox(str(message),"Info",wx.YES_NO| wx.ICON_INFORMATION)
         if code==wx.YES:
@@ -380,15 +396,43 @@ class MainWindow(wx.Frame):
                 
 
     def OnHideColumn(self,event,col):
-        self.grid.HideCol(col)
+        selections=(self.grid.GetSelectedCols())
+        if col not in selections:
+            selections.append(col)
+        self.hidden_columns=selections
+      
+        for column in selections:
+            self.grid.HideCol(column)
+    
+    def OnShowHidden(self,event):
+        if len(self.hidden_columns)==0:
+            wx.MessageBox("There is no hidden columns")
+        else:
+            dialog=ShowHiddenDialog(self)
+            code=dialog.ShowModal()
+            if code==wx.OK:
+                for name in self.names_to_show:
+                    index=list(self.names).index(name)
+                    self.grid.ShowCol(index)
         
  
+    def OnAboutUs(self,event):
+        dialog=AboutUsDialog(self)
+        dialog.ShowModal()
+
+
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         
         fileMenu = wx.Menu()  
         fileMenu.Append(wx.ID_NEW, '&Import file') 
-        fileMenu.Append(wx.ID_ANY, '&Save')
+
+        item=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save')
+        image = wx.Image('./front/resources/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        #wx.Bitmap.Rescale(image,wx.Size(16,16))
+        item.SetBitmap(image)
+
+        fileMenu.Append(item)
         fileMenu.Append(wx.ID_ANY, '&Save as')
 
         modelMenu= wx.Menu()
@@ -397,13 +441,26 @@ class MainWindow(wx.Frame):
         settingsMenu= wx.Menu()
         settingsMenu.Append(wx.ID_ANY, '&Settings')
 
+        viewMenu=wx.Menu()
+        item=wx.MenuItem(viewMenu,wx.ID_ANY,'&Show hidden columns')
+            
+        showHidden=viewMenu.Append(item)
+        viewMenu.Append(wx.ID_ANY,'&Show rules options')
+        viewMenu.Append(wx.ID_ANY,'&Show model option')
+        viewMenu.Append(wx.ID_ANY,'&Show analysis options')
+        viewMenu.Append(wx.ID_ANY,'&Show preprocess options')
+
         helpMenu = wx.Menu()  
-        helpMenu.Append(wx.ID_ABOUT, '&About us')
+        aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
 
         menubar.Append(fileMenu, '&File') 
-        menubar.Append(modelMenu,'&Model') 
+        menubar.Append(modelMenu,'&Model')
+        menubar.Append(viewMenu,'&View')  
         menubar.Append(settingsMenu,'&Settings') 
         menubar.Append(helpMenu, '&Help')
+
+        self.Bind(wx.EVT_MENU,self.OnShowHidden,showHidden)
+        self.Bind(wx.EVT_MENU,self.OnAboutUs,aboutUsOption)
 
         self.SetMenuBar(menubar)  
 
