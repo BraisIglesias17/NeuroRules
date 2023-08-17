@@ -1,21 +1,15 @@
 import numpy as np
+import re
 
 class Validator():
 
     @staticmethod
     def check_integer(val):
-        if type(val) is int or (type(val) is np.int32) or (type(val) is np.int16):
+        
+        if type(val) is int or (type(val) is np.int32) or (type(val) is np.int16) and isinstance(val,int):
             return True
         else:
-            try:
-                float(val)
-            except Exception as exc:
-                return False    
-            try:
-                int(val)
-                return True
-            except Exception as exc:
-                return False  
+            return False  
             
     
                     
@@ -25,12 +19,20 @@ class Validator():
         if type(val) is float or (type(val) is np.float32) or (type(val) is np.float64):
             return True
         else:
-            try:
-                float(val)
-                return True
-            except Exception as exc:
-                return False
+            return False
     
     @staticmethod
     def check_string(val):
         return True
+    
+    @staticmethod
+    def validate_name(val):
+        
+        if val=="" or val==None:
+            return False
+        
+        if re.match(r'^[a-zA-Z0-9_/]*$', val):
+            return True
+        else:
+            return False
+        
