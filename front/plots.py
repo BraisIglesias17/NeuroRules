@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import seaborn as sns
 
 def plot_2d(data,options):
     x=data['x']['data']
@@ -80,3 +81,12 @@ def plot_regression(data,options):
     plt.legend()
     plt.show()
 
+def plot_correlation_matrix(dataFrame):
+    valid_columns=dataFrame.select_dtypes(include=['number']).columns
+
+    X=dataFrame[valid_columns].corr()
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(X, annot=True, cmap='coolwarm', center=0)
+    plt.title("Correlation Matrix")
+    plt.show()
