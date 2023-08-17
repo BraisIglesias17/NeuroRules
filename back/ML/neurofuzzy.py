@@ -6,7 +6,7 @@ import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 from scipy.optimize import minimize
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score,mean_squared_error
 
 
 class NeuroFuzzy():
@@ -69,7 +69,6 @@ class NeuroFuzzy():
         # el numero de reglas se determina por el numero de funciones de membresia de entrada elevada al numero de variables
         self.weigths=np.zeros(self.n_membership**self.n_variables)
 
-
         #lista que contendrá las reglas
         self.rules=[]
 
@@ -84,14 +83,13 @@ class NeuroFuzzy():
         #generación de las funciones de membresía con skfuzzy
         self.consecuence.automf(n_membership_output,names=self.NAMES(self.n_membership_output))
     
-
         #variables utilizadas para almacenar la salida de la red en cada etapa
         self.layer_1_output=None
         self.layer_2_output=None
         self.layer_3_output=None
         self.layer_4_output=None
 
-        self.r2=0.0
+        self.metrics={'r2':0.0,'rmse':0.0,'mse':0.0}
         
         
     def fuzzyfication(self,C=0.3):
@@ -318,18 +316,22 @@ class NeuroFuzzy():
 
                 # se calcula el error con la variable de salida de referencia
                 error = y_calculada[i] - self.y[i]
-                
+                #print(f'ACTUAL:{self.y[i]}, PREDICTED:{y_calculada[i]}')
                 gradients = self.layer_3_output
 
                 #se actualizan los pesos de la red
                 self.weigths = self.weigths - learning_rate * error * gradients
             #se calcula le r2 score tras cada iteración
-            self.r2=r2_score(self.y,y_calculada)
-            print(f'ITERATION {iteration} : #####  r2 {self.r2}')
+            self.metrics['r2']=r2_score(self.y,y_calculada)
+            mse=mean_squared_error(self.y,y_calculada)
+            self.metrics['mse']=mse
+            self.metrics['rmse']=np.sqrt(mse)
+
+            print(f'ITERATION {iteration} : #####  r2 {self.metrics["r2"]}, mse {self.metrics["mse"]}, rmse {self.metrics["rmse"]}')
             
         #invoca funcion que genera las consecuencias de las reglas
         self.rules_consecuences()
-
+        self.trained=True
         
     def nn(self,input):
         """
@@ -402,9 +404,10 @@ class NeuroFuzzy():
         Return:
             -output: valor de y esperado
         """
-        if self.trained:
+        if self.trained and len(input)==self.n_variables:
             input_fuzzy=self.to_fuzzy(input)
-    
+            print(input_fuzzy)
+            print(input_fuzzy.values[0])
             return self.nn(input_fuzzy.values[0])
         
         else:
@@ -430,17 +433,19 @@ class NeuroFuzzy():
             ant.view()
             
 
-
+"""
 data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/invitro_g.csv",sep=",")
 print(data.describe())
-"""
+
 X=data[['PolymerA']]
 y=data[['8hr']]
 
-model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=3,n_membership_output=3,output_name="8hr",input_names=["PolymerA"])
-model.fit(learning_rate=0.01,epochs=50)
+model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name="8hr",input_names=["PolymerA"])
+model.fit(learning_rate=0.01,epochs=100)
 for rule in model.get_rules():
     print(rule)
-print(model.predict([33.0,5.0]))
+print(model.predict([40.0]))
+
 """
+
 
