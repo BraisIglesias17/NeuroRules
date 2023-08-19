@@ -71,6 +71,9 @@ class ContextData():
                 self.characterValues.append(col)
 
     
+    def get_types(self):
+        return self.floatValues,self.integerValues,self.characterValues
+    
     def _load_file(self,file):
         data = pd.read_csv(file)
         df = pd.DataFrame(data)

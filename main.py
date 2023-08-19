@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,StatisticDialog
+from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -34,6 +34,11 @@ class MainWindow(wx.Frame):
         self.initial_col_names=[]
         self.start=True
         self.names=[]
+
+        self.float_variable_names=[]
+        self.int_variable_names=[]
+        self.string_variable_names=[]
+
         self.hidden_columns=[]
         self.names_to_show=[]
         self.filename=""
@@ -131,7 +136,8 @@ class MainWindow(wx.Frame):
         dialog.ShowModal()
 
     def OnSummary(self,evt):
-        dialog=SummaryDialog(self)
+        #dialog=SummaryDialog(self)
+        dialog=SummaryPickDialog(self)
         dialog.ShowModal()
 
 
@@ -318,6 +324,8 @@ class MainWindow(wx.Frame):
         else:
             self.enableButtons(False)
         
+        self.float_variable_names,self.int_variable_names,self.string_variable_names=self.controller.get_types().getResponse()['data']
+
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
         

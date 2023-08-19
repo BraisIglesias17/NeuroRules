@@ -31,7 +31,7 @@ class VariableTypeDialog(wx.Dialog):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select information for rules "), wx.VERTICAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND, 30)
+        sizer_1.Add(sizer_3, 0, wx.EXPAND, 30)
 
         self.grid = wx.grid.Grid(self, wx.ID_ANY)
         self.grid=self.createDataGrid(self.grid,len(self.names))
@@ -1095,6 +1095,62 @@ class TestResultDialog(wx.Dialog):
         sizer_1.Fit(self)
 
         self.SetAffirmativeId(self.button_OK.GetId())
+
+        self.Layout()
+        # end wxGlade
+
+class SummaryPickDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Summary pick")
+        self.parent=parent
+        names=parent.names
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Variable"), wx.VERTICAL)
+        sizer_4.Add(sizer_5, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.combo_box_1 = wx.ComboBox(self, wx.ID_ANY, choices=names, style=wx.CB_READONLY)
+        sizer_5.Add(self.combo_box_1, 0, wx.ALL, 5)
+
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Group by"), wx.VERTICAL)
+        sizer_4.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 5)
+
+        groupby_variables=self.parent.string_variable_names
+        groupby_variables.append("None")
+        self.combo_box_2 = wx.ComboBox(self, wx.ID_ANY, choices=groupby_variables,value="None", style=wx.CB_READONLY)
+        if len(groupby_variables)==1:
+            self.combo_box_2.Enable(False)
+
+        sizer_6.Add(self.combo_box_2, 0, wx.ALL, 5)
+
+        self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, "Show all variables summary")
+        sizer_3.Add(self.checkbox_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 15)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_OK.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Layout()
         # end wxGlade
