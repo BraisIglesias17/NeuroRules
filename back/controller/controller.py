@@ -44,6 +44,12 @@ class Controller():
             return Response(data=str(exc),status=Status.VALIDATION_ERROR)
             
     
+    def get_types(self):
+        try:
+            return Response(data=self.contextData.get_types(),status=Status.OK)
+        except Exception as exc:
+                return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
     def get_data(self):
         try:
             return Response(data=self.contextData.get_data(),status=Status.OK)
