@@ -67,8 +67,14 @@ class NeuroFuzzy():
 
         #array de pesos de cada regla
         # el numero de reglas se determina por el numero de funciones de membresia de entrada elevada al numero de variables
-        self.weigths=np.zeros(self.n_membership**self.n_variables)
-
+        self.weigths=np.random.rand(self.n_membership**self.n_variables)
+        
+        #self.weigths=np.full(self.n_membership**self.n_variables,fill_value=50.0)
+        #self.weigths=np.ones(self.n_membership**self.n_variables)
+        #self.weigths=np.zeros(self.n_membership**self.n_variables)
+        
+        self.historic_weigths=None
+        self.historic_error=None
         #lista que contendrá las reglas
         self.rules=[]
 
@@ -285,7 +291,8 @@ class NeuroFuzzy():
     
 
     def fit(self, learning_rate=0.01,epochs=25):
-
+        
+        
         """
         Funcion de entrenamiento de la red
 
@@ -294,13 +301,26 @@ class NeuroFuzzy():
             - epochs: numero de repeticiones al conjunto de entrenamiento
         
         """
-
+        
         #fuzzyfication del conjunto de entrenamiento
         self.fuzzyfication()
 
         training_size = self.fuzz_X.shape[0]
         y_calculada = np.zeros(training_size)
         
+        batch=10
+        god=False
+
+        if training_size%batch==0:
+            god=True
+
+        self.historic_weigths=np.zeros(shape=(epochs,self.n_membership**self.n_variables))
+        self.historic_error=np.zeros(shape=(epochs,1))
+
+        M=np.zeros(shape=(batch,self.n_membership**self.n_variables))
+
+        counter=0
+
         for iteration in range(epochs):
             #array de salidas que se van a calcular
             y_calculada = np.zeros(training_size)
@@ -315,23 +335,99 @@ class NeuroFuzzy():
                 y_calculada[i]=self.nn(x_i)
 
                 # se calcula el error con la variable de salida de referencia
-                error = y_calculada[i] - self.y[i]
+                #error = y_calculada[i] - self.y[i]
                 #print(f'ACTUAL:{self.y[i]}, PREDICTED:{y_calculada[i]}')
-                gradients = self.layer_3_output
-
+                #gradients = self.layer_3_output
+                
+                M[i]=np.array(self.layer_3_output).reshape(1,self.layer_3_output.shape[0])
                 #se actualizan los pesos de la red
-                self.weigths = self.weigths - learning_rate * error * gradients
+                #self.weigths = self.weigths - learning_rate * error * gradients
+                
+                #Código para actualizar los pesos en cada registro
+                #A=np.array(self.layer_3_output).reshape(1,self.layer_3_output.shape[0])
+                #y=np.array([self.y[i]])
+                #w0=self.weigths.reshape(self.weigths.shape[0],1)
+                
+                #self.weigths=self.conjugate_gradient(A,y,w0)[0].flatten()
+                
+
+            w0=self.weigths.reshape(self.weigths.shape[0],1)
+            self.weigths=self.conjugate_gradient(M,self.y,w0)[0].flatten()
+            self.historic_weigths[iteration]=self.weigths
+                
             #se calcula le r2 score tras cada iteración
             self.metrics['r2']=r2_score(self.y,y_calculada)
             mse=mean_squared_error(self.y,y_calculada)
             self.metrics['mse']=mse
             self.metrics['rmse']=np.sqrt(mse)
-
-            print(f'ITERATION {iteration} : #####  r2 {self.metrics["r2"]}, mse {self.metrics["mse"]}, rmse {self.metrics["rmse"]}')
+            self.historic_error[iteration]=self.metrics['rmse']
+            
+            #print(f'ITERATION {iteration} : ###  r2 {self.metrics["r2"]}, mse {self.metrics["mse"]}, rmse {self.metrics["rmse"]}')
             
         #invoca funcion que genera las consecuencias de las reglas
         self.rules_consecuences()
         self.trained=True
+
+    def conjugate_gradient(self,A,y,w0,tol=1.e-10,itmax=100):
+        A_t=np.transpose(A)
+        M=np.dot(A_t,A)
+        y=np.dot(A_t,y)
+        gradient=np.dot(M,w0)-y 
+        d=np.dot(gradient,np.float16(-1))
+        error=0.0
+        wi=w0
+            
+        for i in range(0,itmax):
+            alpha=(np.dot(np.transpose(gradient),gradient))/(np.dot(np.dot(np.transpose(d),M),d))
+            wi=wi+alpha*d
+            gradient=np.dot(M,wi)-y
+            error=np.linalg.norm(gradient)
+            if error <= tol:
+                break
+            beta=(np.dot(np.dot(np.transpose(d),M),gradient))/(np.dot(np.dot(np.transpose(d),M),d))
+            d=np.float16(-1)*gradient+(beta*d)
+        
+        return wi,error,gradient
+
+
+    def plot_historic_error(self):
+        var=self.historic_error
+        x=np.arange(self.historic_error.shape[0])
+        fig, ax = plt.subplots()
+        
+        ax.plot(x, var)
+        ax.set_xlabel('Iterations')
+        ax.set_ylabel('Error')
+        ax.set_title('Error evolution')
+
+        ax.legend()
+
+        plt.show()
+
+    def plot_historic_weight(self):
+        
+        vars=[]
+        for i in range(0,self.historic_weigths.shape[1]):
+            vars.append(self.historic_weigths[:,i])
+
+        x=np.arange(self.historic_weigths.shape[0])
+        
+        
+        fig, ax = plt.subplots()
+        
+        m=0
+        for var in vars:
+            
+            ax.plot(x, var, label=str('w'+str(m)))
+            m+=1
+        
+        ax.set_xlabel('Iterations')
+        ax.set_ylabel('Weight value')
+        ax.set_title('Weigth learning')
+
+        ax.legend()
+
+        plt.show()
         
     def nn(self,input):
         """
@@ -392,7 +488,7 @@ class NeuroFuzzy():
             
             self.rules[i]=actual
             i+=1
-            
+        
 
     def predict(self,input):
 
@@ -406,8 +502,7 @@ class NeuroFuzzy():
         """
         if self.trained and len(input)==self.n_variables:
             input_fuzzy=self.to_fuzzy(input)
-            print(input_fuzzy)
-            print(input_fuzzy.values[0])
+            
             return self.nn(input_fuzzy.values[0])
         
         else:
@@ -432,20 +527,23 @@ class NeuroFuzzy():
         for ant in self.antecedents:
             ant.view()
             
-
 """
 data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/invitro_g.csv",sep=",")
-print(data.describe())
 
 X=data[['PolymerA']]
 y=data[['8hr']]
 
 model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name="8hr",input_names=["PolymerA"])
-model.fit(learning_rate=0.01,epochs=100)
+model.fit(learning_rate=0.01,epochs=5)
 for rule in model.get_rules():
     print(rule)
-print(model.predict([40.0]))
 
+model.plot_historic_error()
+model.plot_historic_weight()
+print(model.predict([40.0]))
 """
+
+
+
 
 
