@@ -172,7 +172,7 @@ class Controller():
                 y=np.array(y,dtype="float64")
                 X=np.array(X,dtype="float64")
                 model=NeuroFuzzy(input=X,input_names=names[index_var],output=y,output_name=names[index],n_membership_input=3,n_membership_output=2)
-                model.fit(learning_rate=0.01,epochs=50)
+                model.fit(learning_rate=0.001,epochs=50)
                 
                 toret.append(model.get_rules())
                 name="model_"+str(i)

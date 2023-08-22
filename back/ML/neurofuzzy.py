@@ -7,7 +7,7 @@ from skfuzzy import control as ctrl
 from scipy.optimize import minimize
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.metrics import r2_score,mean_squared_error
-
+from sklearn.linear_model import Ridge
 
 class NeuroFuzzy():
     """
@@ -52,6 +52,16 @@ class NeuroFuzzy():
 
         """
         self.n_variables=input.shape[1]
+        
+        if self.n_variables!=len(input_names):
+            raise ValueError("Iconsistent number of variables and names")
+        
+        if n_membership_output>3 or n_membership_output<1:
+            raise ValueError("Invalid number of output memberships (0 > output memberships < 4)")
+        
+        if n_membership_input>3 or n_membership_input<1:
+            raise ValueError("Invalid number of input memberships (0 > input memberships < 4)")
+
         self.n_membership=n_membership_input
         self.n_membership_output=n_membership_output
         self.trained=False
@@ -68,8 +78,7 @@ class NeuroFuzzy():
         #array de pesos de cada regla
         # el numero de reglas se determina por el numero de funciones de membresia de entrada elevada al numero de variables
         self.weigths=np.random.rand(self.n_membership**self.n_variables)
-        
-        #self.weigths=np.full(self.n_membership**self.n_variables,fill_value=50.0)
+        #self.weigths=np.full(self.n_membership**self.n_variables,fill_value=np.mean(self.y))
         #self.weigths=np.ones(self.n_membership**self.n_variables)
         #self.weigths=np.zeros(self.n_membership**self.n_variables)
         
@@ -97,6 +106,7 @@ class NeuroFuzzy():
 
         self.metrics={'r2':0.0,'rmse':0.0,'mse':0.0}
         
+        self.done=False
         
     def fuzzyfication(self,C=0.3):
         """
@@ -127,8 +137,12 @@ class NeuroFuzzy():
                 mfs=[]
                 
                 for j in range(self.n_membership):
-                    
+                    universe=self.antecedents[i].universe
                     mf=fuzz.interp_membership(x=self.antecedents[i].universe,xmf=self.antecedents[i][self.NAMES(self.n_membership)[j]].mf,xx=col)
+                    
+                    #if (self.NAMES(self.n_membership)[j]=="Low" and col < np.min(universe)) or (self.NAMES(self.n_membership)[j]=="High" and col > np.max(universe)):
+                    #    mf=1.0
+                    
                     tmp=pd.DataFrame(mf,columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
                     mfs.append(mf)
                     toret=pd.concat([toret,tmp],axis=1)
@@ -167,6 +181,9 @@ class NeuroFuzzy():
             
             for j in range(self.n_membership):
                 mf=fuzz.interp_membership(x=ant.universe,xmf=ant[self.NAMES(self.n_membership)[j]].mf,xx=input[i])
+
+                print(self.NAMES(self.n_membership))
+
                 tmp=pd.DataFrame([mf],columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
                 mfs.append(mf)
                 toret=pd.concat([toret,tmp],axis=1)
@@ -182,15 +199,10 @@ class NeuroFuzzy():
                    
             toret=pd.concat([toret,tmp1,tmp2],axis=1)
             """
-            
         
             i+=1
        
         return toret
-
-    def fit(self,learning_rate=0.01,epochs=25):
-        self.fuzzyfication()
-        self.gradient_descent(learning_rate=learning_rate,epochs=epochs)
 
     def multivariate_memb(self,input):
 
@@ -266,7 +278,7 @@ class NeuroFuzzy():
 
             toret=[r1,r2,r3,r4,r5,r6,r7,r8,r9]
         
-        return toret
+        return np.array(toret)
        
 
     def normalization_layer(self,input):
@@ -290,9 +302,8 @@ class NeuroFuzzy():
         return output
     
 
+    
     def fit(self, learning_rate=0.01,epochs=25):
-        
-        
         """
         Funcion de entrenamiento de la red
 
@@ -301,94 +312,227 @@ class NeuroFuzzy():
             - epochs: numero de repeticiones al conjunto de entrenamiento
         
         """
-        
         #fuzzyfication del conjunto de entrenamiento
         self.fuzzyfication()
 
         training_size = self.fuzz_X.shape[0]
         y_calculada = np.zeros(training_size)
         
-        batch=10
+        batch=int(np.ceil(training_size/2))
         god=False
+        
 
         if training_size%batch==0:
             god=True
 
-        self.historic_weigths=np.zeros(shape=(epochs,self.n_membership**self.n_variables))
+        self.historic_weigths=np.zeros(shape=(epochs*int((training_size/batch)),self.n_membership**self.n_variables))
         self.historic_error=np.zeros(shape=(epochs,1))
 
         M=np.zeros(shape=(batch,self.n_membership**self.n_variables))
 
         counter=0
-
+        first=True
+    
+        gradient=None
+        d=None
+        first=True
         for iteration in range(epochs):
             #array de salidas que se van a calcular
             y_calculada = np.zeros(training_size)
             
+            end_batch=0
+            i_batch=0
+            start_batch=0
 
             for i in range(training_size):
-                #para cada registro del conjunto de entrenamiento
-                # input -> fuzzy
-                x_i = self.fuzz_X[i] 
-                # se pasas el registro de valores fuzzyficados por el pipeline de la red y se obtiene la predicción
-                # fuzzy -> neural net   
+                if i_batch==0:
+                    start_batch=i
+
+                x_i = self.fuzz_X[i]   
                 y_calculada[i]=self.nn(x_i)
+                
+                M[i_batch]=np.array(self.layer_3_output).reshape(1,self.layer_3_output.shape[0])
 
                 # se calcula el error con la variable de salida de referencia
-                #error = y_calculada[i] - self.y[i]
-                #print(f'ACTUAL:{self.y[i]}, PREDICTED:{y_calculada[i]}')
-                #gradients = self.layer_3_output
-                
-                M[i]=np.array(self.layer_3_output).reshape(1,self.layer_3_output.shape[0])
-                #se actualizan los pesos de la red
-                #self.weigths = self.weigths - learning_rate * error * gradients
-                
-                #Código para actualizar los pesos en cada registro
-                #A=np.array(self.layer_3_output).reshape(1,self.layer_3_output.shape[0])
-                #y=np.array([self.y[i]])
-                #w0=self.weigths.reshape(self.weigths.shape[0],1)
-                
-                #self.weigths=self.conjugate_gradient(A,y,w0)[0].flatten()
-                
+                if i_batch==batch-1 or (i==training_size-1):
+                    
+                    self.historic_weigths[counter]=self.weigths
+                    counter+=1
 
-            w0=self.weigths.reshape(self.weigths.shape[0],1)
-            self.weigths=self.conjugate_gradient(M,self.y,w0)[0].flatten()
-            self.historic_weigths[iteration]=self.weigths
-                
+                    if i==training_size-1:
+                        i+=1
+                    end_batch=i
+                    i_batch=0
+                    
+                    w0=self.weigths.reshape(self.weigths.shape[0],1)
+                    
+                    y=self.y[start_batch:end_batch+1]
+                    
+                    result=self.conjugate_gradient(M,y,w0,d=d,gradient=gradient,first=first,learning_rate=learning_rate)
+                    self.weigths=result[0].flatten()
+                    d=result[1]
+                    gradient=result[2]
+                else:
+                    i_batch+=1
+
             #se calcula le r2 score tras cada iteración
             self.metrics['r2']=r2_score(self.y,y_calculada)
             mse=mean_squared_error(self.y,y_calculada)
             self.metrics['mse']=mse
             self.metrics['rmse']=np.sqrt(mse)
             self.historic_error[iteration]=self.metrics['rmse']
-            
+
+            if self.done:
+                break
             #print(f'ITERATION {iteration} : ###  r2 {self.metrics["r2"]}, mse {self.metrics["mse"]}, rmse {self.metrics["rmse"]}')
             
         #invoca funcion que genera las consecuencias de las reglas
         self.rules_consecuences()
         self.trained=True
 
-    def conjugate_gradient(self,A,y,w0,tol=1.e-10,itmax=100):
+
+    def calculate_gradient_mse(self,M,w,y):
+
+        """
+        Funcion que calcula la derivada de la funcion de coste (MSE) que se utiliza como gradiente
+
+        argumentos:
+            - M : matriz de multivariate memberships
+            - w : pesos a optimizar
+            - y : salida real
+
+        return
+            - gradient: gradiente de la funcion de costo
+        """
+        n=M.shape[0]
+        grandient=np.zeros(shape=(n,w.shape[0]))
+        i=0
+        
+        for register in M:
+            j=0
+            weighted_sum=np.dot(register,w)
+            
+            for rule in register:
+                grandient[i][j]=(rule*(weighted_sum-y[i]))
+                j+=1
+                       
+            i+=1
+        
+        toret=np.zeros(shape=(w.shape[0],1))
+
+        for i in range(w.shape[0]):
+            partial_derivate=grandient[:,i]
+            partial_derivate=2*np.sum(partial_derivate)/n
+            toret[i]=partial_derivate
+            
+        
+        return toret
+    
+    def conjugate_gradient(self,A,y,w0,tol=1.e-10,itmax=10,d=None,gradient=None,first=True,learning_rate=0.001):
+        """
+        Implementación del algoritmo de descenso de gradiente conjugado
+
+        argumentos:
+            - A : matriz de multivariate memberships
+            - w0 : pesos iniciales
+            - y : salida real
+
+        return
+            - wi : pesos actualizados
+            - d : direccion de gradiente
+            - gradient: gradiente de la funcion de costo
+            - norma: última norma calculada
+        """
+        old_y=y
         A_t=np.transpose(A)
         M=np.dot(A_t,A)
         y=np.dot(A_t,y)
-        gradient=np.dot(M,w0)-y 
-        d=np.dot(gradient,np.float16(-1))
-        error=0.0
+
+        if first:
+            
+            gradient=self.calculate_gradient_mse(A,w0,old_y)
+            d=np.dot(gradient,np.float16(-1))
+        else:
+            d=d
+            gradient=gradient
+    
+        norma=0.0
         wi=w0
             
         for i in range(0,itmax):
-            alpha=(np.dot(np.transpose(gradient),gradient))/(np.dot(np.dot(np.transpose(d),M),d))
+            alpha=learning_rate
             wi=wi+alpha*d
-            gradient=np.dot(M,wi)-y
-            error=np.linalg.norm(gradient)
-            if error <= tol:
+            
+            gradient=self.calculate_gradient_mse(M,wi,y)
+            norma=np.linalg.norm(gradient)
+        
+            if norma <= tol:    
                 break
             beta=(np.dot(np.dot(np.transpose(d),M),gradient))/(np.dot(np.dot(np.transpose(d),M),d))
             d=np.float16(-1)*gradient+(beta*d)
-        
-        return wi,error,gradient
+           
+        return wi,d,gradient,norma
 
+
+    def plot_trend(self):
+        if self.n_variables==1 and self.trained:
+            
+            var=self.X[:,0]
+            fig, ax = plt.subplots()
+            x=np.linspace(start=np.min(var),stop=np.max(var),num=50)
+            y_calculada=np.zeros(x.shape[0])
+            
+            i=0
+            for register in x:
+                y_calculada[i]=self.predict([register])
+                i+=1
+
+            ax.plot(x, y_calculada,label="Calculated value")
+            ax.set_xlabel(self.X_names[0])
+            ax.set_ylabel(self.y_name)
+            ax.set_title('Trend')
+
+            ax.legend()
+
+            plt.show()
+            
+            
+
+    def plot_precisewise(self):
+        
+        y_calculada=np.zeros(self.X.shape[0])
+        i=0
+
+        fig, ax = plt.subplots()
+        
+        i=0
+
+        for variable in self.X_names:
+
+            j=0
+            #ordeno por la columna
+            X=self.X
+            X=np.append(X,self.y,axis=1)
+            X=X[X[:,i].argsort()]
+
+            y_real=X[:,X.shape[1]-1]
+            
+            X=np.delete(X,X.shape[1]-1,1)
+            
+            for register in X:
+                y_calculada[j]=self.predict(register)
+                j+=1
+
+            x=X[:,i]
+            ax.plot(x, y_calculada,label="salida calculada")
+            ax.plot(x, y_real, label="salida real")
+            ax.set_xlabel(variable)
+            i+=1
+            ax.set_ylabel(self.y_name)
+    
+        ax.set_title('Training outputs')
+        ax.legend()
+        plt.show()
 
     def plot_historic_error(self):
         var=self.historic_error
@@ -441,13 +585,17 @@ class NeuroFuzzy():
             - output: prediccion sobre la variable de salida de la red
         
         """
+        #print(f'################################')
         #Multivarite memebership function layer
+        #print(f'Input Multifunction:{input}')
         self.layer_2_output=self.multivariate_memb(input)
         #Normalization Layer
         self.layer_3_output=self.normalization_layer(self.layer_2_output)   
         #Activation Layer
+        #print(f'Input Activation layer:{self.layer_3_output}')
         self.layer_4_output = self.calculate_output(self.layer_3_output, self.weigths)
-    
+        #print(f'Output:{self.layer_4_output}')
+        #print(f'################################')
         return self.layer_4_output
 
 
@@ -526,22 +674,30 @@ class NeuroFuzzy():
         """
         for ant in self.antecedents:
             ant.view()
-            
-"""
+
 data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/invitro_g.csv",sep=",")
 
-X=data[['PolymerA']]
+X=data[['PolymerA','lubricant']]
 y=data[['8hr']]
 
-model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name="8hr",input_names=["PolymerA"])
-model.fit(learning_rate=0.01,epochs=5)
+model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name="8hr",input_names=["PolymerA","lubricant"])
+model.fit(learning_rate=0.001,epochs=1)
+
+
 for rule in model.get_rules():
     print(rule)
 
-model.plot_historic_error()
-model.plot_historic_weight()
-print(model.predict([40.0]))
-"""
+#model.plot_trend()
+#model.plot_membership_functions()
+#model.plot_historic_error()
+#model.plot_historic_weight()
+#model.plot_precisewise()
+print(model.weigths)
+
+
+
+
+
 
 
 
