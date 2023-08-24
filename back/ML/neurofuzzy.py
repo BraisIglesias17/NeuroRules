@@ -56,11 +56,11 @@ class NeuroFuzzy():
         if self.n_variables!=len(input_names):
             raise ValueError("Iconsistent number of variables and names")
         
-        if n_membership_output>3 or n_membership_output<1:
-            raise ValueError("Invalid number of output memberships (0 > output memberships < 4)")
+        if n_membership_output>4 or n_membership_output<1:
+            raise ValueError("Invalid number of output memberships (0 > output memberships < 5)")
         
-        if n_membership_input>3 or n_membership_input<1:
-            raise ValueError("Invalid number of input memberships (0 > input memberships < 4)")
+        if n_membership_input>4 or n_membership_input<1:
+            raise ValueError("Invalid number of input memberships (0 > input memberships < 5)")
 
         self.n_membership=n_membership_input
         self.n_membership_output=n_membership_output
@@ -127,7 +127,7 @@ class NeuroFuzzy():
             for i in range(n_cols):
                 col = X[:, i]
             
-                col=np.sort(col)
+                #col=np.sort(col)
                 #control_points=min(col),np.percentile(col,30),np.mean(col),np.percentile(col,60),max(col)
                 
                 #Utilizacion de la funcion automf con el numero de membresias de entrada para generar las membresías
@@ -137,12 +137,10 @@ class NeuroFuzzy():
                 mfs=[]
                 
                 for j in range(self.n_membership):
-                    universe=self.antecedents[i].universe
+                    
                     mf=fuzz.interp_membership(x=self.antecedents[i].universe,xmf=self.antecedents[i][self.NAMES(self.n_membership)[j]].mf,xx=col)
                     
-                    #if (self.NAMES(self.n_membership)[j]=="Low" and col < np.min(universe)) or (self.NAMES(self.n_membership)[j]=="High" and col > np.max(universe)):
-                    #    mf=1.0
-                    
+                
                     tmp=pd.DataFrame(mf,columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
                     mfs.append(mf)
                     toret=pd.concat([toret,tmp],axis=1)
@@ -158,6 +156,8 @@ class NeuroFuzzy():
                 """
             self.fuzz_X=toret.values
 
+            print(f"X:{self.X}")
+            print(f"AFTER FUZZYFICATION:{self.fuzz_X}")
             return toret
 
         except Exception as exc:
@@ -180,10 +180,13 @@ class NeuroFuzzy():
             mfs=[]
             
             for j in range(self.n_membership):
+                universe=ant.universe
                 mf=fuzz.interp_membership(x=ant.universe,xmf=ant[self.NAMES(self.n_membership)[j]].mf,xx=input[i])
 
-                print(self.NAMES(self.n_membership))
-
+              
+                if (self.NAMES(self.n_membership)[j]=="Low" and input[i] < np.min(universe)) or (self.NAMES(self.n_membership)[j]=="High" and input[i] > np.max(universe)):
+                    mf=1.0
+                
                 tmp=pd.DataFrame([mf],columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
                 mfs.append(mf)
                 toret=pd.concat([toret,tmp],axis=1)
@@ -225,6 +228,7 @@ class NeuroFuzzy():
             r=[]
             length=len(self.rules)
             for i in range(self.n_membership):
+                
                 r.append(input[i])
                 #si es la primera ieracion se crean las reglas
                 if length==0:
@@ -336,7 +340,9 @@ class NeuroFuzzy():
         gradient=None
         d=None
         first=True
+        
         for iteration in range(epochs):
+            print("----------------------")
             #array de salidas que se van a calcular
             y_calculada = np.zeros(training_size)
             
@@ -350,6 +356,9 @@ class NeuroFuzzy():
 
                 x_i = self.fuzz_X[i]   
                 y_calculada[i]=self.nn(x_i)
+                
+                
+                print(f'entrada {x_i}, calculada {i}: {y_calculada[i]} vs real:{self.y[i]}')
                 
                 M[i_batch]=np.array(self.layer_3_output).reshape(1,self.layer_3_output.shape[0])
 
@@ -468,7 +477,8 @@ class NeuroFuzzy():
         
             if norma <= tol:    
                 break
-            beta=(np.dot(np.dot(np.transpose(d),M),gradient))/(np.dot(np.dot(np.transpose(d),M),d))
+            #beta=(np.dot(np.dot(np.transpose(d),M),gradient))/(np.dot(np.dot(np.transpose(d),M),d))
+            beta=1
             d=np.float16(-1)*gradient+(beta*d)
            
         return wi,d,gradient,norma
@@ -539,7 +549,7 @@ class NeuroFuzzy():
         x=np.arange(self.historic_error.shape[0])
         fig, ax = plt.subplots()
         
-        ax.plot(x, var)
+        ax.plot(x, var, label="Root mean squared error")
         ax.set_xlabel('Iterations')
         ax.set_ylabel('Error')
         ax.set_title('Error evolution')
@@ -590,7 +600,8 @@ class NeuroFuzzy():
         #print(f'Input Multifunction:{input}')
         self.layer_2_output=self.multivariate_memb(input)
         #Normalization Layer
-        self.layer_3_output=self.normalization_layer(self.layer_2_output)   
+        #self.layer_3_output=self.normalization_layer(self.layer_2_output) 
+        self.layer_3_output=self.layer_2_output  
         #Activation Layer
         #print(f'Input Activation layer:{self.layer_3_output}')
         self.layer_4_output = self.calculate_output(self.layer_3_output, self.weigths)
@@ -624,12 +635,20 @@ class NeuroFuzzy():
         for weight in self.weigths:
             confs=[]
             for j in range(self.n_membership_output):
+                
+                
                 conf=fuzz.interp_membership(x=self.consecuence.universe,xmf=self.consecuence[self.NAMES(self.n_membership_output)[j]].mf,xx=weight)
+
+                
+
+                if (self.NAMES(self.n_membership_output)[j]=="Low" and weight < np.min(self.consecuence.universe)) or (self.NAMES(self.n_membership_output)[j]=="High" and weight > np.max(self.consecuence.universe)) :
+                    conf=1.0
+
+                #print(f'EVALUATING {weight} in {self.NAMES(self.n_membership_output)[j]} is {conf}')
+
                 confs.append(conf)
 
-            #confHigh=fuzz.interp_membership(x=self.consecuence.universe,xmf=self.consecuence['High'].mf,xx=weight)
-            #confLow=fuzz.interp_membership(x=self.consecuence.universe,xmf=self.consecuence['Low'].mf,xx=weight)
-            #actual=actual+" "+self.y_name+" is HIGH ("+str(round(confHigh,2))+") and LOW ("+str(round(confLow,2))+")"
+            
             actual=self.rules[i]
             for j in range(self.n_membership_output):
                 actual=actual+" "+self.y_name+" is "+self.NAMES(self.n_membership_output)[j]+" ("+str(round(confs[j],2))+")"
@@ -675,24 +694,8 @@ class NeuroFuzzy():
         for ant in self.antecedents:
             ant.view()
 
-data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/invitro_g.csv",sep=",")
+        self.consecuence.view()
 
-X=data[['PolymerA','lubricant']]
-y=data[['8hr']]
-
-model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name="8hr",input_names=["PolymerA","lubricant"])
-model.fit(learning_rate=0.001,epochs=1)
-
-
-for rule in model.get_rules():
-    print(rule)
-
-#model.plot_trend()
-#model.plot_membership_functions()
-#model.plot_historic_error()
-#model.plot_historic_weight()
-#model.plot_precisewise()
-print(model.weigths)
 
 
 
