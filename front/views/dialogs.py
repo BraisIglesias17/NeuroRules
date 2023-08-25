@@ -180,7 +180,6 @@ class RulesDialog(wx.Dialog):
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
         
-        
         self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
         self.button_SAVE.SetDefault()
         sizer_2.AddButton(self.button_SAVE)
@@ -189,8 +188,7 @@ class RulesDialog(wx.Dialog):
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
 
-        
-
+    
         sizer_2.Realize()
         
         self.SetSizer(sizer_1)
@@ -298,6 +296,8 @@ class CleanDataDialog(wx.Dialog):
         
         self.combo_box_missing_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median"],style=wx.CB_READONLY,value="None")
         sizer_8.Add(self.combo_box_missing_sustitution, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        self.combo_box_missing_sustitution.Enable(False)
+        self.label_2.Enable(False)
 
         sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Outliers"), wx.HORIZONTAL)
         sizer_3.Add(sizer_5, 0, wx.ALL|wx.EXPAND,10)
@@ -325,9 +325,28 @@ class CleanDataDialog(wx.Dialog):
         self.label_3 = wx.StaticText(self, wx.ID_ANY, "Sustitution strategy")
         sizer_10.Add(self.label_3, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.combo_box_outlier_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median"],style=wx.CB_READONLY,value="None")
+        self.combo_box_outlier_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median","Adjust closer"],style=wx.CB_READONLY,value="None")
         sizer_10.Add(self.combo_box_outlier_sustitution, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
+        ####
+        sizer_10b = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9.Add(sizer_10b, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.label_lower = wx.StaticText(self, wx.ID_ANY, "Lower bounds")
+        sizer_10b.Add(self.label_lower, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.lower_bounds=wx.SpinCtrlDouble(self,wx.ID_ANY,initial=0.25,min=0.0,max=1.0,inc=0.05)
+        sizer_10b.Add(self.lower_bounds, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_10c = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9.Add(sizer_10c, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.label_upper = wx.StaticText(self, wx.ID_ANY, "Upper bounds")
+        sizer_10c.Add(self.label_upper, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.upper_bounds=wx.SpinCtrlDouble(self,wx.ID_ANY,initial=0.75,min=0.0,max=1.0,inc=0.05)
+        sizer_10c.Add(self.upper_bounds, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        ###
 
         sizer_12 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
         sizer_3.Add(sizer_12, 0, wx.ALL| wx.EXPAND, 10)
@@ -347,7 +366,7 @@ class CleanDataDialog(wx.Dialog):
         self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
         sizer_2.AddButton(self.button_APPLY)
         
-        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "Save")
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "Save configuration")
         sizer_2.AddButton(self.button_SAVE)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "Close")
@@ -375,28 +394,45 @@ class CleanDataDialog(wx.Dialog):
             if options['status']==Status.OK:
                 options=options['data'][target]
                 
-                self.checkbox_delete_missing.SetValue(options['delete_missing'])
+                delete_missing=options['delete_missing']
+                self.checkbox_delete_missing.SetValue(delete_missing)
+                self._enable_options_missing(not delete_missing)
                 self.combo_box_missing_sustitution.SetValue(options['substitute_missing'])
-                self.checkbox_delete_outliers.SetValue(options['delete_outliers'])
+
+                delete_outliers=options['delete_outliers']
+                self.checkbox_delete_outliers.SetValue(delete_outliers)
+                self._enable_options_outliers(not delete_outliers)
                 self.combo_box_outlier_sustitution.SetValue(options['substitute_outliers'])
                 self.checkbox_highlight_outliers.SetValue(options['highlight_outliers'])
+                self.upper_bounds.SetValue(options['upper_bound'])
+                self.lower_bounds.SetValue(options['lower_bound'])
                 
             else:
                 wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
 
+    def _enable_options_outliers(self,val):
+        self.combo_box_outlier_sustitution.Enable(val)
+        self.checkbox_highlight_outliers.Enable(val)
+        self.label_3.Enable(val)
+        """
+        self.upper_bounds.Enable(val)
+        self.lower_bounds.Enable(val)
+        self.label_upper.Enable(val)
+        self.label_lower.Enable(val)
+        """
+        
+        
+    def _enable_options_missing(self,val):
+            self.combo_box_missing_sustitution.Enable(val)
+            self.label_2.Enable(val)
 
     def OnCheckDeleteOutliers(self,event):
         checked=self.checkbox_delete_outliers.GetValue()
 
         if checked:
-            self.combo_box_outlier_sustitution.Enable(False)
-            self.checkbox_highlight_outliers.Enable(False)
-            self.label_3.Enable(False)
+            self._enable_options_outliers(False)
         else:
-            self.combo_box_outlier_sustitution.Enable(True)
-            self.checkbox_highlight_outliers.Enable(True)
-            self.label_3.Enable(True)
-
+            self._enable_options_outliers(True)
 
     def OnCheckMissing(self,event):
 
@@ -404,12 +440,9 @@ class CleanDataDialog(wx.Dialog):
         #variable=self.combo_box_variable.GetValue()
         
         if checked:
-
-            self.combo_box_missing_sustitution.Enable(False)
-            self.label_2.Enable(False)
+            self._enable_options_missing(False)
         else:
-            self.combo_box_missing_sustitution.Enable(True)
-            self.label_2.Enable(True)
+            self._enable_options_missing(True)
 
     def OnSave(self,event):
         try:
@@ -419,22 +452,26 @@ class CleanDataDialog(wx.Dialog):
             do=self.checkbox_delete_outliers.GetValue()
             so=self.combo_box_outlier_sustitution.GetValue()
             ho=self.checkbox_highlight_outliers.GetValue()
+            upper_bound=self.upper_bounds.GetValue()
+            lower_bound=self.lower_bounds.GetValue()
+
             if target == "All":
                 #Cambiar todos
                 for variable in self.names:
-                    result=self.parent.controller.set_cleanse_option(variable,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so}).getResponse()
+                    result=self.parent.controller.set_cleanse_option(variable,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so,'upper_bound':upper_bound,'lower_bound':lower_bound}).getResponse()
                     
             else:
-                result=self.parent.controller.set_cleanse_option(target,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so}).getResponse()
+                result=self.parent.controller.set_cleanse_option(target,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so,'upper_bound':upper_bound,'lower_bound':lower_bound}).getResponse()
             
             if result['status']== Status.OK:
-                wx.MessageBox("Changed succesfully saved ")
+                wx.MessageBox("Configuration succesfully saved ")
         except Exception as exc:
             wx.MessageBox(str(exc),"Error",wx.OK|wx.ICON_ERROR)
                 
     def OnApply(self,event):
         options=self.parent.controller.get_cleanse().getResponse()
         deleted=0
+        modified=0
         if options['status']==Status.OK:
             #HERE
 
@@ -442,12 +479,14 @@ class CleanDataDialog(wx.Dialog):
                 response=self.parent.controller.apply_cleanse(variable).getResponse()
                 if response['status']==Status.OK:
                     d=response['data']['deleted_rows']
+                    m=response['data']['modified_rows']
                     deleted+=d
+                    modified+=m
                 else:
                     wx.MessageBox(str("A problem has ocurred with "+variable+" process"),"Error",wx.OK|wx.ICON_ERROR)
             
-            wx.MessageBox(str("A total of "+str(deleted)+" rows will be deleted"),"Info")
-            self.Close()
+            wx.MessageBox(str(str(deleted)+" deleted and "+str(modified)+" modified rows."),"Info")
+            self.EndModal(wx.ID_APPLY)
 
         else:
             wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -929,11 +968,23 @@ class StatisticDialog(wx.Dialog):
         
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeTest,self.combo_box_test)
         self.Bind(wx.EVT_BUTTON,self.OnRun,self.button_OK)
+        self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorr,self.checkbox_corr)
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
 
+        self.Center()
         self.Layout()
         # end wxGlade
+
+    def OnChangeCorr(self,evt):
+        if self.checkbox_corr.GetValue():
+            self.combo_box_A.Enable(False)
+            self.combo_box_B.Enable(False)
+            self.combo_box_test.Enable(False)
+        else:
+            self.combo_box_A.Enable(True)
+            self.combo_box_B.Enable(True)
+            self.combo_box_test.Enable(True)
 
     def validate_choice(self,val):
         if val=="":
@@ -950,46 +1001,34 @@ class StatisticDialog(wx.Dialog):
             df=self.controller.get_data().getResponse()['data']
             plot_correlation_matrix(df)
             other_option=True
-
-        if not self.validate_choice(test) and not other_option:
-            wx.MessageBox("You need to select a test","Error",wx.OK|wx.ICON_ERROR)
         else:
-            if not self.validate_choice(a):
-                wx.MessageBox("You have to select A variable","Error",wx.OK|wx.ICON_ERROR) 
+
+            if not self.validate_choice(test) and not other_option:
+                wx.MessageBox("You need to select a test","Error",wx.OK|wx.ICON_ERROR)
             else:
+                if not self.validate_choice(a):
+                    wx.MessageBox("You have to select A variable","Error",wx.OK|wx.ICON_ERROR) 
+                else:
 
-                index_b=None
-                y=None
-
-                if not self.one_variable_test: 
-                    if not self.validate_choice(b):
-                        wx.MessageBox("You have to select B variable","Error",wx.OK|wx.ICON_ERROR)
-                    else:
-                        index_b=self.names.index(b)
-                        y=self.controller.get_column(index_b).getResponse()['data']
-                
-                index_a=self.names.index(a)
-                x=self.controller.get_column(index_a).getResponse()['data']
-                if test == 'Shapiro':   
-                    """
-                    result=StatisticTest.shapiro_wilk(x)
-                    title="Test "+test+" on "+a
-                    dialog=TestResultDialog(self,title,{'pvalue':result.pvalue},"to determine that this variable has a normal distribution")
-                    dialog.ShowModal()
-                    """
+                    index_b=None
+                    y=None
+                    complete=False
+                    if not self.one_variable_test: 
+                        if not self.validate_choice(b):
+                            wx.MessageBox("You have to select B variable","Error",wx.OK|wx.ICON_ERROR)
+                        else:
+                            index_b=self.names.index(b)
+                            y=self.controller.get_column(index_b).getResponse()['data']
+                            complete=True
                     
+                    index_a=self.names.index(a)
+                    x=self.controller.get_column(index_a).getResponse()['data']
+                    if test == 'Shapiro':   
+                        self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a])
+                    elif test=='ANOVA' and complete:
+                        self.OnLaunchResulDialog(StatisticTest.ANOVA,test,variables=[x,y],names=[a,b])
                     
-                    self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a])
-                    
-                
-                elif test=='ANOVA':
-                    self.OnLaunchResulDialog(StatisticTest.ANOVA,test,variables=[x,y],names=[a,b])
-                    """
-                    result=StatisticTest.ANOVA(x,y)
-                    title="Test "+test+" on "+a+" and "+b
-                    dialog=TestResultDialog(self,title,{'pvalue':result.pvalue},str("to determine that there is significant differences between "+a+" and "+b))
-                    dialog.ShowModal()
-                    """
+                    #TO DO TESTS
                     
                     
 
@@ -1117,22 +1156,22 @@ class SummaryPickDialog(wx.Dialog):
         sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Variable"), wx.VERTICAL)
         sizer_4.Add(sizer_5, 1, wx.ALL | wx.EXPAND, 5)
 
-        self.combo_box_1 = wx.ComboBox(self, wx.ID_ANY, choices=names, style=wx.CB_READONLY)
-        sizer_5.Add(self.combo_box_1, 0, wx.ALL, 5)
+        self.combo_box__variable = wx.ComboBox(self, wx.ID_ANY, choices=names, style=wx.CB_READONLY)
+        sizer_5.Add(self.combo_box__variable, 0, wx.ALL, 5)
 
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Group by"), wx.VERTICAL)
         sizer_4.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 5)
 
         groupby_variables=self.parent.string_variable_names
         groupby_variables.append("None")
-        self.combo_box_2 = wx.ComboBox(self, wx.ID_ANY, choices=groupby_variables,value="None", style=wx.CB_READONLY)
+        self.combo_box_group = wx.ComboBox(self, wx.ID_ANY, choices=groupby_variables,value="None", style=wx.CB_READONLY)
         if len(groupby_variables)==1:
-            self.combo_box_2.Enable(False)
+            self.combo_box_group.Enable(False)
 
-        sizer_6.Add(self.combo_box_2, 0, wx.ALL, 5)
+        sizer_6.Add(self.combo_box_group, 0, wx.ALL, 5)
 
-        self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, "Show all variables summary")
-        sizer_3.Add(self.checkbox_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 15)
+        self.checkbox_all_variable = wx.CheckBox(self, wx.ID_ANY, "Show all variables summary")
+        sizer_3.Add(self.checkbox_all_variable, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 15)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -1149,8 +1188,34 @@ class SummaryPickDialog(wx.Dialog):
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
-        self.SetAffirmativeId(self.button_OK.GetId())
+        #self.SetAffirmativeId(self.button_OK.GetId())
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_OK)
+        self.Bind(wx.EVT_CHECKBOX,self.OnChangeAllVariables,self.checkbox_all_variable)
         self.SetEscapeId(self.button_CANCEL.GetId())
 
+        self.Center()
         self.Layout()
         # end wxGlade
+    
+    def OnChangeAllVariables(self,evt):
+        all_variables=self.checkbox_all_variable.GetValue()
+
+        if all_variables:
+            self.combo_box__variable.Enable(False)
+            self.combo_box_group.Enable(False)
+        else:
+            self.combo_box__variable.Enable(True)
+            self.combo_box_group.Enable(True)
+
+    def OnApply(self,evt):
+        all_variables=self.checkbox_all_variable.GetValue()
+        
+        if all_variables:
+            dialog=SummaryDialog(self.parent)
+            dialog.ShowModal()
+            self.Close()
+        else:
+            variable=self.combo_box__variable.GetValue()
+            group=self.combo_box_group.GetValue()
+
+            print(f'var:{variable},group:{group}')

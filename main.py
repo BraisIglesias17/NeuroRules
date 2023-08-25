@@ -42,6 +42,8 @@ class MainWindow(wx.Frame):
         self.hidden_columns=[]
         self.names_to_show=[]
         self.filename=""
+
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)  
         
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -119,6 +121,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnStatistics,self.statistics_button)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,self.OnCickLabelCell)
         self.Bind(wx.EVT_CLOSE,self.OnExit)
+        
         #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
         #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
         
@@ -129,7 +132,6 @@ class MainWindow(wx.Frame):
         self.SetSize((1800, 900))
         self.Center()
         self.Show(True)
-
 
     def OnStatistics(self,evt):
         dialog=StatisticDialog(self)
@@ -147,16 +149,16 @@ class MainWindow(wx.Frame):
 
     def OnCleanData(self,evt):
         dialog=CleanDataDialog(self,self.controller,self.setting)
-        dialog.ShowModal()
-        response=self.controller.get_data().getResponse()
-        
-        if response['status']==Status.OK:
-            self.ClearGrid()
-            self.updateGrid(response['data'])
-        else:
-            wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
-    
-        
+        code=dialog.ShowModal()
+
+        if code==wx.ID_APPLY:
+            response=self.controller.get_data().getResponse()
+            
+            if response['status']==Status.OK:
+                self.ClearGrid()
+                self.updateGrid(response['data'])
+            else:
+                wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
 
     def OnExit(self,event):
         sys.exit(0)
@@ -225,6 +227,7 @@ class MainWindow(wx.Frame):
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
     
+
         response=self.controller.update_data_position(row,col,self.grid.GetCellValue(row,col)).getResponse()
 
         if not response['status'] == Status.OK:

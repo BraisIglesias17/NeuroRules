@@ -41,7 +41,7 @@ class ContextData():
     
     def set_initial_cleanse(self):
         for variable in self.data.columns:
-            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None'}
+            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.8,'lower_bound':0.2}
     
         
     def update_set(self,df):
@@ -121,7 +121,7 @@ class ContextData():
 
         elif j == self.data.shape[1]:
             # Nueva columna
-            print("HOLA")
+            print("NUEVA COLUMNA TO DO")
 
         
         return True
@@ -222,7 +222,7 @@ class ContextData():
         settings=self.data_cleanse[variable]
 
         n_rows_begin=self.data.shape[0]
-
+        modified_rows=0
         if settings['delete_missing']:
             self.data=remove_missing(self.data,variable)
         else:
@@ -230,20 +230,21 @@ class ContextData():
                 self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])
 
         if settings['delete_outliers']:
-            self.data=remove_outliers(self.data,variable,0.75,0.25)
+            result=remove_outliers(self.data,variable,settings['upper_bound'],settings['lower_bound'])
+            self.data=result[0]
+            modified_rows+=result[1]
         else:
             if settings['substitute_outliers']!="None":
                 
-                self.data=substitute_outliers(self.data,variable,settings['substitute_outliers'],0.75,0.25)
-                
-        
-        
-
+                result=substitute_outliers(self.data,variable,settings['substitute_outliers'],settings['upper_bound'],settings['lower_bound'])
+                self.data=result[0]
+                modified_rows+=result[1]
+    
         self.data=self.data.reset_index(drop=True)
         self.values=self.data.to_numpy()
         n_rows_end=self.data.shape[0]
 
-        return (n_rows_begin-n_rows_end)
+        return (n_rows_begin-n_rows_end),modified_rows
 
 
     def delete_row(self,rows):

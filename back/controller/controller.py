@@ -38,7 +38,9 @@ class Controller():
     def update_data_position(self,row,col,value):
 
         try:
-            self.contextData.update_position(row,col,value)
+
+            if self.contextData!=None:
+                self.contextData.update_position(row,col,value)
             return Response(data="",status=Status.OK)
         except Exception as exc:
             return Response(data=str(exc),status=Status.VALIDATION_ERROR)
@@ -169,14 +171,16 @@ class Controller():
 
             else:
                 #Regresión
+                
                 y=np.array(y,dtype="float64")
                 X=np.array(X,dtype="float64")
-                model=NeuroFuzzy(input=X,input_names=names[index_var],output=y,output_name=names[index],n_membership_input=3,n_membership_output=2)
+                model=NeuroFuzzy(input=X,input_names=names[index_var],output=y,output_name=names[index],n_membership_input=2,n_membership_output=2)
                 model.fit(learning_rate=0.001,epochs=50)
                 
                 toret.append(model.get_rules())
                 name="model_"+str(i)
                 self.models[name]=model
+                
             print("TRAINED")
             i+=1
             #toret={'R2':,'rules':}
@@ -200,8 +204,9 @@ class Controller():
 
     def apply_cleanse(self,variable):
         try:
-            deleted_rows=self.contextData.apply_cleanse(variable)
-            return Response(data={'deleted_rows':deleted_rows},status=Status.OK)
+            result=self.contextData.apply_cleanse(variable)
+            
+            return Response(data={'deleted_rows':result[0],'modified_rows':result[1]},status=Status.OK)
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         

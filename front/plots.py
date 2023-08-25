@@ -86,7 +86,7 @@ def plot_correlation_matrix(dataFrame):
 
     X=dataFrame[valid_columns].corr()
 
-    plt.figure(figsize=(8, 6))
+    plt.figure("Correlation matrix",figsize=(8, 6))
     sns.heatmap(X, annot=True, cmap='coolwarm', center=0)
     plt.title("Correlation Matrix")
     plt.show()

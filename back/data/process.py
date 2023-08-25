@@ -42,9 +42,19 @@ def substitute_outliers(dataframe,variable,method,upper_bound,lower_bound):
             higher=upper_bound
             lower=lower_bound
             
+        count=np.sum(dataframe[variable].apply(count_outliers, args=(lower_bound, upper_bound,higher,lower)))
         dataframe[variable] = dataframe[variable].apply(replace_outliers, args=(lower_bound, upper_bound,higher,lower))
+        
+        #sum=dataframe.apply(lambda x: x[variable] > upper_bound or x[variable] < lower_bound).sum()
 
-    return dataframe
+    return dataframe,count
+
+def count_outliers(x, lower_bound, upper_bound, higher,lower):
+    if x < lower_bound:
+        return True
+    elif x > upper_bound:
+        return True
+    return False
 
 def replace_outliers(x, lower_bound, upper_bound, higher,lower):
     
