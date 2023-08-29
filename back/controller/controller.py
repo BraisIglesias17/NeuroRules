@@ -85,6 +85,15 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
+    def get_variable_summary(self,variable,group):
+        try:
+            data=self.contextData.get_variable_summary(variable,group)
+            
+            return Response(data=data,status=Status.OK)
+        
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
     def set_independent_variables(self,indexes):
         try:
             self.contextData.set_variables(indexes)
