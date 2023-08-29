@@ -6,8 +6,10 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
-from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix
+from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_histogram_grouped, plot_general_group
 import numpy as np
+import copy
+import math
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent,settings,controller):
@@ -116,8 +118,6 @@ class VariableTypeDialog(wx.Dialog):
                 if row in self.targets:
                     self.targets.remove(row)
 
-            
-        
 
     def createDataGrid(self,myGrid,rows):
         
@@ -724,14 +724,13 @@ class SummaryDialog(wx.Dialog):
     def __init__(self,parent):
         
         super(SummaryDialog, self).__init__(parent)
-        self.SetSize((850, 481))
+        self.SetSize((810, 481))
         self.SetTitle("Summary")
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
-        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.HORIZONTAL)
-        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
-
+        
+        self.parent=parent
         self.IO=parent.IO
         self.names=parent.controller.get_names().getResponse()
         self.summary=parent.controller.get_summary().getResponse()
@@ -742,11 +741,37 @@ class SummaryDialog(wx.Dialog):
         else:
             wx.MessageBox("A problem has occurred")
 
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
         
         self.grid_1 = wx.grid.Grid(self, wx.ID_ANY)
         self.grid_1=self.createDataGrid(self.grid_1,len(self.names))
         
         sizer_3.Add(self.grid_1, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_1_groupby = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Plot"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_1_groupby, 0, wx.EXPAND, 10)
+
+        sizer_2_groupby = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1_groupby.Add(sizer_2_groupby, 1, wx.EXPAND, 0)
+
+        sizer_groupby = wx.BoxSizer(wx.VERTICAL)
+        sizer_2_groupby.Add(sizer_groupby, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        label_group_by = wx.StaticText(self, wx.ID_ANY, "Group by")
+        sizer_groupby.Add(label_group_by, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.combo_box_group = wx.ComboBox(self, wx.ID_ANY, choices=self.parent.string_variable_names, style=wx.CB_READONLY)
+        sizer_groupby.Add(self.combo_box_group, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.numeric_variables=self.parent.int_variable_names+self.parent.float_variable_names
+
+        self.list_box_variables = wx.ListBox(self, wx.ID_ANY, choices=self.numeric_variables,style=wx.LB_MULTIPLE)
+        sizer_2_groupby.Add(self.list_box_variables, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        self.button_plot = wx.Button(self, wx.ID_ANY, "Generate graph")
+        sizer_2_groupby.Add(self.button_plot, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -758,6 +783,8 @@ class SummaryDialog(wx.Dialog):
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
 
+
+        self.Bind(wx.EVT_BUTTON,self.OnPlot,self.button_plot)
         sizer_2.Realize()
 
         self.SetSizer(sizer_1)
@@ -769,6 +796,36 @@ class SummaryDialog(wx.Dialog):
         self.Center()
         self.Layout()
         # end wxGlade
+
+    def OnPlot(self,event):
+        group=self.combo_box_group.GetValue()
+        variables=self.list_box_variables.GetSelections()
+        indexes=[]
+        
+        for i in variables:
+            name=self.numeric_variables[i]
+            indexes.append(list(self.parent.names).index(name))
+        
+        
+        if len(variables)==0:
+            wx.MessageBox("You must select variables","Warning",wx.OK|wx.ICON_WARNING)
+        else:
+            if group!="":
+                indexes.append(list(self.parent.names).index(group))
+
+            code=wx.OK
+            if len(indexes)>4:
+                code=wx.MessageBox(str("You have selected "+str(len(indexes))+" variables this will create a hard to read plot and could take a few minutes to generate"),"Warning",wx.OK|wx.CANCEL|wx.ICON_WARNING)
+            
+            if code==wx.OK:
+                response=self.parent.controller.get_data().getResponse()
+
+                if response['status']!=Status.OK:
+                    wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+                else:
+                    data=response['data']
+                    plot_general_group(data.iloc[:,indexes],group)
+        
 
     def OnSave(self,event):
         result=self.IO.OnSaveAs(self,event,self.summary,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
@@ -800,18 +857,19 @@ class SummaryDialog(wx.Dialog):
         j=0
         
         for variable in names:
-            j=0
-            myGrid.SetCellValue(i,j,str(variable))
-            j+=1
-            #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
-            
-            for index in self.summary.index:
-                value=self.summary[[variable]].loc[index]
+            if not variable in self.parent.string_variable_names:
+                j=0
+                myGrid.SetCellValue(i,j,str(variable))
+                j+=1
+                #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
                 
-                myGrid.SetCellValue(i,j," "+str(round(value.values[0],2))+" ")
-                myGrid.SetReadOnly(i,j,True)
-                j+=1        
-            i+=1
+                for index in self.summary.index:
+                    value=self.summary[[variable]].loc[index]
+                    
+                    myGrid.SetCellValue(i,j," "+str(round(value.values[0],2))+" ")
+                    myGrid.SetReadOnly(i,j,True)
+                    j+=1        
+                i+=1
 
         myGrid.AutoSizeColumn(0,True)
 
@@ -1051,11 +1109,6 @@ class StatisticDialog(wx.Dialog):
         dialog=TestResultDialog(self,title,{'pvalue':result.pvalue},message)
         dialog.ShowModal()
         
-        
-
-        
-
-
     def OnChangeTest(self,event):
         if self.combo_box_test.GetValue() == 'Shapiro' or self.combo_box_test.GetValue() == 'McNemar' or self.combo_box_test.GetValue() == 'Kolmorov':
             self.combo_box_B.Enable(False)
@@ -1078,7 +1131,7 @@ class TestResultDialog(wx.Dialog):
         
         pvalue=np.round(self.result['pvalue'],4)
         
-        if self.result['pvalue']>0.05:
+        if self.result['pvalue']<0.05:
             self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/x.png"
             self.header="Unsuccesful"
 
@@ -1160,9 +1213,10 @@ class SummaryPickDialog(wx.Dialog):
         sizer_5.Add(self.combo_box__variable, 0, wx.ALL, 5)
 
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Group by"), wx.VERTICAL)
-        sizer_4.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 5)
+        sizer_4.Add(sizer_6, 0, wx.ALL | wx.EXPAND, 5)
 
-        groupby_variables=self.parent.string_variable_names
+        groupby_variables=copy.deepcopy(self.parent.string_variable_names)
+        
         groupby_variables.append("None")
         self.combo_box_group = wx.ComboBox(self, wx.ID_ANY, choices=groupby_variables,value="None", style=wx.CB_READONLY)
         if len(groupby_variables)==1:
@@ -1171,7 +1225,7 @@ class SummaryPickDialog(wx.Dialog):
         sizer_6.Add(self.combo_box_group, 0, wx.ALL, 5)
 
         self.checkbox_all_variable = wx.CheckBox(self, wx.ID_ANY, "Show all variables summary")
-        sizer_3.Add(self.checkbox_all_variable, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 15)
+        sizer_3.Add(self.checkbox_all_variable, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -1213,9 +1267,168 @@ class SummaryPickDialog(wx.Dialog):
         if all_variables:
             dialog=SummaryDialog(self.parent)
             dialog.ShowModal()
-            self.Close()
+            
         else:
             variable=self.combo_box__variable.GetValue()
             group=self.combo_box_group.GetValue()
 
-            print(f'var:{variable},group:{group}')
+            if variable=="":
+                wx.MessageBox("You must select a variable","Error",wx.OK|wx.ICON_EXCLAMATION)
+            else:
+                dialog=SingleSummaryDialog(self.parent,variable,group)
+                dialog.ShowModal()
+                
+
+
+
+class SingleSummaryDialog(wx.Dialog):
+    def __init__(self, parent,variable,group):
+        # begin wxGlade: SingleSummaryDialog.__init__
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Summary")
+        
+        self.parent=parent
+        self.variable=variable
+        self.group=group
+        isGrouped=True
+        message=str(variable+" grouped by "+group)
+        label="Group"
+        plottable=True
+        #Obtain summary
+        if group=="None":
+            group=None
+            isGrouped=False
+            message=variable
+            label="Name"
+            plottable=True
+
+        response=parent.controller.get_variable_summary(variable,group).getResponse()
+        
+        data=None
+        
+        if response['status']!=Status.OK:
+            wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+        else:
+            data=response['data']           
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        label_variable = wx.StaticText(self, wx.ID_ANY,message)
+        label_variable.SetFont(wx.Font(17, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, ""))
+        sizer_3.Add(label_variable, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        self.grid_1 = wx.grid.Grid(self, wx.ID_ANY)
+        
+        self.grid_1=self.createDataGrid(self.grid_1,data,variable,isGrouped)
+    
+        self.grid_1.SetColLabelValue(0, label)
+        self.grid_1.SetColLabelValue(1, "count")
+        self.grid_1.SetColLabelValue(2, "mean")
+        self.grid_1.SetColLabelValue(3, "std")
+        self.grid_1.SetColLabelValue(4, "min")
+        self.grid_1.SetColLabelValue(5, "25%")
+        self.grid_1.SetColLabelValue(6, "50%")
+        self.grid_1.SetColLabelValue(7, "75%")
+        self.grid_1.SetColLabelValue(8, "max")
+        
+        
+        
+        sizer_3.Add(self.grid_1, 0, wx.ALL | wx.EXPAND, 20)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+
+        if plottable:
+            self.button_plot = wx.Button(self, wx.ID_APPLY, "Plot")
+            sizer_2.AddButton(self.button_plot)
+            self.Bind(wx.EVT_BUTTON,self.plot_histogram,self.button_plot)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_OK.GetId())
+    
+        
+        self.Center()
+        self.Layout()
+        # end wxGlade
+    
+
+    def plot_histogram(self,evt):
+        
+        
+        response=self.parent.controller.get_column(list(self.parent.names).index(self.variable)).getResponse()
+        if response['status']!=Status.OK:
+            wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+        else:
+            x=response['data']
+            response=self.parent.controller.get_column(list(self.parent.names).index(self.group)).getResponse()
+            if response['status']!=Status.OK:
+                wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+            else:
+                g=response['data']
+                plot_histogram_grouped(pd.DataFrame({self.variable:x,self.group:g}),self.variable,self.group)
+                
+
+    def createDataGrid(self,grid,data,variable,group):
+
+        i=0
+        j=0
+
+        if group==False:
+
+            grid.CreateGrid(1,9)
+            grid.SetColMinimalWidth(0,30)
+            grid.SetCellValue(i,j,str(variable))
+            grid.SetReadOnly(i,j,True)
+            grid.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            #grid.SetCellBackgroundColour(i,j,wx.Colour(176,181,177))
+            j+=1
+            #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
+            for index in data.index:
+                value=data.loc[index]
+                    
+                grid.SetCellValue(i,j," "+str(round(value,2))+" ")
+                grid.SetReadOnly(i,j,True)
+                grid.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+                #grid.SetCellBackgroundColour(i,j,wx.Colour(176,181,177))
+                j+=1        
+            i+=1
+
+        else:
+            grid.CreateGrid(data.shape[0],9)
+            grid.SetColMinimalWidth(0,30)
+            
+            for group in data.index:
+                j=0
+                grid.SetCellValue(i,j,str(group))
+                
+                for value in data.loc[group]:
+                    j+=1
+                    val=""
+                    if not math.isnan(value):
+                        val=str(round(value,2))
+                    else:
+                        val=str(value)
+                    
+                    grid.SetCellValue(i,j," "+val+" ")
+                    grid.SetReadOnly(i,j,True)
+                    
+                    
+                i+=1
+
+        grid.SetRowLabelSize(0)
+        grid.ShowScrollbars(wx.SHOW_SB_NEVER,wx.SHOW_SB_NEVER)
+
+        return grid
+               
