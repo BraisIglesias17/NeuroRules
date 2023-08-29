@@ -59,8 +59,11 @@ def plot_hist(data,option):
 
 def plot_boxplot(data,option):
     x=data['x']['data']
+    """
     plt.boxplot(x)
     plt.title(str(data['x']['name']+" boxplot"))
+    """
+    sns.boxplot(data=x, orient="h")
     plt.show()
 
 def plot_regression(data,options):
@@ -89,4 +92,19 @@ def plot_correlation_matrix(dataFrame):
     plt.figure("Correlation matrix",figsize=(8, 6))
     sns.heatmap(X, annot=True, cmap='coolwarm', center=0)
     plt.title("Correlation Matrix")
+    plt.show()
+
+
+def plot_histogram_grouped(data,x,group):
+    g = sns.catplot(data=data, kind="bar",x=group, y=x,errorbar="sd", palette="dark", alpha=.6, height=6)
+    g.set_axis_labels(group,x)
+    g.despine(left=True)
+    plt.show()
+    #g.legend.set_title("")
+
+def plot_general_group(data,group):
+    if group!="":
+        g =sns.pairplot(data, hue=group, height=2.5)
+    else:
+        g =sns.pairplot(data,height=2.5)
     plt.show()
