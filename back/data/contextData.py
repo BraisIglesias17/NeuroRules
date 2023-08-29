@@ -211,13 +211,27 @@ class ContextData():
     
 
     def get_data_summary(self):
-        toret=pd.DataFrame()
-
-        toret=self.data.describe()
+        selection=self.data.select_dtypes(include=["int16", "int32", "int64", "float16", "float32", "float64"])
         
+        toret=selection.describe()
         return toret
     
+    def get_variable_summary(self,variable,group=None):
+
     
+        if not variable in self.data.columns:
+            raise ValueError("Variable not found")
+        if group!=None and not group in self.data.columns:
+            raise ValueError("Group not found")
+        if group!=None and not group in self.characterValues:
+            raise ValueError("Group by variable must be categorical")
+        
+        if group==None:
+            return self.data[variable].describe()
+        else:
+            return self.data.groupby(group)[variable].describe()
+
+
     def apply_cleanse(self,variable):
         settings=self.data_cleanse[variable]
 
