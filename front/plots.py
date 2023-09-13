@@ -32,12 +32,16 @@ def plot_3d(data,options):
     x=data['x']['data']
     y=data['y']['data']
     z=data['z']['data']
-
+    #x, y = np.meshgrid(x, y)
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
     
-    ax.scatter(x, y, z, c='blue', marker='o', label='Datos')
+    #ax.scatter(x, y, z, c='blue', marker='o', label='Datos')
 
+    # Crear el gráfico de superficie
+    surf = ax.plot_trisurf(x, y, z, cmap='plasma')
+
+    fig.colorbar(surf)
     ax.set_title('Gráfico 3D de Variables')
     ax.set_xlabel(data['x']['name'])
     ax.set_ylabel(data['y']['name'])
