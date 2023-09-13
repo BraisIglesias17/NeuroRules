@@ -5,7 +5,11 @@ class StatisticTest():
 
     @staticmethod
     def get_tests():
-        return ['T Student','ANOVA','Kruskal Wallis','Wilcoxon','Pearson','Shapiro','McNemar','Shapiro-Wilk','Chi Squared','Kolmorov']
+        return ['T Student','ANOVA','Kruskal Wallis','Wilcoxon','Pearson','Shapiro']
+    
+    @staticmethod
+    def get_placeholder():
+        return ['T Student - (Difference between groups)','ANOVA - (Difference between groups)','Kruskal Wallis - (Difference between groups)','Wilcoxon - (Difference between groups)','Pearson - (Correlation)','Shapiro - (Normality)']
     
     @staticmethod
     def t_student():

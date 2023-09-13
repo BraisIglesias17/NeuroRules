@@ -12,15 +12,15 @@ import copy
 import math
 
 class VariableTypeDialog(wx.Dialog):
-    def __init__(self,parent,settings,controller):
+    def __init__(self,parent):
         # begin wxGlade: VariableTypeDialog.__init__
         super(VariableTypeDialog, self).__init__(parent, size = (1000,1000)) 
         
         self.SetTitle("Select variables type")
         
-        self.setting=settings
+        self.setting=parent.setting
         self.IO=IOManage()
-        self.controller=controller
+        self.controller=parent.controller
         self.metrics=self.controller.get_summary().getResponse()['data']
         #Datos globales
         self.data=pd.DataFrame()
@@ -29,7 +29,11 @@ class VariableTypeDialog(wx.Dialog):
         self.independent_variables=[]
         self.targets=[]
         self.names=self.controller.get_names().getResponse()['data']
-        
+
+        #contador de referencias para limpieza de memoria manual
+        self.count=0
+        self.object=None
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select information for rules "), wx.VERTICAL)
@@ -76,7 +80,14 @@ class VariableTypeDialog(wx.Dialog):
         self.Layout()
         # end wxGlade
 
+    def ClearMemory(self):
+        for ref in range(self.count):
+            self.object.DecRef()
+
+            
     def OnCancel(self,event):
+        
+        self.ClearMemory()
         self.Close(wx.CANCEL)
 
     def OnCheck(self,event):
@@ -91,6 +102,7 @@ class VariableTypeDialog(wx.Dialog):
             self.controller.set_independent_variables(self.independent_variables)
             self.controller.set_targets(self.targets)
             
+            self.ClearMemory()
             self.EndModal(wx.OK)
 
 
@@ -143,16 +155,20 @@ class VariableTypeDialog(wx.Dialog):
             opciones_dropdown = ['Ignore','Property', 'Ingredient']
 
             
-            editor_dropdown = gridlib.GridCellChoiceEditor(opciones_dropdown, allowOthers=False)
             
+            editor_dropdown = gridlib.GridCellChoiceEditor(opciones_dropdown, allowOthers=False)
+            self.object=editor_dropdown
+            count=0
             for row in range(myGrid.GetNumberRows()):
                 col = myGrid.GetNumberCols() - 1
-                myGrid.SetCellEditor(row, col, editor_dropdown) ## LANZA EXCEPCION
+                count+=1
+                myGrid.SetCellEditor(row, col, editor_dropdown) ## LANZA EXCEPCION                
                 myGrid.SetCellValue(row, col, opciones_dropdown[0])
                 
-            
             myGrid.AutoSize()
             myGrid.SetColSize(myGrid.GetNumberCols() - 1,100)
+            myGrid.ShowScrollbars(wx.SHOW_SB_NEVER,wx.SHOW_SB_NEVER)
+
         except Exception as exc:
             print("Error"+str(exc))
         return myGrid
@@ -177,7 +193,7 @@ class RulesDialog(wx.Dialog):
         sizer_3.Add(self.rules_text_field, 1, wx.ALL | wx.EXPAND, 5)
         self.writeRules(rules)
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         
         self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
@@ -241,7 +257,7 @@ class MessageDialog(wx.Dialog):
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
-        print(message)
+        
         label_message = wx.StaticText(self, wx.ID_ANY, message)
         sizer_3.Add(label_message, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 15)
 
@@ -250,7 +266,7 @@ class MessageDialog(wx.Dialog):
         else:
             print("ICON NO OK")
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
         sizer_2.AddButton(self.button_CLOSE)
@@ -477,6 +493,7 @@ class CleanDataDialog(wx.Dialog):
 
             for variable in options['data']:
                 response=self.parent.controller.apply_cleanse(variable).getResponse()
+                
                 if response['status']==Status.OK:
                     d=response['data']['deleted_rows']
                     m=response['data']['modified_rows']
@@ -600,7 +617,7 @@ class GraphDialog(wx.Dialog):
         sizer_13.Add(self.input_number_bins, (0, 1), (1, 1), wx.ALL | wx.EXPAND, 10)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "Plot")
         #self.button_OK.SetDefault()
@@ -750,7 +767,7 @@ class SummaryDialog(wx.Dialog):
         sizer_3.Add(self.grid_1, 1, wx.ALL | wx.EXPAND, 5)
 
         sizer_1_groupby = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Plot"), wx.HORIZONTAL)
-        sizer_1.Add(sizer_1_groupby, 0, wx.EXPAND, 10)
+        sizer_1.Add(sizer_1_groupby, 0,wx.ALL | wx.EXPAND, 10)
 
         sizer_2_groupby = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1_groupby.Add(sizer_2_groupby, 1, wx.EXPAND, 0)
@@ -761,8 +778,11 @@ class SummaryDialog(wx.Dialog):
         label_group_by = wx.StaticText(self, wx.ID_ANY, "Group by")
         sizer_groupby.Add(label_group_by, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
 
-        self.combo_box_group = wx.ComboBox(self, wx.ID_ANY, choices=self.parent.string_variable_names, style=wx.CB_READONLY)
+        self.combo_box_group = wx.ComboBox(self, wx.ID_ANY, choices=self.parent.string_variable_names,value="None", style=wx.CB_READONLY)
         sizer_groupby.Add(self.combo_box_group, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        if len(self.parent.string_variable_names)==0:
+            self.combo_box_group.Enable(False)
 
         self.numeric_variables=self.parent.int_variable_names+self.parent.float_variable_names
 
@@ -774,7 +794,7 @@ class SummaryDialog(wx.Dialog):
 
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "Save")
         self.button_OK.SetDefault()
@@ -814,8 +834,8 @@ class SummaryDialog(wx.Dialog):
                 indexes.append(list(self.parent.names).index(group))
 
             code=wx.OK
-            if len(indexes)>4:
-                code=wx.MessageBox(str("You have selected "+str(len(indexes))+" variables this will create a hard to read plot and could take a few minutes to generate"),"Warning",wx.OK|wx.CANCEL|wx.ICON_WARNING)
+            if len(indexes)>5:
+                code=wx.MessageBox(str("You have selected "+str(len(indexes)-1)+" variables this will create a hard to read plot and could take a few minutes to generate"),"Warning",wx.OK|wx.CANCEL|wx.ICON_WARNING)
             
             if code==wx.OK:
                 response=self.parent.controller.get_data().getResponse()
@@ -900,7 +920,7 @@ class AboutUsDialog(wx.Dialog):
         sizer_3.Add(label_2, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "")
         self.button_OK.SetDefault()
@@ -932,7 +952,7 @@ class ShowHiddenDialog(wx.Dialog):
         sizer_3.Add(self.list_box_1, 1, wx.ALL | wx.EXPAND, 5)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
@@ -970,6 +990,7 @@ class StatisticDialog(wx.Dialog):
         self.controller=parent.controller
         self.names=list(parent.names)
         self.one_variable_test=False
+        test_placeholder=StatisticTest.get_placeholder()
         tests=StatisticTest.get_tests()
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -991,7 +1012,7 @@ class StatisticDialog(wx.Dialog):
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Test"), wx.HORIZONTAL)
         sizer_3.Add(sizer_6, 0, wx.ALL | wx.EXPAND, 10)
 
-        self.combo_box_test = wx.ComboBox(self, wx.ID_ANY, choices=tests,value="Test to apply", style=wx.CB_READONLY)
+        self.combo_box_test = wx.ComboBox(self, wx.ID_ANY, choices=test_placeholder,value="Test to apply", style=wx.CB_READONLY)
         sizer_6.Add(self.combo_box_test, 1, wx.ALL, 5)
 
         sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Other options"), wx.HORIZONTAL)
@@ -1007,7 +1028,7 @@ class StatisticDialog(wx.Dialog):
         sizer_8.Add(self.checkbox_corr, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "Run")
         self.button_OK.SetDefault()
@@ -1055,7 +1076,11 @@ class StatisticDialog(wx.Dialog):
         b=self.combo_box_B.GetValue()
         other_option=False
         
-        if self.checkbox_corr.GetValue():
+        if self.checkbox_automatic_tests.GetValue():
+            dialog=AutomaticTest(self)
+            code=dialog.ShowModal()
+
+        elif self.checkbox_corr.GetValue():
             df=self.controller.get_data().getResponse()['data']
             plot_correlation_matrix(df)
             other_option=True
@@ -1081,17 +1106,19 @@ class StatisticDialog(wx.Dialog):
                     
                     index_a=self.names.index(a)
                     x=self.controller.get_column(index_a).getResponse()['data']
-                    if test == 'Shapiro':   
-                        self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a])
-                    elif test=='ANOVA' and complete:
-                        self.OnLaunchResulDialog(StatisticTest.ANOVA,test,variables=[x,y],names=[a,b])
+                    if 'Shapiro' in test:   
+                        self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a],condition=True)
+                    elif 'ANOVA' in test and complete:
+                        self.OnLaunchResulDialog(StatisticTest.ANOVA,test,variables=[x,y],names=[a,b],condition=False)
+                    elif 'Pearson' in test and complete:
+                        self.OnLaunchResulDialog(StatisticTest.pearson,test,variables=[x,y],names=[a,b],condition=False)
                     
                     #TO DO TESTS
                     
                     
 
         
-    def OnLaunchResulDialog(self,test,test_name,variables,names):
+    def OnLaunchResulDialog(self,test,test_name,variables,names,condition=True):
         
         title=""
         message=""
@@ -1106,11 +1133,11 @@ class StatisticDialog(wx.Dialog):
             title="Test "+test_name+" on "+names[0]
             message="to determine that this variable has a normal distribution"
 
-        dialog=TestResultDialog(self,title,{'pvalue':result.pvalue},message)
+        dialog=TestResultDialog(self,title,{'pvalue':result.pvalue},message,condition)
         dialog.ShowModal()
         
     def OnChangeTest(self,event):
-        if self.combo_box_test.GetValue() == 'Shapiro' or self.combo_box_test.GetValue() == 'McNemar' or self.combo_box_test.GetValue() == 'Kolmorov':
+        if 'Shapiro' in self.combo_box_test.GetValue() or 'McNemar' in self.combo_box_test.GetValue() or 'Kolmorov' in self.combo_box_test.GetValue():
             self.combo_box_B.Enable(False)
             self.one_variable_test=True
         else:
@@ -1120,7 +1147,7 @@ class StatisticDialog(wx.Dialog):
 
 
 class TestResultDialog(wx.Dialog):
-    def __init__(self,parent,name,result,explanation):
+    def __init__(self,parent,name,result,explanation,lower=True):
         # begin wxGlade: TestResultDialog.__init__
         super(TestResultDialog, self).__init__(parent)
         self.SetTitle(name)
@@ -1131,7 +1158,7 @@ class TestResultDialog(wx.Dialog):
         
         pvalue=np.round(self.result['pvalue'],4)
         
-        if self.result['pvalue']<0.05:
+        if (lower and self.result['pvalue']<0.05) or (lower==False and self.result['pvalue']>0.05):
             self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/x.png"
             self.header="Unsuccesful"
 
@@ -1175,7 +1202,7 @@ class TestResultDialog(wx.Dialog):
         sizer_7.Add(label_3, 0, wx.EXPAND, 0)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "")
         self.button_OK.SetDefault()
@@ -1225,10 +1252,10 @@ class SummaryPickDialog(wx.Dialog):
         sizer_6.Add(self.combo_box_group, 0, wx.ALL, 5)
 
         self.checkbox_all_variable = wx.CheckBox(self, wx.ID_ANY, "Show all variables summary")
-        sizer_3.Add(self.checkbox_all_variable, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        sizer_3.Add(self.checkbox_all_variable, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 15)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "")
         self.button_OK.SetDefault()
@@ -1301,7 +1328,7 @@ class SingleSummaryDialog(wx.Dialog):
             isGrouped=False
             message=variable
             label="Name"
-            plottable=True
+            plottable=False
 
         response=parent.controller.get_variable_summary(variable,group).getResponse()
         
@@ -1335,13 +1362,11 @@ class SingleSummaryDialog(wx.Dialog):
         self.grid_1.SetColLabelValue(7, "75%")
         self.grid_1.SetColLabelValue(8, "max")
         
-        
-        
         sizer_3.Add(self.grid_1, 0, wx.ALL | wx.EXPAND, 20)
 
         sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
-
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
+       
         if plottable:
             self.button_plot = wx.Button(self, wx.ID_APPLY, "Plot")
             sizer_2.AddButton(self.button_plot)
@@ -1432,3 +1457,300 @@ class SingleSummaryDialog(wx.Dialog):
 
         return grid
                
+class CreateTaskDialog(wx.Dialog):
+    def __init__(self,parent):
+    
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Create task")
+
+        
+        ##variables
+        self.inputs=[]
+        for index in parent.controller.get_independent_indexes().getResponse()['data']:
+            self.inputs.append(parent.names[index])
+
+        self.outputs=[]
+        for index in parent.controller.get_target_indexes().getResponse()['data']:
+            self.outputs.append(parent.names[index])        
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Variable information"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_5, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 5)
+
+        label_inputs = wx.StaticText(self, wx.ID_ANY, "Inputs")
+        sizer_6.Add(label_inputs, 0, 0, 0)
+
+        self.list_box_inputs = wx.ListBox(self, wx.ID_ANY, choices=self.inputs)
+        sizer_6.Add(self.list_box_inputs, 0, 0, 0)
+
+        sizer_7 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 5)
+
+        label_outputs = wx.StaticText(self, wx.ID_ANY, "Outputs")
+        sizer_7.Add(label_outputs, 0, 0, 0)
+
+        self.list_box_outputs = wx.ListBox(self, wx.ID_ANY, choices=self.outputs)
+        sizer_7.Add(self.list_box_outputs, 0, 0, 0)
+
+        """
+        self.change_inputsOuputs = wx.Button(self, wx.ID_ANY, "Change")
+        sizer_5.Add(self.change_inputsOuputs, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
+        """
+        
+
+        sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.variables_options=['All']+self.outputs
+        self.choice_target = wx.Choice(self, wx.ID_ANY, choices=self.variables_options)
+        self.choice_target.SetSelection(0)
+        sizer_8.Add(self.choice_target, 1, wx.ALL, 5)
+
+        self.notebook_1 = wx.Notebook(self, wx.ID_ANY)
+        sizer_3.Add(self.notebook_1, 1, wx.EXPAND, 0)
+
+        self.notebook_1.SetBackgroundColour(wx.Colour(240,240,240,255))
+
+        self.notebook_1_pane_1 = wx.Panel(self.notebook_1, wx.ID_ANY)
+        self.notebook_1.AddPage(self.notebook_1_pane_1, "Model")
+
+        sizer_9 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_1_pane_1, wx.ID_ANY, "Rule generating"), wx.HORIZONTAL)
+        sizer_9.Add(sizer_10, 0, wx.ALL | wx.EXPAND, 5)
+
+        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_10.Add(sizer_12, 1, wx.EXPAND, 0)
+
+        self.radio_btn_generate_rules = wx.RadioButton(self.notebook_1_pane_1, wx.ID_ANY, "Generate rules")
+        sizer_12.Add(self.radio_btn_generate_rules, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.options_neurofuzzy = wx.Button(self.notebook_1_pane_1, wx.ID_ANY, "Options")
+        sizer_12.Add(self.options_neurofuzzy, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_11 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_1_pane_1, wx.ID_ANY, "Prediction"), wx.HORIZONTAL)
+        sizer_9.Add(sizer_11, 0, wx.ALL | wx.EXPAND, 5)
+
+        sizer_13 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_11.Add(sizer_13, 0, wx.EXPAND, 0)
+
+        self.radio_btn_prediction = wx.RadioButton(self.notebook_1_pane_1, wx.ID_ANY, "Generate prediction model")
+        sizer_13.Add(self.radio_btn_prediction, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.options_models = wx.Button(self.notebook_1_pane_1, wx.ID_ANY, "Options")
+        sizer_13.Add(self.options_models, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.notebook_1_pane_2 = wx.Panel(self.notebook_1, wx.ID_ANY)
+        self.notebook_1.AddPage(self.notebook_1_pane_2, "Validation")
+
+        sizer_14 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_15 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_14.Add(sizer_15, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 15)
+
+        label_validation = wx.StaticText(self.notebook_1_pane_2, wx.ID_ANY, "Method")
+        sizer_15.Add(label_validation, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.choice_validation = wx.Choice(self.notebook_1_pane_2, wx.ID_ANY, choices=["Cross validation","CV - Leave one out","Structural RisK Minimization"])
+        self.choice_validation.SetSelection(0)
+        sizer_15.Add(self.choice_validation, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+
+        sizer_16 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_14.Add(sizer_16, 1, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        sizer_17 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_1_pane_2, wx.ID_ANY, "SRM"), wx.VERTICAL)
+        sizer_16.Add(sizer_17, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_20 = wx.BoxSizer(wx.VERTICAL)
+        sizer_17.Add(sizer_20, 1, wx.EXPAND, 0)
+
+        sizer_21 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_20.Add(sizer_21, 1, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        label_c1 = wx.StaticText(self.notebook_1_pane_2, wx.ID_ANY, "C1")
+        sizer_21.Add(label_c1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.spin_ctrl_C1 = wx.SpinCtrlDouble(self.notebook_1_pane_2, wx.ID_ANY, initial=1.5, min=0.0, max=100.0)
+        self.spin_ctrl_C1.SetDigits(2)
+        sizer_21.Add(self.spin_ctrl_C1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+
+        self.checkbox_auto_scale = wx.CheckBox(self.notebook_1_pane_2, wx.ID_ANY, "Auto scale")
+        sizer_20.Add(self.checkbox_auto_scale, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        sizer_18 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_1_pane_2, wx.ID_ANY, "CV"), wx.VERTICAL)
+        sizer_16.Add(sizer_18, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_19 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_18.Add(sizer_19, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        label_subset = wx.StaticText(self.notebook_1_pane_2, wx.ID_ANY, "Subsets")
+        sizer_19.Add(label_subset, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.spin_ctrl_cv_subset = wx.SpinCtrl(self.notebook_1_pane_2, wx.ID_ANY, "0",initial=10, min=0, max=100)
+        sizer_19.Add(self.spin_ctrl_cv_subset, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CREATE = wx.Button(self, wx.ID_OK, "")
+        self.button_CREATE.SetDefault()
+        sizer_2.AddButton(self.button_CREATE)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.notebook_1_pane_2.SetSizer(sizer_14)
+
+        self.notebook_1_pane_1.SetSizer(sizer_9)
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_CREATE.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        #self.Bind(wx.EVT_BUTTON,lambda event: self.OnChangeInputsOutputs(event,parent),self.change_inputsOuputs)
+        self.Bind(wx.EVT_BUTTON,self.OnRulesOptions,self.options_neurofuzzy)
+       
+        self.Center()
+        self.Layout()
+        # end wxGlade
+
+    def OnChangeInputsOutputs(self,evt,parent):
+        dialog=VariableTypeDialog(parent)
+        dialog.Show()
+
+    def OnRulesOptions(self,evt):
+        options={}
+        dialog=RulesOptionsDialog(self,options)
+        code=dialog.ShowModal()
+
+class RulesOptionsDialog(wx.Dialog):
+    def __init__(self,parent,options):
+        
+        super(RulesOptionsDialog, self).__init__(parent)
+
+        self.SetTitle("Rules generating options")
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Neurofuzzy network"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3.Add(sizer_4, 0, wx.EXPAND, 0)
+
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_5, 0, wx.ALL, 10)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Input membership functions")
+        sizer_5.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
+
+        self.input_memberships = wx.SpinCtrl(self, wx.ID_ANY, "2", min=2, max=4)
+        self.input_memberships.SetMinSize((45, 23))
+        sizer_5.Add(self.input_memberships, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 2)
+
+        sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_6, 0, wx.ALL, 10)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, "Output membership functions")
+        sizer_6.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
+
+        self.output_memberships = wx.SpinCtrl(self, wx.ID_ANY, "2", min=2, max=4)
+        self.output_memberships.SetMinSize((45, 23))
+        sizer_6.Add(self.output_memberships, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 2)
+
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_7, 0, wx.ALL, 10)
+
+        label_3 = wx.StaticText(self, wx.ID_ANY, "Learning rate")
+        sizer_7.Add(label_3, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
+
+        self.learning_rate_input = wx.SpinCtrlDouble(self, wx.ID_ANY, initial=0.05, min=0.0, max=10.0, style=wx.ALIGN_CENTRE_HORIZONTAL | wx.SP_ARROW_KEYS)
+        self.learning_rate_input.SetIncrement(0.01)
+        self.learning_rate_input.SetDigits(3)
+        sizer_7.Add(self.learning_rate_input, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
+        sizer_2.AddButton(self.button_CLOSE)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CLOSE.GetId())
+
+        self.Layout()
+
+
+class AutomaticTest(wx.Dialog):
+    def __init__(self,parent):
+        
+        super(AutomaticTest, self).__init__(parent)
+        
+        self.SetTitle("Automatic test result")
+        
+        #LLAMADA A TEST AUTOMATICO 
+        result=parent.controller.automatic_statistic_test().getResponse()
+        normal_variables=["None"]
+        grouped_different_variables=["None"]
+
+        if result['status']==Status.OK:
+            print(result['data'])
+            normal_variables=result['data']['normal_variables']
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Normality"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.list_box_2 = wx.ListBox(self, wx.ID_ANY, choices=normal_variables)
+        sizer_4.Add(self.list_box_2, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistical differences by group"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.list_box_3 = wx.ListBox(self, wx.ID_ANY, choices=grouped_different_variables)
+        sizer_6.Add(self.list_box_3, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
+        self.button_SAVE.SetDefault()
+        sizer_2.AddButton(self.button_SAVE)
+
+        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
+        sizer_2.AddButton(self.button_CLOSE)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_SAVE.GetId())
+        self.SetEscapeId(self.button_CLOSE.GetId())
+
+        self.Layout()

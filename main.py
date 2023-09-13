@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog
+from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -19,6 +19,9 @@ class MainWindow(wx.Frame):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         
+        self.ROW_BOUND=1000
+        self.COL_BOUND=30
+
         self.SetIcon(wx.Icon('./front/resources/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
         self.SetTitle("NeuroRule 1.0.0")
         font=self.GetFont()
@@ -84,12 +87,12 @@ class MainWindow(wx.Frame):
         sizer_6.Add(self.summary_button, 1, wx.ALL, 5)
 
         
-        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Rules"), wx.HORIZONTAL)
+        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Task"), wx.HORIZONTAL)
         sizer_3.Add(sizer_7, 0, wx.ALL, 10)
 
         self.next_button = wx.Button(self.panel, wx.ID_ANY, "Select variables\n")
         sizer_7.Add(self.next_button, 1, wx.ALL, 5)
-        self.train_button = wx.Button(self.panel, wx.ID_ANY, "Train\n")
+        self.train_button = wx.Button(self.panel, wx.ID_ANY, "Create Task\n")
         sizer_7.Add(self.train_button, 1, wx.ALL, 5)
         self.train_button.Enable(False)
         
@@ -170,14 +173,19 @@ class MainWindow(wx.Frame):
     def OnTrain(self,event):
         print("ON TRAIN")
         #Validar datos
+        dialog=CreateTaskDialog(self)
+        dialog.Show()
+        """
         rules=self.controller.create_models("model","params")
         dialog=RulesDialog(self,rules)
         dialog.ShowModal()
+        """
+        
 
     
     def OnNext(self,event):
         
-        dialog=VariableTypeDialog(self,self.setting,self.controller)
+        dialog=VariableTypeDialog(self)
         code=dialog.ShowModal()    
     
         if code == wx.OK:
@@ -273,6 +281,7 @@ class MainWindow(wx.Frame):
         self.SetStatusText(" None existing file")
         self.SetStatusText("None data",1)
 
+
     def updateGrid(self,df):
         
         i=0 
@@ -290,6 +299,16 @@ class MainWindow(wx.Frame):
         for column in list(df.columns.values):
             if self.start:
                 self.initial_col_names.append(self.grid.GetColLabelValue(i))
+            
+            type=df.dtypes[i]
+            
+            
+            if str(type).find("int") != -1:
+                
+                self.grid.SetColFormatNumber(i)
+            elif str(type).find("float") != -1:
+                self.grid.SetColFormatFloat(i,-1,2)
+
             self.grid.SetColLabelValue(i,column)
             #Verifico el tipo 
             self.types=df[column].dtypes
@@ -306,7 +325,7 @@ class MainWindow(wx.Frame):
 
         for i in range(len(df.axes[1])):
             for j in range(len(df.axes[0])):
-                if(i<50 and j<50):
+                if(i<self.COL_BOUND and j<self.ROW_BOUND):
                     value=str(df.loc[j][i])
                     
                     
@@ -395,7 +414,26 @@ class MainWindow(wx.Frame):
             if result['status']!=Status.OK:
                 wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
             else:
-                self.updateGrid(self.controller.get_data().getResponse()['data'])
+                data=self.controller.get_data().getResponse()['data']
+                
+                #reemplazar elementos de la lista
+                self.names[col]=new_value
+                
+                index=0
+                toSubstitute=[]
+                if current_name in self.int_variable_names:
+                    index=self.int_variable_names.index(current_name)
+                    toSubstitute=self.int_variable_names
+                elif current_name in self.float_variable_names:
+                    index=self.float_variable_names.index(current_name)
+                    toSubstitute=self.float_variable_names
+                else:
+                    index=self.string_variable_names.index(current_name)
+                    toSubstitute=self.string_variable_names
+
+                toSubstitute[index]=new_value
+
+                self.grid.SetColLabelValue(col,new_value)
             
         
 
@@ -490,19 +528,40 @@ class MainWindow(wx.Frame):
         settingsMenu= wx.Menu()
         settingsMenu.Append(wx.ID_ANY, '&Settings')
 
+        preprocessSubmenu=wx.Menu()
+        preprocessSubmenu.Append(wx.ID_ANY,"&Options")
+        preprocessSubmenu.Append(wx.ID_ANY,"&Cleanse")
+        preprocessSubmenu.Append(wx.ID_ANY,"&Preprocess")
+
+        analyzeSubmenu=wx.Menu()
+        analyzeSubmenu.Append(wx.ID_ANY,"&Options")
+        analyzeSubmenu.Append(wx.ID_ANY,"&Plot")
+        analyzeSubmenu.Append(wx.ID_ANY,"&Statistics")
+        analyzeSubmenu.Append(wx.ID_ANY,"&Summary")
+
+        dataMenu=wx.Menu()
+        dataMenu.Append(wx.ID_ANY,"&Create set")
+        dataMenu.Append(wx.ID_ANY,"&Clear data")
+        dataMenu.AppendSubMenu(preprocessSubmenu,"Data processing")
+        dataMenu.AppendSubMenu(analyzeSubmenu,"Data analysis")
+
         viewMenu=wx.Menu()
         item=wx.MenuItem(viewMenu,wx.ID_ANY,'&Show hidden columns')
-            
+        
+        viewOptionsMenu=wx.Menu()
+        viewOptionsMenu.Append(wx.ID_ANY,'&Show rules options')
+        viewOptionsMenu.Append(wx.ID_ANY,'&Show model option')
+        viewOptionsMenu.Append(wx.ID_ANY,'&Show analysis options')
+        viewOptionsMenu.Append(wx.ID_ANY,'&Show preprocess options')
+        
         showHidden=viewMenu.Append(item)
-        viewMenu.Append(wx.ID_ANY,'&Show rules options')
-        viewMenu.Append(wx.ID_ANY,'&Show model option')
-        viewMenu.Append(wx.ID_ANY,'&Show analysis options')
-        viewMenu.Append(wx.ID_ANY,'&Show preprocess options')
+        viewMenu.AppendSubMenu(viewOptionsMenu,"Display options")
 
         helpMenu = wx.Menu()  
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
 
         menubar.Append(fileMenu, '&File') 
+        menubar.Append(dataMenu,"&Data")
         menubar.Append(modelMenu,'&Model')
         menubar.Append(viewMenu,'&View')  
         menubar.Append(settingsMenu,'&Settings') 

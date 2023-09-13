@@ -55,7 +55,7 @@ class IOManage():
                     data.to_csv(pathname)
                 elif str(pathname).endswith(".csv"):
                     
-                    print(type(data))
+                    
                     data.to_excel(pathname)
                 elif str(pathname).endswith(".txt"):
                     with open(pathname, 'w') as file:

@@ -77,11 +77,13 @@ class NeuroFuzzy():
 
         #array de pesos de cada regla
         # el numero de reglas se determina por el numero de funciones de membresia de entrada elevada al numero de variables
-        #self.weigths=np.random.rand(self.n_membership**self.n_variables)
+        self.weigths=np.random.rand(self.n_membership**self.n_variables)
         #self.weigths=np.full(self.n_membership**self.n_variables,fill_value=np.mean(self.y))
         #self.weigths=np.ones(self.n_membership**self.n_variables)
-        self.weigths=np.zeros(self.n_membership**self.n_variables)
-        
+        #self.weigths=np.zeros(self.n_membership**self.n_variables)
+        #self.weigths=np.random.normal(0,1,self.n_membership**self.n_variables)
+        print(f'initial weights: {self.weigths}')
+
         self.historic_weigths=None
         self.historic_error=None
         self.historic_r2=None
@@ -90,12 +92,15 @@ class NeuroFuzzy():
 
         #lista de objetos Antecedent de skfuzzy (uno por cada variable de entrada)
         self.antecedents=[]
+        
+
         for i in range(0,len(input_names),1):
             self.antecedents.append(ctrl.Antecedent(np.sort(input[:,i]),input_names[i]))
         
         #objeto Consequence de skfuzzy para la variable target
         self.consecuence=ctrl.Consequent(np.sort(output.flatten()),output_name)
-      
+
+        
         #generación de las funciones de membresía con skfuzzy
         self.consecuence.automf(n_membership_output,names=self.NAMES(self.n_membership_output))
     
@@ -141,7 +146,6 @@ class NeuroFuzzy():
                     
                     mf=fuzz.interp_membership(x=self.antecedents[i].universe,xmf=self.antecedents[i][self.NAMES(self.n_membership)[j]].mf,xx=col)
                     
-                
                     tmp=pd.DataFrame(mf,columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
                     mfs.append(mf)
                     toret=pd.concat([toret,tmp],axis=1)
@@ -166,7 +170,7 @@ class NeuroFuzzy():
         for ant in self.antecedents: 
 
             #Se puede eliminar esta lista  
-            mfs=[]
+            
             
             for j in range(self.n_membership):
                 universe=ant.universe
@@ -177,7 +181,7 @@ class NeuroFuzzy():
                     mf=1.0
                 
                 tmp=pd.DataFrame([mf],columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
-                mfs.append(mf)
+               
                 toret=pd.concat([toret,tmp],axis=1)
             
             i+=1
@@ -223,10 +227,10 @@ class NeuroFuzzy():
                 self.rules.append("IF "+self.X_names[0]+" is HIGH AND "+self.X_names[1]+" is HIGH THEN")
 
             
-            r1=self.product_tnorm(input[0],input[2])
-            r2=self.product_tnorm(input[0],input[3])
-            r3=self.product_tnorm(input[1],input[2])         
-            r4=self.product_tnorm(input[1],input[3])
+            r1=self.multivariate_operation(input[0],input[2])
+            r2=self.multivariate_operation(input[0],input[3])
+            r3=self.multivariate_operation(input[1],input[2])         
+            r4=self.multivariate_operation(input[1],input[3])
 
             toret=[r1,r2,r3,r4]
 
@@ -247,20 +251,22 @@ class NeuroFuzzy():
                 self.rules.append("IF "+self.X_names[0]+" is HIGH AND "+self.X_names[1]+" is HIGH THEN")
 
             #Combinaciones para dos variables dos membresias
-            r1=self.product_tnorm(input[0],input[3])
-            r2=self.product_tnorm(input[0],input[4])
-            r3=self.product_tnorm(input[0],input[5])
-            r4=self.product_tnorm(input[1],input[3])
-            r5=self.product_tnorm(input[1],input[4])
-            r6=self.product_tnorm(input[1],input[5])
-            r7=self.product_tnorm(input[2],input[3])
-            r8=self.product_tnorm(input[2],input[4])
-            r9=self.product_tnorm(input[2],input[5])
+            r1=self.multivariate_operation(input[0],input[3])
+            r2=self.multivariate_operation(input[0],input[4])
+            r3=self.multivariate_operation(input[0],input[5])
+            r4=self.multivariate_operation(input[1],input[3])
+            r5=self.multivariate_operation(input[1],input[4])
+            r6=self.multivariate_operation(input[1],input[5])
+            r7=self.multivariate_operation(input[2],input[3])
+            r8=self.multivariate_operation(input[2],input[4])
+            r9=self.multivariate_operation(input[2],input[5])
 
             toret=[r1,r2,r3,r4,r5,r6,r7,r8,r9]
         
         return np.array(toret)
-       
+
+    def multivariate_operation(self, a, b):
+        return self.product_tnorm(a,b) 
 
     def normalization_layer(self,input):
 
@@ -352,7 +358,7 @@ class NeuroFuzzy():
                     w0=self.weigths.reshape(self.weigths.shape[0],1)
                     
                     y=self.y[start_batch:end_batch+1]
-                    
+
                     result=self.conjugate_gradient(M,y,w0,d=d,gradient=gradient,first=first,learning_rate=learning_rate)
                     self.weigths=result[0].flatten()
                     d=result[1]
@@ -405,7 +411,6 @@ class NeuroFuzzy():
                 j+=1
                        
             i+=1
-        
         toret=np.zeros(shape=(w.shape[0],1))
 
         for i in range(w.shape[0]):
@@ -413,10 +418,9 @@ class NeuroFuzzy():
             partial_derivate=2*np.sum(partial_derivate)/n
             toret[i]=partial_derivate
             
-        
         return toret
     
-    def conjugate_gradient(self,A,y,w0,tol=1.e-10,itmax=5,d=None,gradient=None,first=True,learning_rate=0.001):
+    def conjugate_gradient(self,A,y,w0,tol=1.e-10,itmax=50,d=None,gradient=None,first=True,learning_rate=0.001):
         """
         Implementación del algoritmo de descenso de gradiente conjugado
 
@@ -431,14 +435,14 @@ class NeuroFuzzy():
             - gradient: gradiente de la funcion de costo
             - norma: última norma calculada
         """
-        old_y=y
+        
+        """
         A_t=np.transpose(A)
         M=np.dot(A_t,A)
         y=np.dot(A_t,y)
-
+        """
         if first:
-            
-            gradient=self.calculate_gradient_mse(A,w0,old_y)
+            gradient=self.calculate_gradient_mse(A,w0,y)
             d=np.dot(gradient,np.float16(-1))
         else:
             d=d
@@ -450,14 +454,17 @@ class NeuroFuzzy():
         for i in range(0,itmax):
             alpha=learning_rate
             wi=wi+alpha*d
+           
             old_gradient=gradient
-            gradient=self.calculate_gradient_mse(M,wi,y)
+            gradient=self.calculate_gradient_mse(A,wi,y)
             norma=np.linalg.norm(gradient)
         
-            if norma <= tol:    
+            if norma <= tol: 
+                   
                 break
             beta=np.dot(np.transpose(gradient),gradient)/np.dot(np.transpose(old_gradient),old_gradient)
-            beta=1
+            
+            #beta=1
             d=np.float16(-1)*gradient+(beta*d)
            
         return wi,d,gradient,norma
@@ -617,18 +624,16 @@ class NeuroFuzzy():
                 
                 conf=fuzz.interp_membership(x=self.consecuence.universe,xmf=self.consecuence[self.NAMES(self.n_membership_output)[j]].mf,xx=weight)
 
-                
-
                 if (self.NAMES(self.n_membership_output)[j]=="Low" and weight < np.min(self.consecuence.universe)) or (self.NAMES(self.n_membership_output)[j]=="High" and weight > np.max(self.consecuence.universe)) :
                     conf=1.0
 
                 #print(f'EVALUATING {weight} in {self.NAMES(self.n_membership_output)[j]} is {conf}')
 
                 confs.append(conf)
-
             
             actual=self.rules[i]
             for j in range(self.n_membership_output):
+                
                 actual=actual+" "+self.y_name+" is "+self.NAMES(self.n_membership_output)[j]+" ("+str(round(confs[j],2))+")"
             
             self.rules[i]=actual
@@ -678,28 +683,46 @@ class NeuroFuzzy():
 data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",sep=",")
 
 
+def cod(val):
+    if val%2==0:
+        return "Si"
+    else:
+        return "No"
+    
+data['covid']=data['HAD'].apply(cod)
+
+
+data.to_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",index=False)
+"""
+
+"""
+
 example_high=np.arange(51,103)
-example_low=np.arange(start=103,stop=51,step=-1)
+example_low=np.arange(start=206,stop=154,step=-1)
 
 
 df=pd.DataFrame({'x':example_high,'y':example_low})
-x_names=['HRVi_antes']
-y_variable="SD2_antes"
 
 
-#X=df[['y']]
-#y=df['x']
+
+data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
+#data=df
+
+x_names=['% Tween','% RFB']
+
+y_variable='SIZE (nm)'
+
+X=(data[x_names])
+y=data[y_variable]
 
 
-X=data[x_names]
-y=data[[y_variable]]
-
-model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=3,n_membership_output=2,output_name=y_variable,input_names=x_names)
-model.fit(learning_rate=0.001,epochs=90)
+model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name=y_variable,input_names=x_names)
+model.fit(learning_rate=0.001,epochs=50)
 
 
 for rule in model.get_rules():
     print(rule)
+
 
 #model.plot_trend()
 #model.plot_membership_functions()
@@ -708,11 +731,9 @@ model.plot_historic_error()
 #model.plot_historic_weight()
 #model.plot_precisewise()
 print(model.metrics)
-#print(model.predict([50]))
+print(model.predict([70]))
 
 """
-
-
 
 
 

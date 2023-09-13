@@ -81,6 +81,7 @@ class ContextData():
     
     def update_position(self,i,j,value):
         
+        
         if i < self.data.shape[0] and j < self.data.shape[1]:
             
             col_name=self.data.columns[j]
@@ -89,6 +90,7 @@ class ContextData():
                     value=np.float64(value)
                 elif col_name in self.integerValues:
                     value=np.int64(value)
+
                 #convertir al tipo que sea
                 self.data.iloc[i,j]=value
                 self.values[i,j]=value
@@ -102,28 +104,36 @@ class ContextData():
             print("nueva fila")
             # Nueva Fila
             values={}
-            i=0
             names=self.get_names()
             for var in names:
                 if var==names[j]:
                     if self._validate_update(var,value):
                     
-                        values[var]=[value]
+                        if var in self.integerValues:
+                            values[var]=[np.int64(value)]
+                        elif var in self.floatValues:
+                            values[var]=[np.float64(value)]
+                        else:
+                            values[var]=[value]
                     else:
                         raise ValueError("Tipo de dato no valido")
-                else:   
-                    values[var]=[None]
+                else:
+                    if var in self.floatValues:
+                        values[var]=[np.nan]
+                    elif var in self.integerValues:
+                        values[var]=[-1]
+                    else:
+                        values[var]=[None]
             
             temp=pd.DataFrame(values)
             self.data=pd.concat([self.data,temp],ignore_index=True)
             self.values=self.data.to_numpy()
-            print(self.data)
 
         elif j == self.data.shape[1]:
             # Nueva columna
             print("NUEVA COLUMNA TO DO")
 
-        
+
         return True
         
             
@@ -209,11 +219,14 @@ class ContextData():
     def get_targets(self):
         return self.values[:,self.targets_index]
     
-
+    def get_numeric_variables(self):
+        return self.data.select_dtypes(include=["int16", "int32", "int64", "float16", "float32", "float64"])
+    
     def get_data_summary(self):
-        selection=self.data.select_dtypes(include=["int16", "int32", "int64", "float16", "float32", "float64"])
+        selection=self.get_numeric_variables()
         
         toret=selection.describe()
+        
         return toret
     
     def get_variable_summary(self,variable,group=None):
@@ -244,9 +257,10 @@ class ContextData():
                 self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])
 
         if settings['delete_outliers']:
+        
             result=remove_outliers(self.data,variable,settings['upper_bound'],settings['lower_bound'])
-            self.data=result[0]
-            modified_rows+=result[1]
+            self.data=result
+            
         else:
             if settings['substitute_outliers']!="None":
                 
@@ -310,7 +324,7 @@ class ContextData():
 
             self._get_types()
 
-        print(self.data)
+        
         return True
 
     def get_cleanse(self):

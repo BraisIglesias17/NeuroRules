@@ -6,6 +6,7 @@ from back.ML.neurofuzzy import NeuroFuzzy
 from sklearn.metrics import confusion_matrix, classification_report
 import numpy as np
 from sklearn.model_selection import train_test_split
+from ..statistic.statistic import StatisticTest
 
 class Controller():
 
@@ -217,6 +218,7 @@ class Controller():
             
             return Response(data={'deleted_rows':result[0],'modified_rows':result[1]},status=Status.OK)
         except Exception as exc:
+            
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def delete_row(self,row):
@@ -255,3 +257,23 @@ class Controller():
         except Exception as exc:
             print(exc)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    
+    def automatic_statistic_test(self):
+        try:
+            data=self.contextData.get_numeric_variables()
+            normal_variables=[]
+
+
+            for col in data:
+                result=StatisticTest.shapiro_wilk((data[col]))
+                if result.pvalue>0.05:
+                    normal_variables.append(col)
+            
+
+
+            return Response(data={'normal_variables':normal_variables},status=Status.OK)
+
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
