@@ -42,18 +42,23 @@ def plot_3d(data,options):
     surf = ax.plot_trisurf(x, y, z, cmap='plasma')
 
     fig.colorbar(surf)
-    ax.set_title('Gráfico 3D de Variables')
+    ax.set_title('3D mesh graph')
     ax.set_xlabel(data['x']['name'])
     ax.set_ylabel(data['y']['name'])
     ax.set_zlabel(data['z']['name'])
-    ax.legend()
+    #ax.legend()
     
     plt.show()
 
+def plot_countplot(nominal):
+    sns.set_theme(style="whitegrid")
+    sns.countplot(x=nominal)
+    plt.show()
+    
 def plot_hist(data,option):
     x=data['x']['data']
     plt.figure(figsize=(8, 6))
-    plt.hist(x, bins=option['bins'], color='blue', alpha=0.7)
+    plt.hist(x, bins=option['bins'], color='blue', alpha=0.7,edgecolor="black")
     plt.title('Histogram')
     plt.xlabel(data['x']['name'])
     plt.ylabel('Frequency')
@@ -98,6 +103,15 @@ def plot_correlation_matrix(dataFrame):
     plt.title("Correlation Matrix")
     plt.show()
 
+def plot_covariance_matrix(dataFrame):
+    valid_columns=dataFrame.select_dtypes(include=['number']).columns
+
+    X=dataFrame[valid_columns].cov()
+
+    plt.figure("Covariance matrix",figsize=(8, 6))
+    sns.heatmap(X, cmap='coolwarm', robust=True,linewidths=1)
+    plt.title("Covariance Matrix")
+    plt.show()
 
 def plot_histogram_grouped(data,x,group):
     g = sns.catplot(data=data, kind="bar",x=group, y=x,errorbar="sd", palette="dark", alpha=.6, height=6)

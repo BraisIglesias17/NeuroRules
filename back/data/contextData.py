@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from ..validation.validation import Validator
 from .process import substitute_outliers,susbstitute_missing,remove_missing,remove_outliers
+from ..statistic.statistic import StatisticTest
 
 class ContextData():
     """
@@ -33,11 +34,18 @@ class ContextData():
         self.targets=[]
         self.variables_index=[]
         self.targets_index=[]
+        
+        self.identifier_cols=[]
+
 
         self.data_cleanse={} # 'lubricant':{'delete_missing':0,'substitute_missing':'Mean','delete_outliers':0,'substitute_outliers':'Mean'}
         self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
 
         self.set_initial_cleanse()
+
+        self.COV_THRESHOLD=1
+        self.NORMALITY_THRESHOLD=0.05
+        self.DIFFERENCE_THRESHOLD=0.05
     
     def set_initial_cleanse(self):
         for variable in self.data.columns:
@@ -136,7 +144,103 @@ class ContextData():
 
         return True
         
-            
+
+    def add_identifier_col(self,name):
+        #check if name exists
+        self.identifier_cols.append(name)
+        
+
+    def remove_identifier_col(self,name):
+        #check if name exists
+        self.identifier_cols.remove(name)
+        
+    
+    def get_normal_variables(self):
+        data=self.get_numeric_variables()
+        normal_variables=[]
+
+
+        for id in self.identifier_cols:
+            if id in data.columns:
+                data.drop(id,axis=1)
+                
+        for col in data:
+            result=StatisticTest.shapiro_wilk((data[col]))
+            if result.pvalue>self.NORMALITY_THRESHOLD:
+                normal_variables.append(col)
+
+        return normal_variables
+        
+    def get_covariance_pairs(self):
+        valid_columns=self.data.select_dtypes(include=['number']).columns
+
+        X=self.data[valid_columns].cov()
+        
+        directly_proportional=[]
+        inverse_proportional=[]
+    
+        resting_cols=list(X.columns)
+
+        for column in X.columns:
+            resting_cols.remove(column)
+            if not column in self.identifier_cols:
+                for row in resting_cols:
+                    if not row in self.identifier_cols:
+                        value=(X.loc[row,column])
+                        info={'variables':(str(row+','+column)),'covariance':value}
+                        
+                        if value < -self.COV_THRESHOLD:
+                            inverse_proportional.append(info)
+                        elif value > self.COV_THRESHOLD:
+                            directly_proportional.append(info)
+        
+        return directly_proportional,inverse_proportional
+
+    def get_differences_in_groups(self):
+        numeric_cols=self.data.select_dtypes(include=['number']).columns
+        nominal_cols=self.data.select_dtypes(include=['object']).columns
+        toret=[]
+        X=self.data[numeric_cols].columns
+        group=self.data[nominal_cols]
+
+        for nominal in group:
+            if not nominal in self.identifier_cols:
+                values=group[nominal].unique()
+
+                i=0
+                j=0
+                for i in range(len(values)-1):
+                    for j in range(i+1,len(values)):
+                        groupA=values[i]
+                        groupB=values[j]
+                        
+                        for variable in X:
+                        
+                            data=self.data[variable]
+                            result=StatisticTest.shapiro_wilk(data)
+
+                            query=str("`"+nominal+"`=='"+groupA+"'")
+                            a=self.data.query(query)[variable]
+                            query=str("`"+nominal+"`=='"+groupB+"'")
+                            b=self.data.query(query)[variable]
+
+                            if a.shape[0]==1 or b.shape[0]==1:
+                                raise Exception("The test could not be perfomed because there is groups of "+nominal+" with one element only in "+variable)
+                            
+                            if result.pvalue>self.NORMALITY_THRESHOLD:
+                                result=StatisticTest.ANOVA(a,b)
+                                
+                                if result.pvalue<self.DIFFERENCE_THRESHOLD:
+                                    toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
+                            else:
+                                result=StatisticTest.wilcoxon(a,b)
+                                
+                                if result.pvalue<self.DIFFERENCE_THRESHOLD:
+                                    toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
+       
+        return toret
+
+
     def get_position(self,row,col):
         if row < self.data.shape[0] and col < self.data.shape[1]:
             return self.data.iloc[row,col]

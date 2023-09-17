@@ -235,6 +235,17 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
+    def set_col_as_id(self,name,remove=False):
+        try:
+            if remove:
+                self.contextData.remove_identifier_col(name)
+            else:
+                self.contextData.add_identifier_col(name)
+
+            return Response(data={},status=Status.OK)
+        
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     def clear_data(self):
         try:
             
@@ -261,6 +272,7 @@ class Controller():
     
     def automatic_statistic_test(self):
         try:
+            """
             data=self.contextData.get_numeric_variables()
             normal_variables=[]
 
@@ -268,11 +280,15 @@ class Controller():
             for col in data:
                 result=StatisticTest.shapiro_wilk((data[col]))
                 if result.pvalue>0.05:
-                    normal_variables.append(col)
+                    normal_variables.append(col)"""
             
+            normal_variables=self.contextData.get_normal_variables()
+            
+            covariance_pairs=self.contextData.get_covariance_pairs()
+            difference_in_groups=self.contextData.get_differences_in_groups()
+            covariance={'directly':covariance_pairs[0],'inverse':covariance_pairs[1]}
 
-
-            return Response(data={'normal_variables':normal_variables},status=Status.OK)
+            return Response(data={'normal_variables':normal_variables,'covariance':covariance,'differences':difference_in_groups},status=Status.OK)
 
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)

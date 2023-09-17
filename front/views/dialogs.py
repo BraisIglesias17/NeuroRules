@@ -6,7 +6,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
-from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_histogram_grouped, plot_general_group
+from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
 import math
@@ -717,11 +717,14 @@ class GraphDialog(wx.Dialog):
 
             if self.radio_btn_3d_graph.GetValue():
                 
-                if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
-                    options={}
-                    plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}},options)
+                if y==z or y==x or z==x:
+                    wx.MessageBox("The same variable can not be selected for various axis","Error",wx.OK|wx.ICON_ERROR)
                 else:
-                    wx.MessageBox("You must select Y and Z axis","Error",wx.OK|wx.ICON_ERROR)
+                    if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
+                        options={}
+                        plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}},options)
+                    else:
+                        wx.MessageBox("You must select Y and Z axis","Error",wx.OK|wx.ICON_ERROR)
             if self.radio_btn_frequency.GetValue():
                 bins=self.input_number_bins.GetValue()
                 if bins<1:
@@ -749,14 +752,15 @@ class SummaryDialog(wx.Dialog):
         
         self.parent=parent
         self.IO=parent.IO
-        self.names=parent.controller.get_names().getResponse()
+        self.names=parent.names#parent.controller.get_names().getResponse()
         self.summary=parent.controller.get_summary().getResponse()
-
-        if self.names['status']== Status.OK and self.summary['status']== Status.OK:
-            self.names=self.names['data']
+        
+        if self.summary['status']== Status.OK:
+            self.names=self.names#self.names['data']
             self.summary=self.summary['data']
         else:
             wx.MessageBox("A problem has occurred")
+
 
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
@@ -981,14 +985,65 @@ class ShowHiddenDialog(wx.Dialog):
             
             self.EndModal(wx.OK)
 
+class ShowIdentifierColsDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        super(ShowIdentifierColsDialog, self).__init__(parent)
+        self.SetTitle("Show identifier Columns")
+        self.parent=parent
+        self.names=copy.deepcopy(parent.identifier_cols)
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select columns"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.list_box_1 = wx.ListBox(self, wx.ID_ANY, choices=self.names,style=wx.LB_MULTIPLE)
+        sizer_3.Add(self.list_box_1, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "Unset")
+        sizer_2.AddButton(self.button_APPLY)
+
+        sizer_2.Realize()
+
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Layout()
+        
+
+    def OnApply(self,event):
+        choices=self.list_box_1.GetSelections()
+        if len(choices)==0:
+            wx.MessageBox("You have not selected any variable","Info")
+        else: 
+            for var in choices:
+                self.parent.identifier_cols.remove(self.names[var])
+            
+            self.EndModal(wx.OK)
+        
+            
+
 
 class StatisticDialog(wx.Dialog):
     def __init__(self,parent, *args, **kwds):
         # begin wxGlade: StatisticDialog.__init__
         super(StatisticDialog, self).__init__(parent)
         self.SetTitle("Statistics")
+        self.identifier_cols=parent.identifier_cols
         self.controller=parent.controller
         self.names=list(parent.names)
+        self.grouping=parent.string_variable_names
+        self.comparing=parent.float_variable_names+parent.int_variable_names
         self.one_variable_test=False
         test_placeholder=StatisticTest.get_placeholder()
         tests=StatisticTest.get_tests()
@@ -1000,7 +1055,7 @@ class StatisticDialog(wx.Dialog):
         sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "A "), wx.HORIZONTAL)
         sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
 
-        self.combo_box_A = wx.ComboBox(self, wx.ID_ANY, choices=self.names,value="First variable",style=wx.CB_READONLY)
+        self.combo_box_A = wx.ComboBox(self, wx.ID_ANY, choices=self.comparing,value="First variable",style=wx.CB_READONLY)
         sizer_4.Add(self.combo_box_A, 1, wx.ALL, 5)
 
         sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "B"), wx.HORIZONTAL)
@@ -1027,6 +1082,9 @@ class StatisticDialog(wx.Dialog):
         self.checkbox_corr = wx.CheckBox(self, wx.ID_ANY, "Show global correlation matrix")
         sizer_8.Add(self.checkbox_corr, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
+        self.checkbox_covariance = wx.CheckBox(self, wx.ID_ANY, "Show global covariance matrix")
+        sizer_8.Add(self.checkbox_covariance, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
 
@@ -1047,28 +1105,33 @@ class StatisticDialog(wx.Dialog):
         
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeTest,self.combo_box_test)
         self.Bind(wx.EVT_BUTTON,self.OnRun,self.button_OK)
-        self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorr,self.checkbox_corr)
+        self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorrCov,self.checkbox_corr)
+        self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorrCov,self.checkbox_covariance)
+        self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorrCov,self.checkbox_automatic_tests)
+        
+
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
         self.Layout()
-        # end wxGlade
+        # end wxGlade        
 
-    def OnChangeCorr(self,evt):
-        if self.checkbox_corr.GetValue():
-            self.combo_box_A.Enable(False)
-            self.combo_box_B.Enable(False)
-            self.combo_box_test.Enable(False)
+    def EnableComponents(self,val):
+        self.combo_box_A.Enable(val)
+        self.combo_box_B.Enable(val)
+        self.combo_box_test.Enable(val)
+
+    def OnChangeCorrCov(self,evt):
+        if self.checkbox_corr.GetValue() or self.checkbox_covariance.GetValue() or self.checkbox_automatic_tests.GetValue():
+            self.EnableComponents(False)
         else:
-            self.combo_box_A.Enable(True)
-            self.combo_box_B.Enable(True)
-            self.combo_box_test.Enable(True)
+            self.EnableComponents(True)
 
     def validate_choice(self,val):
         if val=="":
             return False
-        return True
+        return True        
 
     def OnRun(self,event):
         test=self.combo_box_test.GetValue()
@@ -1080,9 +1143,15 @@ class StatisticDialog(wx.Dialog):
             dialog=AutomaticTest(self)
             code=dialog.ShowModal()
 
-        elif self.checkbox_corr.GetValue():
+        elif self.checkbox_corr.GetValue() or self.checkbox_covariance.GetValue():
             df=self.controller.get_data().getResponse()['data']
-            plot_correlation_matrix(df)
+            
+            df=df.drop(self.identifier_cols,axis=1)
+            if self.checkbox_corr.GetValue():
+                plot_correlation_matrix(df)
+            if self.checkbox_covariance.GetValue():
+                plot_covariance_matrix(df)
+
             other_option=True
         else:
 
@@ -1107,18 +1176,59 @@ class StatisticDialog(wx.Dialog):
                     index_a=self.names.index(a)
                     x=self.controller.get_column(index_a).getResponse()['data']
                     if 'Shapiro' in test:   
-                        self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a],condition=True)
+                        self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a],condition=True,msg="to determine that this variable has a normal distribution")
                     elif 'ANOVA' in test and complete:
-                        self.OnLaunchResulDialog(StatisticTest.ANOVA,test,variables=[x,y],names=[a,b],condition=False)
+                        grouping_values=np.unique(y)
+                        
+                        dict_y={}
+                        for group in grouping_values:
+                            dict_y[group]=x[y==group]
+
+                        self.OnLaunchGroupingResultDialog(StatisticTest.ANOVA,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
                     elif 'Pearson' in test and complete:
-                        self.OnLaunchResulDialog(StatisticTest.pearson,test,variables=[x,y],names=[a,b],condition=False)
+                        self.OnLaunchResulDialog(StatisticTest.pearson,test,variables=[x,y],names=[a,b],condition=False,msg="to determine that there is correlation between ")
                     
                     #TO DO TESTS
                     
                     
 
+    def OnLaunchGroupingResultDialog(self,test,test_name,dict_y,groups,names,msg=""):
+        i=0
+        j=0
+        different_pairs=[]
+        not_different_pairs=[]
+        pvalues=[]
+        for i in range(0,len(groups)-1):
+            for j in range(i+1,len(groups)):
+                
+                result=test(dict_y[groups[i]],dict_y[groups[j]])
+                pvalues.append(np.round(result.pvalue,3))
+                if result.pvalue<0.05:
+                    different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,3))+")"))
+                else:
+                    not_different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,3))+")"))
+
+
+        message=""
+        title=test_name+" test on "+str(names[0])+" grouped by "+str(names[1])
+        if len(different_pairs)==0:
+            message=" to determine that there is differences between any groups "
+        else:
+            message=" to determine that there is differences between the groups:\n"
+            i=0
+            for pair in different_pairs:
+                message=message+"\t"+pair+"\n "
+            
+            if len(not_different_pairs)!=0:
+                message=message+"\nThe following groups didn't show any differences: \n"
+                for pair in not_different_pairs:
+                    message=message+"\t"+pair+"\n "
         
-    def OnLaunchResulDialog(self,test,test_name,variables,names,condition=True):
+       
+        dialog=TestResultDialog(self,title,{'pvalue':pvalues},message,False)
+        dialog.ShowModal()
+
+    def OnLaunchResulDialog(self,test,test_name,variables,names,condition=True,msg=""):
         
         title=""
         message=""
@@ -1127,45 +1237,91 @@ class StatisticDialog(wx.Dialog):
             a=names[0]
             b=names[1]
             title=str("Test "+test_name+" on "+a+" and "+b)
-            message=str("to determine that there is significant differences between "+a+" and "+b)
+            message=str(msg+a+" and "+b)
         else:
             result=test(variables[0])
             title="Test "+test_name+" on "+names[0]
-            message="to determine that this variable has a normal distribution"
+            message=msg
 
-        dialog=TestResultDialog(self,title,{'pvalue':result.pvalue},message,condition)
+        dialog=TestResultDialog(self,title,{'pvalue':[result.pvalue]},message,condition)
         dialog.ShowModal()
         
     def OnChangeTest(self,event):
-        if 'Shapiro' in self.combo_box_test.GetValue() or 'McNemar' in self.combo_box_test.GetValue() or 'Kolmorov' in self.combo_box_test.GetValue():
+        test=self.combo_box_test.GetValue()
+        current_selection=self.combo_box_B.GetValue()
+
+        if test in StatisticTest.SINGLE_VARIABLE():
             self.combo_box_B.Enable(False)
             self.one_variable_test=True
         else:
             self.combo_box_B.Enable(True)
             self.one_variable_test=False
 
+        if test in StatisticTest.GROUPING_SAME_VARIABLE():
+            self.combo_box_B.Clear()
+
+            if len(self.grouping)==0:
+                self.combo_box_B.Enable(False)
+            else:
+                self.combo_box_B.Enable(True)
+
+            self.combo_box_B.AppendItems(self.grouping)
+
+            if current_selection in self.grouping:
+                self.combo_box_B.SetValue(current_selection)
+
+        elif test in StatisticTest.COMPARING_DIFFERENT_VARIABLES():
+            self.combo_box_B.Clear()
+            if len(self.comparing)==0:
+                self.combo_box_B.Enable(False)
+            else:
+                self.combo_box_B.Enable(True)
+            self.combo_box_B.AppendItems(self.comparing)
+
+            if current_selection in self.comparing:
+                self.combo_box_B.SetValue(current_selection)
+
+        else:
+           
+            self.combo_box_B.Clear()
+            self.combo_box_B.AppendItems(self.names)
+
+        
+
 
 
 class TestResultDialog(wx.Dialog):
     def __init__(self,parent,name,result,explanation,lower=True):
-        # begin wxGlade: TestResultDialog.__init__
+        
         super(TestResultDialog, self).__init__(parent)
         self.SetTitle(name)
         self.result=result
 
-        self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/ok.png"
-        self.header="Succesful"
-        
-        pvalue=np.round(self.result['pvalue'],4)
-        
-        if (lower and self.result['pvalue']<0.05) or (lower==False and self.result['pvalue']>0.05):
-            self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/x.png"
-            self.header="Unsuccesful"
+        self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/x.png"
+        self.header="Unsuccesful"
+        pvalues=self.result['pvalue']
+        self.single_result=len(pvalues)==1
 
-            explanation="There is NO significicant statistical evidence "+explanation
+        if self.single_result:
+            pvalue=np.round(self.result['pvalue'][0],4)
+            
+            if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
+                self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/ok.png"
+                self.header="Succesful"
+
+                explanation="\nThere is significicant statistical evidence "+explanation
+            else:
+                explanation="\nThere is NO significicant statistical evidence "+explanation
         else:
-            explanation="There is significicant statistical evidence "+explanation
-
+            
+            for pvalue in pvalues:
+                if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
+                    self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/ok.png"
+                    self.header="Succesful"                    
+                    break
+            
+            explanation="\nThere is significicant statistical evidence "+explanation
+        
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
@@ -1187,19 +1343,20 @@ class TestResultDialog(wx.Dialog):
         sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_5.Add(sizer_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 0)
 
-        label_2 = wx.StaticText(self, wx.ID_ANY, "p-value")
-        sizer_6.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.LEFT | wx.TOP, 10)
+        if self.single_result:
+            label_2 = wx.StaticText(self, wx.ID_ANY, "p-value")
+            sizer_6.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.LEFT | wx.TOP, 10)
 
-        self.text_ctrl_1 = wx.TextCtrl(self, wx.ID_ANY, str(pvalue))
-        #self.text_ctrl_1.SetMinSize((70, 23))
-        self.text_ctrl_1.Enable(False)
-        sizer_6.Add(self.text_ctrl_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+            self.text_ctrl_1 = wx.TextCtrl(self, wx.ID_ANY, str(pvalue))
+            #self.text_ctrl_1.SetMinSize((70, 23))
+            self.text_ctrl_1.Enable(False)
+            sizer_6.Add(self.text_ctrl_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
         sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Explanation"), wx.VERTICAL)
         sizer_5.Add(sizer_7, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
         label_3 = wx.StaticText(self, wx.ID_ANY, explanation)
-        sizer_7.Add(label_3, 0, wx.EXPAND, 0)
+        sizer_7.Add(label_3, 0, wx.EXPAND, 10)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
@@ -1215,8 +1372,9 @@ class TestResultDialog(wx.Dialog):
 
         self.SetAffirmativeId(self.button_OK.GetId())
 
+        self.Center()
         self.Layout()
-        # end wxGlade
+        
 
 class SummaryPickDialog(wx.Dialog):
     def __init__(self,parent):
@@ -1225,6 +1383,8 @@ class SummaryPickDialog(wx.Dialog):
         self.SetTitle("Summary pick")
         self.parent=parent
         names=parent.names
+        self.nominal_variables=parent.string_variable_names
+        
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
@@ -1272,12 +1432,21 @@ class SummaryPickDialog(wx.Dialog):
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_OK)
         self.Bind(wx.EVT_CHECKBOX,self.OnChangeAllVariables,self.checkbox_all_variable)
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeVariable,self.combo_box__variable)
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
         self.Layout()
         # end wxGlade
     
+    def OnChangeVariable(self,evt):
+        variable=self.combo_box__variable.GetValue()
+
+        if variable in self.nominal_variables:
+            self.combo_box_group.Enable(False)
+        else:
+            self.combo_box_group.Enable(True)
+        
     def OnChangeAllVariables(self,evt):
         all_variables=self.checkbox_all_variable.GetValue()
 
@@ -1302,14 +1471,14 @@ class SummaryPickDialog(wx.Dialog):
             if variable=="":
                 wx.MessageBox("You must select a variable","Error",wx.OK|wx.ICON_EXCLAMATION)
             else:
-                dialog=SingleSummaryDialog(self.parent,variable,group)
+                dialog=SingleSummaryDialog(self.parent,variable,group,not variable in self.nominal_variables)
                 dialog.ShowModal()
                 
 
 
 
 class SingleSummaryDialog(wx.Dialog):
-    def __init__(self, parent,variable,group):
+    def __init__(self, parent,variable,group,numeric=True):
         # begin wxGlade: SingleSummaryDialog.__init__
         
         wx.Dialog.__init__(self,parent)
@@ -1318,6 +1487,7 @@ class SingleSummaryDialog(wx.Dialog):
         self.parent=parent
         self.variable=variable
         self.group=group
+        self.numeric=numeric
         isGrouped=True
         message=str(variable+" grouped by "+group)
         label="Group"
@@ -1328,7 +1498,8 @@ class SingleSummaryDialog(wx.Dialog):
             isGrouped=False
             message=variable
             label="Name"
-            plottable=False
+            if numeric:
+                plottable=False
 
         response=parent.controller.get_variable_summary(variable,group).getResponse()
         
@@ -1338,6 +1509,7 @@ class SingleSummaryDialog(wx.Dialog):
             wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
         else:
             data=response['data']           
+            
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -1354,13 +1526,20 @@ class SingleSummaryDialog(wx.Dialog):
     
         self.grid_1.SetColLabelValue(0, label)
         self.grid_1.SetColLabelValue(1, "count")
-        self.grid_1.SetColLabelValue(2, "mean")
-        self.grid_1.SetColLabelValue(3, "std")
-        self.grid_1.SetColLabelValue(4, "min")
-        self.grid_1.SetColLabelValue(5, "25%")
-        self.grid_1.SetColLabelValue(6, "50%")
-        self.grid_1.SetColLabelValue(7, "75%")
-        self.grid_1.SetColLabelValue(8, "max")
+
+        if numeric:    
+            self.grid_1.SetColLabelValue(2, "mean")
+            self.grid_1.SetColLabelValue(3, "std")
+            self.grid_1.SetColLabelValue(4, "min")
+            self.grid_1.SetColLabelValue(5, "25%")
+            self.grid_1.SetColLabelValue(6, "50%")
+            self.grid_1.SetColLabelValue(7, "75%")
+            self.grid_1.SetColLabelValue(8, "max")
+        else:
+            self.grid_1.SetColLabelValue(2, "unique")
+            self.grid_1.SetColLabelValue(3, "top")
+            self.grid_1.SetColLabelValue(4, "freq")
+
         
         sizer_3.Add(self.grid_1, 0, wx.ALL | wx.EXPAND, 20)
 
@@ -1397,12 +1576,16 @@ class SingleSummaryDialog(wx.Dialog):
             wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
         else:
             x=response['data']
-            response=self.parent.controller.get_column(list(self.parent.names).index(self.group)).getResponse()
-            if response['status']!=Status.OK:
-                wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+            
+            if self.numeric:
+                response=self.parent.controller.get_column(list(self.parent.names).index(self.group)).getResponse()
+                if response['status']!=Status.OK:
+                    wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+                else:
+                    g=response['data']
+                    plot_histogram_grouped(pd.DataFrame({self.variable:x,self.group:g}),self.variable,self.group)
             else:
-                g=response['data']
-                plot_histogram_grouped(pd.DataFrame({self.variable:x,self.group:g}),self.variable,self.group)
+                plot_countplot(x)
                 
 
     def createDataGrid(self,grid,data,variable,group):
@@ -1412,7 +1595,7 @@ class SingleSummaryDialog(wx.Dialog):
 
         if group==False:
 
-            grid.CreateGrid(1,9)
+            grid.CreateGrid(1,data.shape[0]+1)
             grid.SetColMinimalWidth(0,30)
             grid.SetCellValue(i,j,str(variable))
             grid.SetReadOnly(i,j,True)
@@ -1422,8 +1605,9 @@ class SingleSummaryDialog(wx.Dialog):
             #myGrid.SetCellBackgroundColour(i, j, wx.Colour('#2c8a45'))
             for index in data.index:
                 value=data.loc[index]
-                    
-                grid.SetCellValue(i,j," "+str(round(value,2))+" ")
+                if self.numeric:
+                    value=round(value,2)
+                grid.SetCellValue(i,j," "+str(value)+" ")
                 grid.SetReadOnly(i,j,True)
                 grid.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
                 #grid.SetCellBackgroundColour(i,j,wx.Colour(176,181,177))
@@ -1711,29 +1895,76 @@ class AutomaticTest(wx.Dialog):
         
         #LLAMADA A TEST AUTOMATICO 
         result=parent.controller.automatic_statistic_test().getResponse()
+
         normal_variables=["None"]
-        grouped_different_variables=["None"]
+        self.grouped_different_variables=["None"]
+        covariance=["None"]
+        directly=[]
+        inverse=[]
+        self.covariance_list=[]
+        differences_in_groups=[]
+        
+        names=parent.names
+
 
         if result['status']==Status.OK:
-            print(result['data'])
+            #print(result['data'])
             normal_variables=result['data']['normal_variables']
+            covariance=result['data']['covariance']
+            differences_in_groups=result['data']['differences']
 
+            for pair in covariance['directly']:
+                directly.append(str(pair['variables'] +" - "+" directly"))
+
+            for pair in covariance['inverse']:
+                directly.append(str(pair['variables'] +" - "+" inverse"))
+
+            self.covariance_list=directly+inverse
+
+            for entry in differences_in_groups:
+                self.grouped_different_variables=[]
+                self.grouped_different_variables.append(str(entry['variable']+" shows differences in "+entry['groupby']+" between "+entry['pair']))
+            
+        else:
+            wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
+            self.Destroy()
+            
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
 
-        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Normality"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_4, 1, wx.ALL | wx.EXPAND, 5)
+        margin=10
 
-        self.list_box_2 = wx.ListBox(self, wx.ID_ANY, choices=normal_variables)
-        sizer_4.Add(self.list_box_2, 1, wx.ALL | wx.EXPAND, 10)
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Normality"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, margin)
+
+        self.list_box_normal = wx.ListBox(self, wx.ID_ANY, choices=normal_variables)
+        sizer_4.Add(self.list_box_normal, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_4b = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Covariance"), wx.HORIZONTAL)
+
+        sizer_filter_covariance=wx.BoxSizer(wx.VERTICAL)
+
+        label_filter=wx.StaticText(self,wx.ID_ANY,label="Filter by")
+        sizer_filter_covariance.Add(label_filter,0,wx.ALL,0)
+
+        self.combobox_filter_covariance=wx.ComboBox(self,choices=names,style=wx.CB_READONLY)
+        sizer_filter_covariance.Add(self.combobox_filter_covariance,0,wx.ALL,0)
+
+        
+        sizer_3.Add(sizer_4b, 1, wx.ALL | wx.EXPAND, margin)
+
+        sizer_4b.Add(sizer_filter_covariance, 0, wx.ALL | wx.EXPAND, margin)
+
+        self.list_box_covariance = wx.ListBox(self, wx.ID_ANY, choices=self.covariance_list)
+        sizer_4b.Add(self.list_box_covariance, 1, wx.ALL | wx.EXPAND, 10)
 
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistical differences by group"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 5)
+        sizer_3.Add(sizer_6, 0, wx.ALL | wx.EXPAND, margin)
 
-        self.list_box_3 = wx.ListBox(self, wx.ID_ANY, choices=grouped_different_variables)
-        sizer_6.Add(self.list_box_3, 1, wx.ALL | wx.EXPAND, 10)
+        self.list_box_differences = wx.ListBox(self, wx.ID_ANY, choices=self.grouped_different_variables)
+        sizer_6.Add(self.list_box_differences, 1, wx.ALL | wx.EXPAND, 10)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -1750,7 +1981,18 @@ class AutomaticTest(wx.Dialog):
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeCovarianceFilter,self.combobox_filter_covariance)
         self.SetAffirmativeId(self.button_SAVE.GetId())
         self.SetEscapeId(self.button_CLOSE.GetId())
 
+        self.Center()
         self.Layout()
+        
+
+    def OnChangeCovarianceFilter(self,evt):
+        filter=self.combobox_filter_covariance.GetValue()
+        filtered=[value for value in self.covariance_list if (str(filter) in value)]
+        if len(filtered)==0:
+            filtered.append("None")
+        self.list_box_covariance.Clear()
+        self.list_box_covariance.InsertItems(filtered,0)

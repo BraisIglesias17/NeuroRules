@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog
+from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -46,6 +46,7 @@ class MainWindow(wx.Frame):
         self.names_to_show=[]
         self.filename=""
 
+        self.identifier_cols=[]
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)  
         
@@ -124,6 +125,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnStatistics,self.statistics_button)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,self.OnCickLabelCell)
         self.Bind(wx.EVT_CLOSE,self.OnExit)
+    
         
         #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
         #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
@@ -135,6 +137,9 @@ class MainWindow(wx.Frame):
         self.SetSize((1800, 900))
         self.Center()
         self.Show(True)
+
+    def OnPrint(self,evt):
+        print("ctrl-p")
 
     def OnStatistics(self,evt):
         dialog=StatisticDialog(self)
@@ -224,6 +229,7 @@ class MainWindow(wx.Frame):
         
         response=self.controller.load_content(self,event).getResponse()
         if response['status']==Status.OK:
+            
             self.ClearGrid()
             self.updateGrid(response['data']['data'])
             self.filename=response['data']['file']
@@ -246,15 +252,26 @@ class MainWindow(wx.Frame):
             
 
     def OnClearGrid(self,event):
-        self.ClearGrid()
-        self.controller.clear_data()
-        self.enableButtons(False)
-        self.train_button.Enable(False)
-        self.restoreStatus()
         
+        code=wx.MessageBox("Are you sure you want to clear the grid ? ","Warning",wx.OK|wx.CANCEL|wx.CANCEL_DEFAULT|wx.ICON_WARNING)
+        
+        if code==wx.OK:
+            self.ClearGrid()
+            self.controller.clear_data()
+            self.enableButtons(False)
+            self.train_button.Enable(False)
+            self.restoreStatus()
+    
+    def ClearDataStructures(self):
+        self.hidden_columns=[]
+        self.identifier_cols=[]
+        self.int_variable_names=[]
+        self.float_variable_names=[]
+        self.string_variable_names=[]
 
 
     def ClearGrid(self):
+        self.ClearDataStructures()
         
         self.grid.ClearGrid()     
         for coords in self.highlighted_cells:
@@ -375,10 +392,12 @@ class MainWindow(wx.Frame):
                     changeName=menu.Append(wx.ID_ANY, "Change column name")
                     hideColumn=menu.Append(wx.ID_ANY, "Hide column")
                     deleteColumn=menu.Append(wx.ID_ANY, "Delete column")
-                    
+                    setIDColumn=menu.Append(wx.ID_ANY,"Set/Unset as an identifier column")
+
                     self.Bind(wx.EVT_MENU,lambda event: self.OnChangeName(event,col),changeName)
                     self.Bind(wx.EVT_MENU,lambda event: self.OnDeleteColumn(event,col),deleteColumn)
                     self.Bind(wx.EVT_MENU,lambda event: self.OnHideColumn(event,col),hideColumn)
+                    self.Bind(wx.EVT_MENU,lambda event: self.OnSetAsIS(event,col),setIDColumn)
                     self.PopupMenu(menu, position)
 
                     
@@ -400,7 +419,31 @@ class MainWindow(wx.Frame):
                     menu.Destroy()
 
 
+    def OnSetAsIS(self,event,col):
+    
+        names=[self.names[col]]
+        cols=self.grid.GetSelectedCols()
+        for col in cols:
+            name=self.names[col]
+            if not name in names:
+                names.append(name)
+
+        action=""
+        message=""
+        for name in names:
+            if name in self.identifier_cols:
+                self.controller.set_col_as_id(name,remove=True)
+                self.identifier_cols.remove(name)
+                action="unset"
+                
+            else:
+                self.controller.set_col_as_id(name,remove=False)
+                self.identifier_cols.append(name)
+                action="set"
+            
+            message=message+str(name)+" is now "+action+" as identifier\n"
         
+        wx.MessageBox(message,"Info")
     
     def OnChangeName(self,event,col):
         current_name=self.names[col]
@@ -502,7 +545,15 @@ class MainWindow(wx.Frame):
                     self.hidden_columns.remove(index)
                     self.grid.ShowCol(index)
         
- 
+    def OnShowIdentifierCols(self,event):
+        if len(self.identifier_cols)==0:
+            wx.MessageBox("There is no columns set as identifier")
+        else:
+        
+            dialog=ShowIdentifierColsDialog(self)
+            code=dialog.ShowModal()
+            #if code==wx.OK:
+                
     def OnAboutUs(self,event):
         dialog=AboutUsDialog(self)
         dialog.ShowModal()
@@ -520,7 +571,7 @@ class MainWindow(wx.Frame):
         item.SetBitmap(image)
 
         fileMenu.Append(item)
-        fileMenu.Append(wx.ID_ANY, '&Save as')
+        fileMenu.Append(wx.ID_ANY,'&Save as\tCtrl+a',"Save current file")
 
         modelMenu= wx.Menu()
         modelMenu.Append(wx.ID_ANY, '&Options')
@@ -540,6 +591,8 @@ class MainWindow(wx.Frame):
         analyzeSubmenu.Append(wx.ID_ANY,"&Summary")
 
         dataMenu=wx.Menu()
+        item=wx.MenuItem(dataMenu,wx.ID_ANY,'&Show identifier columns')
+        showIdentifier=dataMenu.Append(item)
         dataMenu.Append(wx.ID_ANY,"&Create set")
         dataMenu.Append(wx.ID_ANY,"&Clear data")
         dataMenu.AppendSubMenu(preprocessSubmenu,"Data processing")
@@ -555,7 +608,7 @@ class MainWindow(wx.Frame):
         viewOptionsMenu.Append(wx.ID_ANY,'&Show preprocess options')
         
         showHidden=viewMenu.Append(item)
-        viewMenu.AppendSubMenu(viewOptionsMenu,"Display options")
+        viewMenu.AppendSubMenu(viewOptionsMenu,"Display options")        
 
         helpMenu = wx.Menu()  
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
@@ -569,6 +622,8 @@ class MainWindow(wx.Frame):
 
         self.Bind(wx.EVT_MENU,self.OnShowHidden,showHidden)
         self.Bind(wx.EVT_MENU,self.OnAboutUs,aboutUsOption)
+        self.Bind(wx.EVT_MENU,self.OnShowIdentifierCols,showIdentifier)
+        
 
         self.SetMenuBar(menubar)  
 

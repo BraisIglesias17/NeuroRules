@@ -1,8 +1,20 @@
-from scipy.stats import chi2,pearsonr,wilcoxon,shapiro,kruskal,kstest,t,f_oneway
+from scipy.stats import chi2,pearsonr,wilcoxon,shapiro,kruskal,kstest,t,f_oneway,mannwhitneyu
 
 
 class StatisticTest():
 
+    @staticmethod
+    def GROUPING_SAME_VARIABLE():
+        return ['T Student - (Difference between groups)','ANOVA - (Difference between groups)','Kruskal Wallis - (Difference between groups)','Wilcoxon - (Difference between groups)']
+
+    @staticmethod
+    def COMPARING_DIFFERENT_VARIABLES():
+        return ['Pearson - (Correlation)']
+    
+    @staticmethod
+    def SINGLE_VARIABLE():
+        return ['Shapiro - (Normality)']
+    
     @staticmethod
     def get_tests():
         return ['T Student','ANOVA','Kruskal Wallis','Wilcoxon','Pearson','Shapiro']
@@ -25,7 +37,7 @@ class StatisticTest():
     
     @staticmethod
     def wilcoxon(x,y):
-        return wilcoxon(x,y)
+        return mannwhitneyu(x,y)
     
     @staticmethod
     def kruskal_wallis(x,y):
