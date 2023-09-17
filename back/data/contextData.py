@@ -159,11 +159,11 @@ class ContextData():
         data=self.get_numeric_variables()
         normal_variables=[]
 
-
         for id in self.identifier_cols:
             if id in data.columns:
-                data.drop(id,axis=1)
-                
+                data=data.drop(id,axis=1)
+        
+            
         for col in data:
             result=StatisticTest.shapiro_wilk((data[col]))
             if result.pvalue>self.NORMALITY_THRESHOLD:
