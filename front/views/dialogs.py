@@ -37,11 +37,11 @@ class VariableTypeDialog(wx.Dialog):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select information for rules "), wx.VERTICAL)
-        sizer_1.Add(sizer_3, 0, wx.EXPAND, 30)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 20)
 
         self.grid = wx.grid.Grid(self, wx.ID_ANY)
         self.grid=self.createDataGrid(self.grid,len(self.names))
-        sizer_3.Add(self.grid, 1,wx.CENTER, 30)
+        sizer_3.Add(self.grid, 1, wx.ALL | wx.CENTER, 10)
 
         sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 15)
@@ -910,7 +910,7 @@ class AboutUsDialog(wx.Dialog):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 50)
 
         bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("C:\\Users\\USUARIO\\Desktop\\NeuroRule\\front\\resources\\logo_128x128.png", wx.BITMAP_TYPE_ANY))
         sizer_3.Add(bitmap_1, 0, wx.ALL | wx.EXPAND, 30)
@@ -1202,11 +1202,11 @@ class StatisticDialog(wx.Dialog):
             for j in range(i+1,len(groups)):
                 
                 result=test(dict_y[groups[i]],dict_y[groups[j]])
-                pvalues.append(np.round(result.pvalue,3))
+                pvalues.append(np.round(result.pvalue,4))
                 if result.pvalue<0.05:
-                    different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,3))+")"))
+                    different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,4))+")"))
                 else:
-                    not_different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,3))+")"))
+                    not_different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,4))+")"))
 
 
         message=""
@@ -1303,7 +1303,7 @@ class TestResultDialog(wx.Dialog):
         self.single_result=len(pvalues)==1
 
         if self.single_result:
-            pvalue=np.round(self.result['pvalue'][0],4)
+            pvalue=np.round(self.result['pvalue'][0],5)
             
             if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
                 self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/ok.png"
@@ -1493,7 +1493,7 @@ class SingleSummaryDialog(wx.Dialog):
         label="Group"
         plottable=True
         #Obtain summary
-        if group=="None":
+        if group=="None" or not numeric:
             group=None
             isGrouped=False
             message=variable
@@ -1522,7 +1522,7 @@ class SingleSummaryDialog(wx.Dialog):
 
         self.grid_1 = wx.grid.Grid(self, wx.ID_ANY)
         
-        self.grid_1=self.createDataGrid(self.grid_1,data,variable,isGrouped)
+        self.grid_1=self.createDataGrid(self.grid_1,data,variable,isGrouped and numeric)
     
         self.grid_1.SetColLabelValue(0, label)
         self.grid_1.SetColLabelValue(1, "count")
@@ -1594,7 +1594,7 @@ class SingleSummaryDialog(wx.Dialog):
         j=0
 
         if group==False:
-
+            
             grid.CreateGrid(1,data.shape[0]+1)
             grid.SetColMinimalWidth(0,30)
             grid.SetCellValue(i,j,str(variable))
@@ -1615,6 +1615,7 @@ class SingleSummaryDialog(wx.Dialog):
             i+=1
 
         else:
+            
             grid.CreateGrid(data.shape[0],9)
             grid.SetColMinimalWidth(0,30)
             
