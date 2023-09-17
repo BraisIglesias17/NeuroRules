@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import seaborn as sns
+from sklearn import linear_model
+from sklearn.metrics import r2_score
+from sklearn.model_selection import train_test_split
 
 def plot_2d(data,options):
     x=data['x']['data']
@@ -52,9 +55,14 @@ def plot_3d(data,options):
 
 def plot_countplot(nominal):
     sns.set_theme(style="whitegrid")
-    sns.countplot(x=nominal)
-    plt.show()
+    plot=sns.countplot(x=nominal)
     
+    for p in plot.patches:
+        plot.annotate('{:}'.format(p.get_height()), (p.get_x()+0.33, p.get_height()+0.1))
+        
+   
+    plt.show()
+
 def plot_hist(data,option):
     x=data['x']['data']
     plt.figure(figsize=(8, 6))
@@ -76,20 +84,29 @@ def plot_boxplot(data,option):
     plt.show()
 
 def plot_regression(data,options):
-    x=data['x']['data']
-    y=data['y']['data']
+    x=np.array(data['x']['data'])
+    y=np.array(data['y']['data'])
 
+    x=x.reshape(-1,1)
+    
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
+    
     plt.figure(figsize=(8, 6))
     plt.scatter(x, y, label='Data points', color='blue')
     plt.title('Regression Fit Line')
     plt.xlabel(data['x']['name'])
     plt.ylabel(data['y']['name'])
     plt.grid(True)
-
+    regression=linear_model.LinearRegression()
    
-    slope, intercept = np.polyfit(x, y, 1)
-    fit_line = slope * x + intercept
-    plt.plot(x, fit_line, color='red')
+    regression.fit(X_train,y_train)
+    fit_line=regression.predict(X_test)
+
+    R2=r2_score(X_test,fit_line)
+
+    plt.annotate('R2 = (%.2f)'%(R2), xy=(sum(x)/len(x),max(y)-5),xytext =(0,20),textcoords ='offset points',fontsize=13,ha='center')
+
+    plt.plot(X_test,fit_line, color='red')
     plt.legend()
     plt.show()
 
