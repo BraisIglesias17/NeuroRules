@@ -5,6 +5,7 @@ class Status():
     VALIDATION_ERROR=2
     GENERAL_ERROR=3
     IO_ERROR=4
+    EXISTING_TASK=6
     CANCEL=5
 
 class Response():

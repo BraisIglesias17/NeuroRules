@@ -20,6 +20,7 @@ class Settings():
         self.targetColor="#ad9e72"
         self.independentColor="#5a8f68"
         self.defaultColor="#ffffff"
+        self.outlierColor="#c9be83"
         self.NanColor="#c76d6f"
 
     def SetCellSize(self,height,width):

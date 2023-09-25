@@ -10,6 +10,9 @@ from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot
 import numpy as np
 import copy
 import math
+import threading
+import time
+import re
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
@@ -373,7 +376,7 @@ class CleanDataDialog(wx.Dialog):
         self.combo_box_variable = wx.ComboBox(self, wx.ID_ANY, choices=options,style=wx.CB_READONLY,value="All")
         sizer_12.Add(self.combo_box_variable, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-
+        self.progressbar=None
         
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -485,6 +488,14 @@ class CleanDataDialog(wx.Dialog):
             wx.MessageBox(str(exc),"Error",wx.OK|wx.ICON_ERROR)
                 
     def OnApply(self,event):
+        self.button_APPLY.Disable()
+
+        self.progressbar = wx.ProgressDialog("Applying cleanse", "Please, wait...", maximum=100,parent=self)
+        #self.execute_thread()
+        thread = threading.Thread(target=self.execute_thread)
+        thread.start()
+        #thread.join()
+        """
         options=self.parent.controller.get_cleanse().getResponse()
         deleted=0
         modified=0
@@ -507,8 +518,46 @@ class CleanDataDialog(wx.Dialog):
 
         else:
             wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
+        """
+        
+            
+    def execute_thread(self):
+        options=self.parent.controller.get_cleanse().getResponse()
+        deleted=0
+        modified=0
+        if options['status']==Status.OK:
+            #HERE
+            i=0
+            shift=100/len(options['data'])
+            for variable in options['data']:
+                response=self.parent.controller.apply_cleanse(variable).getResponse()
+                
+                if response['status']==Status.OK:
+                    d=response['data']['deleted_rows']
+                    m=response['data']['modified_rows']
+                    deleted+=d
+                    modified+=m
+                else:
+                    wx.MessageBox(str("A problem has ocurred with "+variable+" process"),"Error",wx.OK|wx.ICON_ERROR)
+                
+                time.sleep(0.01)
+                wx.CallAfter(self.update_progress, int(i))
+                i+=shift
+
+            wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
+        
+            
+            wx.CallAfter(wx.MessageBox,str(str(deleted)+" deleted and "+str(modified)+" modified rows."),"Info")
+            
+            wx.CallAfter(self.EndModal,wx.ID_APPLY)
             
 
+        else:
+            wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
+
+    def update_progress(self, value):
+        
+        self.progressbar.Update(value,"Progress...")
 
 class GraphDialog(wx.Dialog):
     def __init__(self,parent):
@@ -1997,3 +2046,966 @@ class AutomaticTest(wx.Dialog):
             filtered.append("None")
         self.list_box_covariance.Clear()
         self.list_box_covariance.InsertItems(filtered,0)
+
+class PickDialog(wx.Dialog):
+    def __init__(self, parent):
+        
+        super(PickDialog, self).__init__(parent)
+        self.SetTitle("Pick dialog")
+
+        self.names=parent.names
+
+        self.controller=parent.controller
+        self.all_variables=list(copy.deepcopy(self.names))
+        
+        self.independent_variables=[]
+        self.targets=[]
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
+
+        label_variables = wx.StaticText(self, wx.ID_ANY, "Variables")
+        sizer_4.Add(label_variables, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.list_box_all_variables = wx.ListBox(self, wx.ID_ANY, choices=self.all_variables,style=wx.LB_MULTIPLE)
+        sizer_4.Add(self.list_box_all_variables, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_5 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3.Add(sizer_5, 1, wx.EXPAND, 0)
+
+        sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_5.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        sizer_7 = wx.BoxSizer(wx.VERTICAL)
+        sizer_6.Add(sizer_7, 1, wx.EXPAND, 0)
+
+        label_inputs = wx.StaticText(self, wx.ID_ANY, "Inputs")
+        sizer_7.Add(label_inputs, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.list_box_inputs = wx.ListBox(self, wx.ID_ANY, choices=self.independent_variables,style=wx.LB_MULTIPLE)
+        sizer_7.Add(self.list_box_inputs, 1,wx.EXPAND| wx.ALL, 5)
+
+        sizer_8 = wx.BoxSizer(wx.VERTICAL)
+        sizer_6.Add(sizer_8, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+
+        self.button_add_input = wx.Button(self, wx.ID_ANY, "Add")
+        sizer_8.Add(self.button_add_input, 0, wx.ALL, 5)
+
+        self.button_remove_input = wx.Button(self, wx.ID_ANY, "Remove")
+        sizer_8.Add(self.button_remove_input, 0,wx.ALL, 5)
+
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_5.Add(sizer_9, 1, wx.EXPAND, 0)
+
+        sizer_10 = wx.BoxSizer(wx.VERTICAL)
+        sizer_9.Add(sizer_10, 1, wx.ALL|wx.EXPAND, 0)
+
+        label_outputs = wx.StaticText(self, wx.ID_ANY, "Outputs")
+        sizer_10.Add(label_outputs, 0, wx.LEFT | wx.RIGHT, 10)
+
+        self.list_box_outputs = wx.ListBox(self, wx.ID_ANY, choices=self.targets,style=wx.LB_MULTIPLE)
+        sizer_10.Add(self.list_box_outputs, 1, wx.ALL |wx.EXPAND, 5)
+
+        sizer_11 = wx.BoxSizer(wx.VERTICAL)
+        sizer_9.Add(sizer_11, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+
+        self.button_add_output = wx.Button(self, wx.ID_ANY, "Add")
+        sizer_11.Add(self.button_add_output, 0,wx.ALL, 5)
+
+        self.button_remove_output = wx.Button(self, wx.ID_ANY, "Remove")
+        sizer_11.Add(self.button_remove_output, 0, wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Bind(wx.EVT_BUTTON,self.OnAddInput,self.button_add_input)
+        self.Bind(wx.EVT_BUTTON,self.OnAddOutput,self.button_add_output)
+        self.Bind(wx.EVT_BUTTON,self.OnRemoveOutput,self.button_remove_output)
+        self.Bind(wx.EVT_BUTTON,self.OnRemoveInput,self.button_remove_input)
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+
+        self.SetSize(500,400)
+        
+        self.Center()
+        self.Layout()
+
+    def OnApply(self,evt):
+
+        if len(self.independent_variables)==0:
+            wx.MessageBox('You must select one or more ingredients', 'Error', wx.OK | wx.ICON_WARNING)
+        elif len(self.targets)==0:
+            wx.MessageBox('You must select one or more properties', 'Error', wx.OK | wx.ICON_WARNING)
+        else:
+            toAdd=[]
+            names=list(self.names)
+            for independent in self.independent_variables:
+                toAdd.append(names.index(independent))
+
+            self.controller.set_independent_variables(toAdd)
+
+            toAdd=[]
+            names=list(self.names)
+            for target in self.targets:
+                toAdd.append(names.index(target))
+
+            self.controller.set_targets(toAdd)
+
+            del toAdd
+            
+            self.EndModal(wx.ID_APPLY)
+
+    def OnAddInput(self,evt):
+        self.OnAdd(self.list_box_inputs,self.independent_variables)
+
+    def OnAddOutput(self,evt):
+        self.OnAdd(self.list_box_outputs,self.targets)
+
+    def OnRemoveInput(self,evt):
+        self.OnRemove(self.list_box_inputs,self.independent_variables)
+
+    def OnRemoveOutput(self,evt):
+        self.OnRemove(self.list_box_outputs,self.targets)
+
+    def OnAdd(self,listbox,variables):
+        selection=self.list_box_all_variables.GetSelections()
+        
+        
+        tmp_all=copy.deepcopy(self.all_variables)
+        
+        for pos in selection:
+            if not tmp_all[pos] in self.independent_variables and not tmp_all[pos] in self.targets:
+                
+                variables.append(tmp_all[pos])
+                self.all_variables.remove(tmp_all[pos])
+
+            self.list_box_all_variables.Deselect(pos)
+        
+        del tmp_all
+        #update listbox
+        listbox.Clear()
+        listbox.InsertItems(variables,0)
+        self.list_box_all_variables.Clear()
+        self.list_box_all_variables.InsertItems(self.all_variables,0)
+
+    def OnRemove(self,listbox,variables):
+        selection=listbox.GetSelections()
+
+        tmp=copy.deepcopy(variables)
+        for pos in selection:
+            variables.remove(tmp[pos])
+            self.all_variables.append(tmp[pos])
+            #self.list_box_all_variables.Insert(tmp[pos],self.list_box_all_variables.GetTopItem()+1)
+
+        del tmp
+        #update listbox
+        listbox.Clear()
+        listbox.InsertItems(variables,0)
+        self.list_box_all_variables.Clear()
+        self.list_box_all_variables.InsertItems(self.all_variables,0)
+
+
+class PreprocessDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        super(PreprocessDialog, self).__init__(parent)
+        self.SetTitle("Preprocess")
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Options"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_5 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4.Add(sizer_5, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        self.radio_btn_1 = wx.RadioButton(self, wx.ID_ANY, "Principal Component Analysis")
+        sizer_6.Add(self.radio_btn_1, 0, wx.ALL, 5)
+
+        self.radio_btn_2 = wx.RadioButton(self, wx.ID_ANY, "Rebalance data")
+        sizer_6.Add(self.radio_btn_2, 0, wx.ALL, 5)
+
+        self.radio_btn_clustering = wx.RadioButton(self, wx.ID_ANY, "Clustering")
+        sizer_6.Add(self.radio_btn_clustering, 0, wx.ALL, 5)
+
+        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, " PCA"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_7, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_7.Add(sizer_9, 1, wx.EXPAND, 0)
+
+        sizer_10 = wx.BoxSizer(wx.VERTICAL)
+        sizer_9.Add(sizer_10, 1, wx.EXPAND, 0)
+
+        sizer_11 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_10.Add(sizer_11, 1, wx.ALL, 5)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Number of principal components")
+        sizer_11.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.spin_ctrl_1 = wx.SpinCtrl(self, wx.ID_ANY, "0", min=0, max=100)
+        sizer_11.Add(self.spin_ctrl_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 2)
+
+        sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Rebalance data"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_12 = wx.BoxSizer(wx.VERTICAL)
+        sizer_8.Add(sizer_12, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_13 = wx.BoxSizer(wx.VERTICAL)
+        sizer_12.Add(sizer_13, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.radio_btn_3 = wx.RadioButton(self, wx.ID_ANY, "Oversampling")
+        sizer_13.Add(self.radio_btn_3, 0, wx.ALL, 5)
+
+        self.radio_btn_4 = wx.RadioButton(self, wx.ID_ANY, "Undersampling")
+        sizer_13.Add(self.radio_btn_4, 0, wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_HELP = wx.Button(self, wx.ID_HELP, "")
+        sizer_2.AddButton(self.button_HELP)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_OK.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Center()
+        self.Layout()
+        
+
+
+class TransformDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        super(TransformDialog, self).__init__(parent)
+        self.SetTitle("Transform")
+
+        self.names=["All"]
+        self.controller=parent.controller
+        for name in parent.names:
+            if not name in parent.identifier_cols:
+                self.names.append(name)
+        
+        self.string_variables=parent.string_variable_names
+        self.changes=False
+        self.data_preprocess={}
+        self.data_preprocess['All']={'apply':True,'numerical':'None','categorical':'None'}   
+        self.progressbar=None
+
+
+        for variable in parent.names:
+            self.data_preprocess[variable]={'transformation':'None','keep_original':True} 
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.combo_box_variable = wx.ComboBox(self, wx.ID_ANY, choices=self.names,value="All", style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        sizer_4.Add(self.combo_box_variable, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.notebook_1 = wx.Notebook(self, wx.ID_ANY)
+        sizer_3.Add(self.notebook_1, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.notebook_1.SetBackgroundColour(wx.Colour(240,240,240,255))
+        
+        self.notebook_numerical = wx.Panel(self.notebook_1, wx.ID_ANY)
+        self.notebook_1.AddPage(self.notebook_numerical, "Numerical")
+
+        sizer_11 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_5 = wx.BoxSizer(wx.VERTICAL)
+        sizer_11.Add(sizer_5, 1, wx.EXPAND | wx.ALL, 10)
+
+        self.radio_box_numerical = wx.RadioBox(self.notebook_numerical, wx.ID_ANY, "Transformation", choices=["None","Normalization (MinMax)", "Quantile Scaler", "Robust Scaler", "Discretize"], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+        self.radio_box_numerical.SetSelection(0)
+        sizer_5.Add(self.radio_box_numerical, 1, wx.EXPAND|wx.ALL, 5)
+
+        self.button_select_bins = wx.Button(self.notebook_numerical, wx.ID_ANY, "Select bins")
+        sizer_5.Add(self.button_select_bins, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.notebook_categorical = wx.Panel(self.notebook_1, wx.ID_ANY)
+        self.notebook_1.AddPage(self.notebook_categorical, "Categorical")
+
+        sizer_14 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_14.Add(sizer_6, 0, wx.EXPAND | wx.ALL, 10)
+
+        self.radio_box_categorical = wx.RadioBox(self.notebook_categorical, wx.ID_ANY, "Transformation", choices=["None","One hot encoding", "Label encoding", "Custom mapping"], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+        self.radio_box_categorical.SetSelection(0)
+        sizer_6.Add(self.radio_box_categorical, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.button_mapping_options = wx.Button(self.notebook_categorical, wx.ID_ANY, "Mapping")
+        sizer_6.Add(self.button_mapping_options, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self._enable_mapping(False)
+
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_8, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 12)
+
+        self.checkbox_keep = wx.CheckBox(self, wx.ID_ANY, "Keep original variables")
+        sizer_8.Add(self.checkbox_keep, 1, wx.ALIGN_CENTER_VERTICAL, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
+        self.button_SAVE.SetDefault()
+        sizer_2.AddButton(self.button_SAVE)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+        sizer_2.Realize()
+
+        self.notebook_categorical.SetSizer(sizer_14)
+        self.notebook_numerical.SetSizer(sizer_11)
+
+
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeVariable,self.combo_box_variable)
+        self.Bind(wx.EVT_RADIOBOX,lambda event: self.OnChangeRadioBox(event,True),self.radio_box_numerical)
+        self.Bind(wx.EVT_RADIOBOX,lambda event: self.OnChangeRadioBox(event,False),self.radio_box_categorical)
+        self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+        self.Bind(wx.EVT_CHECKBOX,self.OnChangeCheck,self.checkbox_keep)
+        #self.Bind(wx.EVT_BUTTON,self.OnClose,self.button_CANCEL)
+        #self.Bind(wx.EVT_CLOSE,self.OnClose)
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetSize(300,440)
+
+        self.SetAffirmativeId(self.button_SAVE.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Center()
+        self.Layout()
+
+
+    def OnChangeCheck(self,evt):
+        variable=self.names[self.combo_box_variable.GetSelection()]
+
+        if variable!="All":
+            self.data_preprocess[variable]['keep_original']=self.checkbox_keep.GetValue()
+        else:
+            for var in self.names:
+                if var!="All":
+                    self.data_preprocess[var]['keep_original']=self.checkbox_keep.GetValue()
+        
+    def OnChangeRadioBox(self,evt,numerical):
+       
+        variable=self.names[self.combo_box_variable.GetSelection()]
+        
+        if variable=="All":
+            self.data_preprocess['All']['apply']=True
+            if numerical:
+                self.data_preprocess[variable]['numerical']=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+            else:
+                self.data_preprocess[variable]['categorical']=self.radio_box_categorical.GetStrings()[self.radio_box_categorical.GetSelection()]
+
+            for var in self.names:
+                if var!="All":
+                    if var in self.string_variables:
+                        self.data_preprocess[var]['transformation']=self.radio_box_categorical.GetStrings()[self.radio_box_categorical.GetSelection()]
+                    else:
+                        self.data_preprocess[var]['transformation']=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+                    
+                    self.data_preprocess[var]['keep_original']=self.checkbox_keep.GetValue()
+        else:
+            self.data_preprocess['All']['apply']=False
+            self.data_preprocess[variable]['transformation']=evt.GetString()
+            self.data_preprocess[variable]['keep_original']=self.checkbox_keep.GetValue()
+
+
+    def OnApply(self,evt):
+        self.button_APPLY.Disable()
+
+        self.progressbar = wx.ProgressDialog("Applying cleanse", "Please, wait...", maximum=100, parent=self)
+
+        thread = threading.Thread(target=self.execute_thread)
+        thread.start()
+        
+                
+    def update_progress(self, value):
+        self.progressbar.Update(value,"Progress...")
+
+    def execute_thread(self):
+        process=True
+        i=0
+        shift=100/len(self.names)
+        for variable in self.names:
+            if variable!="All":
+                result=self.controller.apply_preprocess(variable).getResponse()
+                
+                if result['status']!=Status.OK:
+                    wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
+                    process=False
+                
+
+                time.sleep(0.001)
+                wx.CallAfter(self.update_progress, int(i))
+                i+=shift
+
+        wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
+    
+        if process:
+            wx.CallAfter(wx.MessageBox,"Transformations succesfully applied","Info",wx.OK|wx.ICON_INFORMATION)
+            self.changes=True
+            wx.CallAfter(self.EndModal,wx.OK)
+                    
+    def OnSave(self,evt):
+        
+        process=True
+        for variable in self.names:
+            result=self.controller.set_preprocess_option(variable,self.data_preprocess[variable]).getResponse()
+
+            if result['status']!=Status.OK:
+                wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
+                process=False
+        
+        if process:
+            wx.MessageBox("Succesfully saved","Info",wx.OK|wx.ICON_INFORMATION)
+            
+
+    def OnChangeVariable(self,evt):
+        
+        variable=self.names[self.combo_box_variable.GetSelection()]
+        
+        if variable=="All":
+            self._enable_categorical(True)
+            self._enable_numerical(True)
+            self._enable_mapping(False)
+        
+        elif variable in self.string_variables:
+            self._enable_categorical(True)
+            self._enable_numerical(False)
+        else:
+            self._enable_categorical(False)
+            self._enable_numerical(True)
+    
+    def _enable_numerical(self,val):
+        self.notebook_numerical.Enable(val)
+        self.button_select_bins.Enable(val)
+        self.radio_box_numerical.Enable(val)
+        self.radio_box_numerical.EnableItem(self.radio_box_numerical.GetCount()-1,val)
+
+    def _enable_categorical(self,val):
+        self.notebook_categorical.Enable(val)
+        self.button_mapping_options.Enable(val)
+        self.radio_box_categorical.Enable(val)
+        self.radio_box_categorical.EnableItem(self.radio_box_categorical.GetCount()-1,val)
+    
+    def _enable_mapping(self,val):
+        self.radio_box_categorical.EnableItem(self.radio_box_categorical.GetCount()-1,val)
+        self.radio_box_numerical.EnableItem(self.radio_box_numerical.GetCount()-1,val)
+        self.button_mapping_options.Enable(val)
+        self.button_select_bins.Enable(val)
+
+
+class PredictionModelDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Prediction model")
+
+        #TO DO: LOAD ON CHANGE VARIABLE CURRENT SELECTIONS
+        #TO DO: LOAD CONFIGURATION IF EXISTS
+        #TO DO: VALIDATIONS (NSETS!=0 TEST SIZE!=0 AND !=1)
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+        self.parent=parent
+        self.names=["All"]
+        self.display_list=["All"]
+        self.controller=parent.controller
+        self.variables=parent.names
+        self.type_list=None
+        self.regression_models=[]
+        self.classification_models=[]
+        self.model_selection={}
+        self.regression_vars=[]
+        self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.3}}
+
+        response=self.controller.get_target_process_type().getResponse()
+
+        if response['status']==Status.OK:
+            
+            self.type_list=response['data']
+            for variable in response['data']:
+                self.names.append(variable)
+                self.display_list.append(variable+" - "+response['data'][variable])
+                if response['data'][variable]=="regression":
+                    self.regression_vars.append(variable)
+                self.model_selection[variable]={'model':'','params':''}
+                
+        else:
+            wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
+
+        response=self.controller.get_available_models().getResponse()
+        if response['status']==Status.OK:
+            self.regression_models=response['data']['regression'] 
+            self.classification_models=response['data']['classification']    
+        else:
+            wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
+
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.combo_box_targets = wx.ComboBox(self, wx.ID_ANY, choices=self.display_list,value="All", style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        sizer_4.Add(self.combo_box_targets, 1, wx.ALL, 5)
+
+        self.notebook_type = wx.Notebook(self, wx.ID_ANY)
+        sizer_3.Add(self.notebook_type, 1, wx.ALL | wx.EXPAND, 10)
+        self.notebook_type.SetBackgroundColour(wx.Colour(240,240,240,255))
+
+        self.notebook_regression = wx.Panel(self.notebook_type, wx.ID_ANY)
+        self.notebook_type.AddPage(self.notebook_regression, "Regression")
+
+        
+        sizer_11 = wx.BoxSizer(wx.HORIZONTAL)
+
+        sizer_12 = wx.BoxSizer(wx.VERTICAL)
+        sizer_11.Add(sizer_12, 1, wx.ALL, 10)
+
+        label_4 = wx.StaticText(self.notebook_regression, wx.ID_ANY, "Select Models")
+        sizer_12.Add(label_4, 0, 0, 0)
+
+        self.list_box_models_regression = wx.ListBox(self.notebook_regression, wx.ID_ANY, choices=self.regression_models)
+        sizer_12.Add(self.list_box_models_regression, 1, wx.BOTTOM | wx.EXPAND, 5)
+
+        self.checkbox_1 = wx.CheckBox(self.notebook_regression, wx.ID_ANY, "Automatic grid search")
+        sizer_12.Add(self.checkbox_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+
+        self.notebook_classification = wx.Panel(self.notebook_type, wx.ID_ANY)
+        self.notebook_type.AddPage(self.notebook_classification, "Classification")
+
+        sizer_11b = wx.BoxSizer(wx.HORIZONTAL)
+
+        sizer_12b = wx.BoxSizer(wx.VERTICAL)
+        sizer_11b.Add(sizer_12b, 1, wx.ALL, 10)
+
+        label_4b = wx.StaticText(self.notebook_classification, wx.ID_ANY, "Select Models")
+        sizer_12b.Add(label_4b, 0, 0, 0)
+
+        self.list_box_models_classification = wx.ListBox(self.notebook_classification, wx.ID_ANY, choices=self.classification_models)
+        sizer_12b.Add(self.list_box_models_classification, 1, wx.BOTTOM | wx.EXPAND, 5)
+
+        self.checkbox_auto_grid_class = wx.CheckBox(self.notebook_classification, wx.ID_ANY, "Automatic grid search")
+        sizer_12b.Add(self.checkbox_auto_grid_class, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Validation"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_5, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_6, 0, wx.EXPAND, 0)
+
+        sizer_7 = wx.BoxSizer(wx.VERTICAL)
+        sizer_6.Add(sizer_7, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Type")
+        sizer_7.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL,10)
+
+        self.combo_box_validation = wx.ComboBox(self, wx.ID_ANY,value="Train test split", choices=["Train test split","Cross Validation"], style=wx.CB_DROPDOWN |wx.CB_READONLY)
+        sizer_7.Add(self.combo_box_validation, 0,0, 5)
+
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_8, 1, wx.EXPAND, 0)
+
+        sizer_9 = wx.BoxSizer(wx.VERTICAL)
+        sizer_8.Add(sizer_9, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, u"Nº of sets")
+        sizer_9.Add(label_2, 0, wx.RIGHT, 5)
+
+        self.spin_ctrl_sets = wx.SpinCtrl(self, wx.ID_ANY, "3", min=1, max=100)
+        sizer_9.Add(self.spin_ctrl_sets, 0, 0, 0)
+
+        sizer_10 = wx.BoxSizer(wx.VERTICAL)
+        sizer_8.Add(sizer_10, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        label_3 = wx.StaticText(self, wx.ID_ANY, "Test size")
+        sizer_10.Add(label_3, 0, wx.BOTTOM | wx.RIGHT , 5)
+
+        self.spin_ctrl_test_size = wx.SpinCtrlDouble(self, wx.ID_ANY, initial=0.3, min=0.0, max=1.0,inc=0.1)
+        self.spin_ctrl_test_size.SetDigits(2)
+        sizer_10.Add(self.spin_ctrl_test_size, 0, 0, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "Continue")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_HELP = wx.Button(self, wx.ID_HELP, "")
+        sizer_2.AddButton(self.button_HELP)
+
+        sizer_2.Realize()
+
+        self.notebook_regression.SetSizer(sizer_11)
+        self.notebook_classification.SetSizer(sizer_11b)
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.Bind(wx.EVT_BUTTON,self.OnContinue,self.button_OK)
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeValidation,self.combo_box_validation)
+        self.Bind(wx.EVT_SPINCTRL,self.OnChangeValidation,self.spin_ctrl_sets)
+        self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeValidation,self.spin_ctrl_test_size)
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
+        self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_classification)
+        #self.Bind(wx.EVT_COMBOBOX,self.OnChangeVariable,self.combo_box_targets)
+        self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_regression)
+        #self.SetAffirmativeId(self.button_OK.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+
+        self.Center()
+        self.Layout()
+
+
+    def _enable_classification(self,val):
+        self.notebook_classification.Enable(val)
+        self.list_box_models_classification.Enable(val)
+        self.checkbox_auto_grid_class.Enable(val)
+    
+    def _enable_regression(self,val):
+        self.notebook_regression.Enable(val)
+        self.list_box_models_regression.Enable(val)
+        self.checkbox_1.Enable(val)
+        
+
+    def OnChangeOutput(self,evt):
+        variable=evt.GetValue()
+
+        if variable=="All":
+            self._enable_classification(True)
+            self._enable_regression(True)
+        elif variable in self.regression_models:
+            self._enable_classification(False)
+            self._enable_regression(True)
+        else:
+            self._enable_classification(True)
+            self._enable_regression(False)
+
+
+
+    def OnSelectModel(self,evt):
+        
+        variable=self.combo_box_targets.GetValue()
+        variable=variable.split(" - ")[0]
+        
+        if variable!="All":
+            grid=False
+            if variable in self.regression_vars:
+                model=self.list_box_models_regression.GetStringSelection()
+                grid=self.checkbox_1.GetValue()
+            else:
+                model=self.list_box_models_classification.GetStringSelection()
+                grid=self.checkbox_auto_grid_class.GetValue()
+
+            self.model_selection[variable]['model']=[model]
+            self.model_selection[variable]['params']=grid
+        else:
+            if self.notebook_regression.IsShown():
+                model=self.list_box_models_regression.GetStringSelection()
+                for variable in self.model_selection:
+                    if variable in self.regression_vars:
+                        self.model_selection[variable]['model']=[model]
+                        self.model_selection[variable]['params']=self.checkbox_1.GetValue()
+
+            elif self.notebook_classification.IsShown():
+                model=self.list_box_models_classification.GetStringSelection()
+                for variable in self.model_selection:
+                    if not variable in self.regression_vars:
+                        self.model_selection[variable]['model']=[model]
+                        self.model_selection[variable]['params']=self.checkbox_auto_grid_class.GetValue()
+
+    def OnChangeValidation(self,evt):
+        method=self.combo_box_validation.GetValue()
+        nsets=self.spin_ctrl_sets.GetValue()
+        test_size=self.spin_ctrl_test_size.GetValue()
+        
+        self.validation['method']=method
+        self.validation['params']['subsets']=nsets
+        self.validation['params']['test_size']=test_size
+        
+
+    def OnContinue(self,evt):
+
+        #validaciones 
+
+        ok=False
+        taskname=""
+        cancel=False
+
+        while(not ok and not cancel):
+            dialog=wx.TextEntryDialog(self,message="Entry a name for the task",caption="Task name")
+            code=dialog.ShowModal()
+            
+            if code==wx.ID_OK:
+                taskname=dialog.GetValue()
+
+                patron = r'^[a-zA-Z0-9_-]+$'
+                ok=bool(re.match(patron, taskname))
+            elif code==wx.ID_CANCEL:
+                cancel=True
+
+            if not ok and not cancel:
+                wx.MessageBox("Invalid task name, it can only contain alphanumeric characters, '-' and '_'. ","Error",wx.OK|wx.ICON_ERROR)
+
+        #print(f"TASK: \n - name {taskname} \n - validation: {self.validation} \n - models: {self.model_selection}")
+
+        if not cancel:
+            response=self.controller.create_task(taskname,self.model_selection,self.validation).getResponse()
+
+            if response['status']==Status.OK:
+                
+                self.Hide()
+                dialog=TaskReportDialog(self.parent)
+                code=dialog.ShowModal()
+
+                if code==wx.ID_CANCEL or code==wx.ID_ABORT:
+                    self.Show()
+                else:
+                    self.EndModal(wx.ID_OK)
+
+            elif response['status']==Status.EXISTING_TASK:
+                wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
+            else:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+
+
+class TaskReportDialog(wx.Dialog):
+    def __init__(self,parent):
+
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Task report")
+
+        self.parent=parent
+        self.task_report=""
+        self.controller=parent.controller
+        self.task_report=self.controller.get_task_info().getResponse()['data']
+
+        self.progressBar=None
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Task information"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
+
+        label_report = wx.StaticText(self, wx.ID_ANY,self.task_report)
+        sizer_3.Add(label_report, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_train = wx.Button(self, wx.ID_OK, "begin training")
+        self.button_train.SetDefault()
+        sizer_2.AddButton(self.button_train)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        #self.SetAffirmativeId(self.button_OK.GetId())
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_train)
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Center()
+        self.Layout()
+
+    def OnApply(self,event):
+    
+        self.progressbar = wx.ProgressDialog("Training", "Please, wait...",maximum=100,parent=self)
+        self.progressbar.Update(20,"Training in progress...")
+
+        thread = threading.Thread(target=self.execute_thread)
+        thread.start()
+        
+            
+    def execute_thread(self):
+        
+        response=self.controller.execute_task(wx.CallAfter,self.progressbar).getResponse()
+
+        for i in range(0,100):
+            time.sleep(0.01)
+            
+            
+        wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
+
+        if response['status']!=Status.OK:
+            wx.CallAfter(wx.MessageBox,response['data'],"Error",wx.ICON_ERROR)
+            wx.CallAfter(self.EndModal,wx.ID_ABORT)
+        else:        
+            wx.CallAfter(wx.MessageBox,"Training completed!","Info")
+            wx.CallAfter(self.EndModal,wx.ID_APPLY)
+            
+    def update_progress(self, value):
+        
+        self.progressbar.Update(value,"Training in progress...")
+
+
+
+
+
+
+
+
+class ResultsDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Results dialog")
+
+        self.controller=parent.controller
+
+        self.outputs=[]
+        response=self.controller.get_target_process_type().getResponse()
+
+        print(response)
+        if response['status']==Status.OK:
+            self.outputs=list(response['data'].keys())
+        else:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+
+        self.models=self.controller.get_variable_models().getResponse()['data']
+
+        print(self.outputs)
+
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Results")
+        label_1.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Outputs"), wx.VERTICAL)
+        sizer_4.Add(sizer_5, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.lb_outputs = wx.ListBox(self, wx.ID_ANY, choices=self.outputs)
+        sizer_5.Add(self.lb_outputs, 1, 0, 0)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        sizer_9 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_9, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.cb_model = wx.ComboBox(self, wx.ID_ANY, choices=[], style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        sizer_9.Add(self.cb_model, 1, wx.ALL, 5)
+
+        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Metrics"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 0, wx.ALL | wx.EXPAND, 10)
+
+        label_metrics = wx.StaticText(self, wx.ID_ANY, "R2 = 0.78\nMSE = 104.41")
+        sizer_7.Add(label_metrics, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model Information"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 10)
+
+        label_model_info = wx.StaticText(self, wx.ID_ANY, "Model informations")
+        sizer_8.Add(label_model_info, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Actions"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_10, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        grid_sizer_1 = wx.GridSizer(2, 2, 1, 1)
+        sizer_10.Add(grid_sizer_1, 1, 0, 0)
+
+        self.button_plots = wx.Button(self, wx.ID_ANY, "Plots")
+        grid_sizer_1.Add(self.button_plots, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.button_predict = wx.Button(self, wx.ID_ANY, "Predict")
+        grid_sizer_1.Add(self.button_predict, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.button_save_alone = wx.Button(self, wx.ID_ANY, "Save alone")
+        grid_sizer_1.Add(self.button_save_alone, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.button_details = wx.Button(self, wx.ID_ANY, "Details")
+        grid_sizer_1.Add(self.button_details, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
+        self.button_SAVE.SetDefault()
+        sizer_2.AddButton(self.button_SAVE)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_SAVE.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Center()
+        self.Layout()
+        

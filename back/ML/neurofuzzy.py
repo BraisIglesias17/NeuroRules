@@ -71,7 +71,9 @@ class NeuroFuzzy():
         self.X=input
         self.y=output
         self.y_name=output_name
-
+        self.nominal_variables=[]
+        self.types=X.dtypes
+        
         #variable que contendrá la matriz de valores fuzzificados
         self.fuzz_X=None
 
@@ -95,7 +97,27 @@ class NeuroFuzzy():
         
 
         for i in range(0,len(input_names),1):
-            self.antecedents.append(ctrl.Antecedent(np.sort(input[:,i]),input_names[i]))
+            
+            if not 'object' in str(self.types[i]):
+                
+                self.antecedents.append(ctrl.Antecedent(np.array(np.sort(input[:,i]),dtype=np.float64),input_names[i]))
+                
+            else:
+                self.antecedents.append(ctrl.Antecedent([0,1],input_names[i]))
+                self.nominal_variables.append(i)
+                
+        
+
+        self.mebm_info={}
+        i=0
+        for name in input_names:
+            
+            if not i in self.nominal_variables:
+                self.mebm_info[name]=n_membership_input
+            else:
+                self.mebm_info[name]=len(np.unique(input[:,i]))
+            i+=1
+
         
         #objeto Consequence de skfuzzy para la variable target
         self.consecuence=ctrl.Consequent(np.sort(output.flatten()),output_name)
@@ -123,38 +145,49 @@ class NeuroFuzzy():
 
         Return: DataFrame de los valores difusos.
         """
-        try:
+       
 
-            X=self.X
-            toret=pd.DataFrame()
-            n_cols = X.shape[1]
-    
-            # Recorrer la matriz por columnas
-            for i in range(n_cols):
-                col = X[:, i]
+        X=self.X
+        toret=pd.DataFrame()
+        n_cols = X.shape[1]
             
-                #col=np.sort(col)
-                #control_points=min(col),np.percentile(col,30),np.mean(col),np.percentile(col,60),max(col)
+        # Recorrer la matriz por columnas
+        for i in range(n_cols):
+            col = X[:, i]
+            
+                
+            if not i in self.nominal_variables:
+                
                 
                 #Utilizacion de la funcion automf con el numero de membresias de entrada para generar las membresías
                 self.antecedents[i].automf(self.n_membership,names=self.NAMES(self.n_membership))
-
+                
                 #lista que almacena las funciones de membresía (NO USADA)
                 mfs=[]
-                
+                    
                 for j in range(self.n_membership):
-                    
+                    col=np.array(col,dtype=np.float64)
+
                     mf=fuzz.interp_membership(x=self.antecedents[i].universe,xmf=self.antecedents[i][self.NAMES(self.n_membership)[j]].mf,xx=col)
-                    
+                         
                     tmp=pd.DataFrame(mf,columns=[self.X_names[i]+'_'+str(self.NAMES(self.n_membership)[j])])
                     mfs.append(mf)
                     toret=pd.concat([toret,tmp],axis=1)
-                
-            self.fuzz_X=toret.values
-            return toret
+            else:
+                name=self.X_names[i]
+                data=self.X[:,i]
+                values=np.unique(data)
+                for value in values:
+                    col_name=name+"_"+value
+                    vals=[1.0 if num==value else 0.0 for num in data]
+                    tmp=pd.DataFrame(vals,columns=[col_name])
+                    toret=pd.concat([toret,tmp],axis=1)
 
-        except Exception as exc:
-            print(exc)
+        self.fuzz_X=toret.values
+
+        return toret
+
+        
 
     def to_fuzzy(self,input):
         """
@@ -188,6 +221,7 @@ class NeuroFuzzy():
        
         return toret
 
+
     def multivariate_memb(self,input):
 
         """
@@ -219,7 +253,25 @@ class NeuroFuzzy():
         elif self.n_variables==2 and self.n_membership==2:
             #Combinaciones para dos variables dos membresias
 
-            #si es la primera ieracion se crean las reglas
+            # TO DOOOO
+            next_variable=0
+            rules=[]
+            textRules=[]
+            shift=self.mebm_info[self.X_names[0]]
+            for i in range(0,self.mebm_info[self.X_names[0]]):
+                
+                next_variable=1
+                for j in range(0,self.mebm_info[self.X_names[next_variable]]):
+                    rules.append(self.multivariate_operation(input[i],input[j+shift]))
+                    standard=self.NAMES(shift)[i]
+                
+                    textRules.append("IF "+self.X_names[next_variable-1]+" is ")
+
+                    
+
+            print(rules)    
+            #print(self.mebm_info[self.X_names[next_variable]])
+            #si es la primera iteracion se crean las reglas
             if len(self.rules)==0:
                 self.rules.append("IF "+self.X_names[0]+" is LOW AND "+self.X_names[1]+" is LOW THEN")
                 self.rules.append("IF "+self.X_names[0]+" is LOW AND "+self.X_names[1]+" is HIGH THEN")
@@ -232,7 +284,9 @@ class NeuroFuzzy():
             r3=self.multivariate_operation(input[1],input[2])         
             r4=self.multivariate_operation(input[1],input[3])
 
+            
             toret=[r1,r2,r3,r4]
+           
 
         elif self.n_variables==2 and self.n_membership == 3:
             
@@ -695,23 +749,26 @@ data['covid']=data['HAD'].apply(cod)
 data.to_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",index=False)
 """
 
+
 """
 
 example_high=np.arange(51,103)
 example_low=np.arange(start=206,stop=154,step=-1)
+example_nominal=["si" if num %2 ==0 else "no" for  num in example_high]
 
+example_nominal[2]="ah"
+df=pd.DataFrame({'x':example_high,'y':example_low,'nominal':example_nominal,'z':example_high})
 
-df=pd.DataFrame({'x':example_high,'y':example_low})
 
 
 
 data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
-#data=df
+data=df
 
-x_names=['% Tween','% RFB']
-
-y_variable='SIZE (nm)'
-
+#x_names=['% Tween','% RFB']
+#y_variable='SIZE (nm)'
+x_names=['x','nominal']
+y_variable='y'
 X=(data[x_names])
 y=data[y_variable]
 
@@ -720,20 +777,20 @@ model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membershi
 model.fit(learning_rate=0.001,epochs=50)
 
 
-for rule in model.get_rules():
-    print(rule)
+#for rule in model.get_rules():
+#    print(rule)
 
 
 #model.plot_trend()
 #model.plot_membership_functions()
-model.plot_r2_evolution()
-model.plot_historic_error()
+#model.plot_r2_evolution()
+#model.plot_historic_error()
 #model.plot_historic_weight()
 #model.plot_precisewise()
-print(model.metrics)
-print(model.predict([70]))
-
+#print(model.metrics)
+#print(model.predict([70]))
 """
+
 
 
 

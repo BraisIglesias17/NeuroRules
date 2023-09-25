@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 from ..validation.validation import Validator
-from .process import substitute_outliers,susbstitute_missing,remove_missing,remove_outliers
+from .process import substitute_outliers,susbstitute_missing,remove_missing,remove_outliers,count_outliers,Transformer
 from ..statistic.statistic import StatisticTest
-
+import copy
 class ContextData():
     """
     Class that represents de data to use in a workload
@@ -19,6 +19,9 @@ class ContextData():
 
     def __init__(self, dataFrame=pd.DataFrame()):    
         
+
+        ## ADD ASSERTIONS
+
         self.pathname=""
         self.data=dataFrame
             
@@ -42,6 +45,7 @@ class ContextData():
         self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
 
         self.set_initial_cleanse()
+        self.set_initial_preprocess()
 
         self.COV_THRESHOLD=1
         self.NORMALITY_THRESHOLD=0.05
@@ -49,14 +53,28 @@ class ContextData():
     
     def set_initial_cleanse(self):
         for variable in self.data.columns:
-            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.8,'lower_bound':0.2}
+            self.data_cleanse[variable]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
     
-        
+
+    def set_initial_preprocess(self):
+        self.data_preprocess['All']={'apply':True,'numerical':'None','categorical':'None'}   
+
+        for variable in self.data.columns:
+            self.data_preprocess[variable]={'transformation':'None','keep_original':True} 
+    
     def update_set(self,df):
         self.__init__(df)
         
     def get_data(self):
         return self.data
+
+    def get_values_inputs(self):
+        return self.values[:,self.variables_index]
+    
+    def get_values_output(self,output):
+        index=list(self.data.columns).index(output)
+        return self.values[:,index]
+    
     def _get_types(self):
         '''
         Check  the type of the variables saved on Dataframe: int, float or string
@@ -261,6 +279,35 @@ class ContextData():
     def print(self):
         print(f'filename: {self.pathname} \n Data: {self.data} \n State: {self.state}')
 
+    def get_outliers(self):
+        
+        toret={}
+        for variable in self.data:
+            
+            if self.data_cleanse[variable]['highlight_outliers']==True:
+                outliers=list()
+                
+                lower_bound=self.data_cleanse[variable]['lower_bound']
+                upper_bound=self.data_cleanse[variable]['upper_bound']
+                i=0
+                q1=self.data[variable].quantile(lower_bound)
+                q3=self.data[variable].quantile(upper_bound)
+                
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                for value in self.data[variable]:
+                   
+                    if count_outliers(value,lower_bound,upper_bound):
+                        outliers.append(i)
+
+                    i+=1
+                index=list(self.data.columns).index(variable)
+                toret[variable]={'index':index,'outliers':outliers}
+                
+
+        
+        return toret
 
     def get_shape(self):
         return self.data.shape
@@ -348,29 +395,78 @@ class ContextData():
         else:
             return self.data.groupby(group)[variable].describe()
 
+    
+    def apply_preprocess(self,variable):
+    
+        settings=self.data_preprocess[variable]
 
+        if variable!="All":    
+            numerical=False
+            
+            transformation=settings['transformation']
+            keep_original=settings['keep_original']
+            
+            if transformation!="None":
+                index=list(self.data.columns).index(variable)
+                original=self.values[:,index]
+
+                if not variable in self.characterValues:
+                    original=original.reshape(-1,1)
+                    numerical=True
+                
+                transformer=Transformer(transformation,variable)
+                transformed=transformer.fit(original)
+                
+                if transformation=="One hot encoding":
+                    for col in transformed:
+                        self.data_cleanse[col]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
+                        self.data_preprocess[col]={'transformation':'None','keep_original':True}
+
+                    self.data=self.data.join(transformed)
+                else:
+                    if numerical:
+                        transformed=transformed.reshape(1,-1)[0]
+                        
+                    if not keep_original:
+                        self.data[variable]=transformed
+                    else:
+                        col_name=variable+"_processed"
+                        i=1
+                        aux=copy.deepcopy(col_name)
+                        while col_name in self.data.columns:
+                            col_name=aux+"_"+str(i)
+                            i+=1
+                        self.data=pd.concat([self.data,pd.DataFrame(columns=[col_name],data=transformed)],axis=1)
+                        self.data_cleanse[col_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
+                        self.data_preprocess[col_name]={'transformation':'None','keep_original':True} 
+                
+                self.values=self.data.values
+                            
+        
     def apply_cleanse(self,variable):
         settings=self.data_cleanse[variable]
 
         n_rows_begin=self.data.shape[0]
         modified_rows=0
+        
         if settings['delete_missing']:
             self.data=remove_missing(self.data,variable)
         else:
             if settings['substitute_missing']!="None":
                 self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])
 
-        if settings['delete_outliers']:
-        
-            result=remove_outliers(self.data,variable,settings['upper_bound'],settings['lower_bound'])
-            self.data=result
+        if not variable in self.characterValues:
+            if settings['delete_outliers']:
             
-        else:
-            if settings['substitute_outliers']!="None":
+                result=remove_outliers(self.data,variable,settings['upper_bound'],settings['lower_bound'])
+                self.data=result
                 
-                result=substitute_outliers(self.data,variable,settings['substitute_outliers'],settings['upper_bound'],settings['lower_bound'])
-                self.data=result[0]
-                modified_rows+=result[1]
+            else:
+                if settings['substitute_outliers']!="None":
+                    
+                    result=substitute_outliers(self.data,variable,settings['substitute_outliers'],settings['upper_bound'],settings['lower_bound'])
+                    self.data=result[0]
+                    modified_rows+=result[1]
     
         self.data=self.data.reset_index(drop=True)
         self.values=self.data.to_numpy()
@@ -411,9 +507,11 @@ class ContextData():
         self.data=self.data.drop(toDel,axis=1)
         self.data=self.data.reset_index(drop=True)
         self.values=self.data.to_numpy()
+
         
         for var in toDel:
             self.data_cleanse.pop(var)
+            self.data_preprocess.pop(var)
 
         for col in cols:
             if col in self.variables_index:
@@ -427,13 +525,27 @@ class ContextData():
                 self.targets_index.pop(index)
 
             self._get_types()
-
+        
         
         return True
 
     def get_cleanse(self):
         return self.data_cleanse
     
+    def get_preprocess(self):
+        return self.data_cleanse
+    
+    def get_type_process_target(self):
+        toret={}
+
+        for variable in self.targets:
+            if variable in self.characterValues:
+                toret[variable]='classification'
+            else:
+                toret[variable]='regression'
+
+        return toret
+
     def set_cleanse(self,variable,options):
         if variable in self.data.columns:
             self.data_cleanse[variable]=options
@@ -442,7 +554,16 @@ class ContextData():
         else:
             raise ValueError("Not a valid variable")
         
-    
+    def set_preprocess(self,variable,options):
+        if variable in self.data.columns or variable=="All":
+            
+            self.data_preprocess[variable]=options
+
+
+            return True
+        else:
+            raise ValueError("Not a valid variable")
+
     def rename_col(self,new_name,old_name):
         
         if not old_name in list(self.data.columns):

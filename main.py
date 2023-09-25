@@ -8,7 +8,7 @@ from back.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulesDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import VariableTypeDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -35,6 +35,7 @@ class MainWindow(wx.Frame):
         self.highlighted_cells=[]  
         self.highlighted_cols=[]
         self.initial_col_names=[]
+        self.highlighted_outliers_cells=[]
         self.start=True
         self.names=[]
 
@@ -72,10 +73,13 @@ class MainWindow(wx.Frame):
         self.clean_data_button = wx.Button(self.panel, wx.ID_ANY, "Clean data\n")
         sizer_5.Add(self.clean_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
+        self.transform_data_button = wx.Button(self.panel, wx.ID_ANY, "Transform data\n")
+        sizer_5.Add(self.transform_data_button, 1, wx.ALL | wx.EXPAND, 5)
+
         self.preprocess_data_button = wx.Button(self.panel, wx.ID_ANY, "Preprocess data\n")
         sizer_5.Add(self.preprocess_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
-        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Analzye"), wx.HORIZONTAL)
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Analysis"), wx.HORIZONTAL)
         sizer_3.Add(sizer_6, 0, wx.ALL, 10)
 
         self.plot_data_button = wx.Button(self.panel, wx.ID_ANY, "Plot\n")
@@ -91,16 +95,21 @@ class MainWindow(wx.Frame):
         sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Task"), wx.HORIZONTAL)
         sizer_3.Add(sizer_7, 0, wx.ALL, 10)
 
-        self.next_button = wx.Button(self.panel, wx.ID_ANY, "Select variables\n")
-        sizer_7.Add(self.next_button, 1, wx.ALL, 5)
-        self.train_button = wx.Button(self.panel, wx.ID_ANY, "Create Task\n")
-        sizer_7.Add(self.train_button, 1, wx.ALL, 5)
-        self.train_button.Enable(False)
+        #self.next_button = wx.Button(self.panel, wx.ID_ANY, "Select variables\n")
+        #sizer_7.Add(self.next_button, 1, wx.ALL, 5)
+
+        self.prediction_button = wx.Button(self.panel, wx.ID_ANY, "Prediction Model\n")
+        sizer_7.Add(self.prediction_button, 1, wx.ALL, 5)
+
+        self.neurofuzzy_button = wx.Button(self.panel, wx.ID_ANY, "Neurofuzzy Model\n")
+        sizer_7.Add(self.neurofuzzy_button, 1, wx.ALL, 5)
+
+        #self.train_button.Enable(False)
         
         self.grid_sizer = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Data Sheet"), wx.VERTICAL)
        
         
-        sizer_1.Add(self.grid_sizer, 1, wx.EXPAND, 0)
+        sizer_1.Add(self.grid_sizer, 1, wx.ALL| wx.EXPAND, 5)
         self.grid = wx.grid.Grid(self.panel, wx.ID_ANY)
         self.grid.CreateGrid(1000,25)
         self.grid_sizer.Add(self.grid, 1, wx.EXPAND, 0)
@@ -115,18 +124,20 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnOpenFile,self.import_file_button)
         self.Bind(wx.EVT_BUTTON,self.OnClearGrid,self.clear_set_button)
         self.Bind(wx.grid.EVT_GRID_CELL_CHANGED,self.OnCellEdit)
-        self.Bind(wx.EVT_BUTTON,self.OnNext,self.next_button)
-        self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
+        #self.Bind(wx.EVT_BUTTON,self.OnNext,self.next_button)
+        self.Bind(wx.EVT_BUTTON,self.OnNeurofuzzyModel,self.neurofuzzy_button)
+        self.Bind(wx.EVT_BUTTON,self.OnPredictionModel,self.prediction_button)
+        #self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
         self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnCleanData,self.clean_data_button)
+        self.Bind(wx.EVT_BUTTON,self.OnTransformData,self.transform_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnGraph,self.plot_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnSummary,self.summary_button)
         self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.statistics_button)
         self.Bind(wx.EVT_BUTTON,self.OnStatistics,self.statistics_button)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,self.OnCickLabelCell)
         self.Bind(wx.EVT_CLOSE,self.OnExit)
-    
-        
+                
         #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
         #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
         
@@ -138,6 +149,47 @@ class MainWindow(wx.Frame):
         self.Center()
         self.Show(True)
 
+
+    def OnPredictionModel(self,evt):
+        print("prediction")
+        dialog=PickDialog(self)#VariableTypeDialog(self)
+        code=dialog.ShowModal()    
+    
+        if code == wx.ID_APPLY:
+            #self.train_button.Enable(True)
+            self.updateColors()
+
+            dialog_prediction=PredictionModelDialog(self)
+            code=dialog_prediction.ShowModal()
+
+            if code==wx.ID_OK:
+                #show resusts
+                dialog=ResultsDialog(self)
+                code=dialog.ShowModal() 
+    
+    def OnNeurofuzzyModel(self,evt):
+        print("neurofuzzy")
+        dialog=PickDialog(self)#VariableTypeDialog(self)
+        code=dialog.ShowModal()    
+
+        if code == wx.ID_APPLY:
+            #self.train_button.Enable(True)
+            self.updateColors()
+
+    
+    def OnTransformData(self,evt):
+        dialog=TransformDialog(self)
+        code=dialog.ShowModal()
+        
+        if code==wx.OK:
+            
+            df=self.controller.get_data().getResponse()
+            if df['status']==Status.OK:
+                self.ClearGrid()
+                self.updateGrid(df['data'])
+            else:
+                wx.MessageBox("An error has ocurred:"+df['data'],"Error",wx.OK|wx.ICON_ERROR)
+            
     def OnPrint(self,evt):
         print("ctrl-p")
 
@@ -161,20 +213,46 @@ class MainWindow(wx.Frame):
 
         if code==wx.ID_APPLY:
             response=self.controller.get_data().getResponse()
-            
+            outliers=self.controller.get_outliers().getResponse()
+
             if response['status']==Status.OK:
                 self.ClearGrid()
+                
                 self.updateGrid(response['data'])
+                
+
+                if outliers['status']==Status.OK:
+                    self.HighlightOutliers(outliers['data'])
             else:
                 wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
+
+
+
+    def HighlightOutliers(self,outliers):
+        
+        for cell in self.highlighted_outliers_cells:
+            self.grid.SetCellBackgroundColour(cell[0],cell[1], wx.Colour(self.setting.defaultColor))
+
+        
+        for var in outliers:    
+            
+            positions=outliers[var]['outliers']
+            col=outliers[var]['index']
+
+            for i in range(len(positions)):
+                self.grid.SetCellBackgroundColour(positions[i],col, wx.Colour(self.setting.outlierColor))
+                self.highlighted_outliers_cells.append((positions[i],col))
+
+        
 
     def OnExit(self,event):
         sys.exit(0)
         
     def OnPreprocess(self,event):
-        wx.MessageBox('To do', 'To do', wx.OK | wx.ICON_WARNING)
-
-
+        dialog=PreprocessDialog(self)
+        code=dialog.ShowModal()
+       
+            
     def OnTrain(self,event):
         print("ON TRAIN")
         #Validar datos
@@ -187,21 +265,12 @@ class MainWindow(wx.Frame):
         """
         
 
-    
-    def OnNext(self,event):
-        
-        dialog=VariableTypeDialog(self)
-        code=dialog.ShowModal()    
-    
-        if code == wx.OK:
-            self.train_button.Enable(True)
-            self.updateColors()
-        
-
     def updateColors(self):
+        
         independent=self.controller.get_independent_indexes().getResponse()['data']
         targets=self.controller.get_target_indexes().getResponse()['data']
 
+        print(independent)
         rows,cols=self.controller.get_data_shape().getResponse()['data']
 
         for row in range(rows):
@@ -223,7 +292,8 @@ class MainWindow(wx.Frame):
         self.summary_button.Enable(val)
         self.plot_data_button.Enable(val)
         self.preprocess_data_button.Enable(val)
-        self.next_button.Enable(val)
+        #self.next_button.Enable(val)
+        self.transform_data_button.Enable(val)
 
     def OnOpenFile(self,event):
         
@@ -259,7 +329,7 @@ class MainWindow(wx.Frame):
             self.ClearGrid()
             self.controller.clear_data()
             self.enableButtons(False)
-            self.train_button.Enable(False)
+            #self.train_button.Enable(False)
             self.restoreStatus()
     
     def ClearDataStructures(self):
@@ -352,7 +422,7 @@ class MainWindow(wx.Frame):
                     
                     elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
                         
-                        value=str(np.round(df.loc[j][i],2))
+                        value=str(np.round(df.loc[j][i],3))
 
                     
             
@@ -367,6 +437,7 @@ class MainWindow(wx.Frame):
 
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
+       
         
     def createDataGrid(self,rows,cols):
         myGrid = gridlib.Grid(self.panel)
@@ -382,6 +453,7 @@ class MainWindow(wx.Frame):
         col = evt.GetCol()
 
         shape=self.controller.get_data_shape().getResponse()
+        
         if col !=-1:
             if shape['status']==Status.OK:
                 shape=shape['data']

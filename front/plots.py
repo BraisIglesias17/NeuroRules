@@ -80,7 +80,7 @@ def plot_boxplot(data,option):
     plt.boxplot(x)
     plt.title(str(data['x']['name']+" boxplot"))
     """
-    sns.boxplot(data=x, orient="h")
+    sns.boxplot(data=x, orient="v")
     plt.show()
 
 def plot_regression(data,options):
