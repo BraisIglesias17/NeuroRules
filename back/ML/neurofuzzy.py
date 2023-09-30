@@ -36,7 +36,7 @@ class NeuroFuzzy():
     
 
 
-    def __init__(self,input,input_names,output,output_name,n_membership_input,n_membership_output,memebership_function="default"):
+    def __init__(self,input,input_names,output,output_name,n_membership_input,n_membership_output,types,memebership_function="default"):
         
         """
         Constructor
@@ -53,8 +53,9 @@ class NeuroFuzzy():
         """
         self.n_variables=input.shape[1]
         
+        
         if self.n_variables!=len(input_names):
-            raise ValueError("Iconsistent number of variables and names")
+            raise ValueError("Inconsistent number of variables and names")
         
         if n_membership_output>4 or n_membership_output<1:
             raise ValueError("Invalid number of output memberships (0 > output memberships < 5)")
@@ -72,7 +73,7 @@ class NeuroFuzzy():
         self.y=output
         self.y_name=output_name
         self.nominal_variables=[]
-        self.types=X.dtypes
+        self.types=types
         
         #variable que contendrá la matriz de valores fuzzificados
         self.fuzz_X=None
@@ -84,7 +85,7 @@ class NeuroFuzzy():
         #self.weigths=np.ones(self.n_membership**self.n_variables)
         #self.weigths=np.zeros(self.n_membership**self.n_variables)
         #self.weigths=np.random.normal(0,1,self.n_membership**self.n_variables)
-        print(f'initial weights: {self.weigths}')
+        #print(f'initial weights: {self.weigths}')
 
         self.historic_weigths=None
         self.historic_error=None
@@ -95,7 +96,8 @@ class NeuroFuzzy():
         #lista de objetos Antecedent de skfuzzy (uno por cada variable de entrada)
         self.antecedents=[]
         
-
+        
+        
         for i in range(0,len(input_names),1):
             
             if not 'object' in str(self.types[i]):
@@ -188,7 +190,14 @@ class NeuroFuzzy():
         return toret
 
         
+    def get_scores(self,X,y):
+        y_pred=self.predict(X)
+        r2=r2_score(y,y_pred)
+        mse=mean_squared_error(y,y_pred)
+        rmse=np.sqrt(mse)
 
+        return {'r2':r2,'mse':mse,'rmse':rmse}
+    
     def to_fuzzy(self,input):
         """
         Funcion que fuzzifica un registro de entrada de la red
@@ -269,7 +278,7 @@ class NeuroFuzzy():
 
                     
 
-            print(rules)    
+            #print(rules)    
             #print(self.mebm_info[self.X_names[next_variable]])
             #si es la primera iteracion se crean las reglas
             if len(self.rules)==0:
@@ -704,12 +713,22 @@ class NeuroFuzzy():
         Return:
             -output: valor de y esperado
         """
-        if self.trained and len(input)==self.n_variables:
-            input_fuzzy=self.to_fuzzy(input)
+        rows=input.shape[0]
+        cols=input.shape[1]
+        toret=[]
+        if self.trained and cols==self.n_variables:
+            for row in range(rows):
+                data=input[row,:]
+                
+                input_fuzzy=self.to_fuzzy(data)
+                output=self.nn(input_fuzzy.values[0])
+
+                #print(f"Input{data}\nOuput:{output}")
+                toret.append(output)
             
-            return self.nn(input_fuzzy.values[0])
-        
+            return toret
         else:
+            
             return None
         
     def get_weigths(self):
@@ -755,27 +774,28 @@ data.to_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",index=False)
 example_high=np.arange(51,103)
 example_low=np.arange(start=206,stop=154,step=-1)
 example_nominal=["si" if num %2 ==0 else "no" for  num in example_high]
-
+example_binary=[0 if num %2 !=0 else 1 for  num in example_high]
 example_nominal[2]="ah"
-df=pd.DataFrame({'x':example_high,'y':example_low,'nominal':example_nominal,'z':example_high})
+df=pd.DataFrame({'x':example_high,'y':example_low,'nominal':example_nominal,'z':example_high,'binary':example_binary})
 
 
 
 
-data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
+#data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
 data=df
 
 #x_names=['% Tween','% RFB']
 #y_variable='SIZE (nm)'
-x_names=['x','nominal']
+x_names=['x','binary']
 y_variable='y'
 X=(data[x_names])
 y=data[y_variable]
+types=data[x_names].dtypes
 
-
-model=NeuroFuzzy(input=X.values,output=y.values,n_membership_input=2,n_membership_output=2,output_name=y_variable,input_names=x_names)
+model=NeuroFuzzy(input=X.values,types=types,output=y.values,n_membership_input=2,n_membership_output=2,output_name=y_variable,input_names=x_names)
 model.fit(learning_rate=0.001,epochs=50)
 
+print(model.get_weigths())
 
 #for rule in model.get_rules():
 #    print(rule)
