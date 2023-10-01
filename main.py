@@ -3,15 +3,16 @@ import wx.html2
 import wx.grid as gridlib
 import pandas as pd
 from front.settings.settings import Settings 
-from back.IO.IOManage import IOManage
+from front.IO.IOManage import IOManage
 #from dialogs import CreateSetDialog
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import VariableTypeDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
+from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
 
 class MainWindow(wx.Frame):    
     def __init__(self,*args, **kwds):
@@ -19,7 +20,7 @@ class MainWindow(wx.Frame):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         
-        self.ROW_BOUND=1000
+        self.ROW_BOUND=500
         self.COL_BOUND=30
 
         self.SetIcon(wx.Icon('./front/resources/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
@@ -111,7 +112,7 @@ class MainWindow(wx.Frame):
         
         sizer_1.Add(self.grid_sizer, 1, wx.ALL| wx.EXPAND, 5)
         self.grid = wx.grid.Grid(self.panel, wx.ID_ANY)
-        self.grid.CreateGrid(1000,25)
+        self.grid.CreateGrid(self.ROW_BOUND,25)
         self.grid_sizer.Add(self.grid, 1, wx.EXPAND, 0)
         
         self.status_bar=self.CreateStatusBar(2)
@@ -175,6 +176,9 @@ class MainWindow(wx.Frame):
         if code == wx.ID_APPLY:
             #self.train_button.Enable(True)
             self.updateColors()
+
+            dialog_prediction=RulePredictinglDialog(self)
+            code=dialog_prediction.ShowModal()
 
     
     def OnTransformData(self,evt):
@@ -273,16 +277,17 @@ class MainWindow(wx.Frame):
         print(independent)
         rows,cols=self.controller.get_data_shape().getResponse()['data']
 
-        for row in range(rows):
-            for col in range(cols):
-                if col in targets:
-                    self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.targetColor))
-                    self.highlighted_cols.append([row,col])
-                elif col in independent:
-                    self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.independentColor))
-                    self.highlighted_cols.append([row,col])
-                else:
-                    self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.defaultColor))
+        if rows<100:
+            for row in range(rows):
+                for col in range(cols):
+                    if col in targets:
+                        self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.targetColor))
+                        self.highlighted_cols.append([row,col])
+                    elif col in independent:
+                        self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.independentColor))
+                        self.highlighted_cols.append([row,col])
+                    else:
+                        self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.defaultColor))
         
        
     def enableButtons(self,val):
@@ -296,8 +301,8 @@ class MainWindow(wx.Frame):
         self.transform_data_button.Enable(val)
 
     def OnOpenFile(self,event):
-        
-        response=self.controller.load_content(self,event).getResponse()
+        file,name=IOManage.LoadFile(self,event)
+        response=self.controller.load_content(file,name).getResponse()
         if response['status']==Status.OK:
             
             self.ClearGrid()
@@ -631,6 +636,21 @@ class MainWindow(wx.Frame):
         dialog.ShowModal()
 
 
+    def OnImportTask(self,event):
+        pathname=IOManage.GetPathImport(self,message="Select a task file",wildcard=WILCARD_TASK)
+        response=self.controller.import_task(pathname).getResponse()
+        if response['status']!=Status.OK:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+        else:
+            self.restore()
+
+    def restore(self):
+        response=self.controller.get_data().getResponse()
+        if response['status']==Status.OK:
+            df=response['data']
+            self.updateGrid(df)
+            self.updateColors()
+
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         
@@ -685,9 +705,15 @@ class MainWindow(wx.Frame):
         helpMenu = wx.Menu()  
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
 
+        taskMenu = wx.Menu()  
+        importTaskOption=taskMenu.Append(wx.ID_ABOUT, '&Import task')
+        saveTaskOption=taskMenu.Append(wx.ID_ABOUT, '&Sava as')
+        closeTaskOption=taskMenu.Append(wx.ID_ABOUT, '&Close task')
+
         menubar.Append(fileMenu, '&File') 
         menubar.Append(dataMenu,"&Data")
         menubar.Append(modelMenu,'&Model')
+        menubar.Append(taskMenu,'&Task')
         menubar.Append(viewMenu,'&View')  
         menubar.Append(settingsMenu,'&Settings') 
         menubar.Append(helpMenu, '&Help')
@@ -695,6 +721,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnShowHidden,showHidden)
         self.Bind(wx.EVT_MENU,self.OnAboutUs,aboutUsOption)
         self.Bind(wx.EVT_MENU,self.OnShowIdentifierCols,showIdentifier)
+
+        self.Bind(wx.EVT_MENU,self.OnImportTask,importTaskOption)
         
 
         self.SetMenuBar(menubar)  

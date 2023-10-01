@@ -2,17 +2,19 @@ import wx
 import wx.html2
 import wx.grid as gridlib
 import pandas as pd
-from back.IO.IOManage import IOManage
+from front.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
-from ..plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
+from ..plots import plot_barplot,plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
 import math
 import threading
 import time
 import re
+from wx.lib.stattext import GenStaticText
+from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
@@ -2557,6 +2559,7 @@ class PredictionModelDialog(wx.Dialog):
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
+        self.shape=parent.controller.get_data_shape().getResponse()['data']
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
         self.parent=parent
@@ -2701,6 +2704,8 @@ class PredictionModelDialog(wx.Dialog):
 
         self.Bind(wx.EVT_BUTTON,self.OnContinue,self.button_OK)
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeValidation,self.combo_box_validation)
+        self.Bind(wx.EVT_CHECKBOX,self.OnCheckGrid,self.checkbox_1)
+        self.Bind(wx.EVT_CHECKBOX,self.OnCheckGrid,self.checkbox_auto_grid_class)
         self.Bind(wx.EVT_SPINCTRL,self.OnChangeValidation,self.spin_ctrl_sets)
         self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeValidation,self.spin_ctrl_test_size)
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
@@ -2715,6 +2720,38 @@ class PredictionModelDialog(wx.Dialog):
         self.Layout()
 
 
+    def _validation_params(self):
+        ok=True
+
+        if self.spin_ctrl_test_size.GetValue()>=1.0 or self.spin_ctrl_sets.GetValue()>self.shape[0]:
+            ok=False
+
+        return ok
+    
+    def OnCheckGrid(self,evt):
+        variable=self.combo_box_targets.GetString(self.combo_box_targets.GetSelection())
+        variable=variable.split(" - ")[0]
+
+        if variable=="All":
+            if self.notebook_classification.IsShown():
+                self._fill_param("classification",self.checkbox_auto_grid_class)
+            
+            elif self.notebook_regression.IsShown():
+                self._fill_param("regression",self.checkbox_1)
+        else:
+            if self.notebook_classification.IsShown():
+                self.model_selection[variable]['params']=self.checkbox_auto_grid_class.GetValue()
+            elif self.notebook_regression.IsShown():
+                self.model_selection[variable]['params']=self.checkbox_1.GetValue()
+
+    def _fill_param(self,type,checkbox):
+        for var in self.display_list:
+            if var!="All":
+                var_name=var.split(" - ")[0]
+                var_type=var.split(" - ")[1]
+                if var_type==type:
+                    self.model_selection[var_name]['params']=checkbox.GetValue()
+
     def _enable_classification(self,val):
         self.notebook_classification.Enable(val)
         self.list_box_models_classification.Enable(val)
@@ -2727,12 +2764,17 @@ class PredictionModelDialog(wx.Dialog):
         
 
     def OnChangeOutput(self,evt):
-        variable=evt.GetValue()
-
+        self.list_box_models_classification.Deselect(self.list_box_models_classification.GetSelection())
+        self.list_box_models_regression.Deselect(self.list_box_models_regression.GetSelection())
+        
+        variable=evt.GetString()
+        variable=variable.split(" - ")[0]
+        
+        
         if variable=="All":
             self._enable_classification(True)
             self._enable_regression(True)
-        elif variable in self.regression_models:
+        elif variable in self.regression_vars:
             self._enable_classification(False)
             self._enable_regression(True)
         else:
@@ -2783,48 +2825,63 @@ class PredictionModelDialog(wx.Dialog):
         
 
     def OnContinue(self,evt):
-
-        #validaciones 
-
-        ok=False
+        ok=True
         taskname=""
         cancel=False
 
-        while(not ok and not cancel):
-            dialog=wx.TextEntryDialog(self,message="Entry a name for the task",caption="Task name")
-            code=dialog.ShowModal()
+        #validaciones 
+        for variable in self.model_selection:
+            model=self.model_selection[variable]
+            print(variable)
+            if variable!="All" and model['model']=="":
+                ok=False
+                wx.MessageBox("You must select at leas one model for each variable","Error")
+                break
             
-            if code==wx.ID_OK:
-                taskname=dialog.GetValue()
+        if not self._validation_params():
+            ok=False
+            wx.MessageBox("Incorrect value for test size or number of subsets","Error")
+            
+        if ok:
+            ok=False
+            taskname=""
+            cancel=False
 
-                patron = r'^[a-zA-Z0-9_-]+$'
-                ok=bool(re.match(patron, taskname))
-            elif code==wx.ID_CANCEL:
-                cancel=True
-
-            if not ok and not cancel:
-                wx.MessageBox("Invalid task name, it can only contain alphanumeric characters, '-' and '_'. ","Error",wx.OK|wx.ICON_ERROR)
-
-        #print(f"TASK: \n - name {taskname} \n - validation: {self.validation} \n - models: {self.model_selection}")
-
-        if not cancel:
-            response=self.controller.create_task(taskname,self.model_selection,self.validation).getResponse()
-
-            if response['status']==Status.OK:
-                
-                self.Hide()
-                dialog=TaskReportDialog(self.parent)
+            while(not ok and not cancel):
+                dialog=wx.TextEntryDialog(self,message="Entry a name for the task",caption="Task name")
                 code=dialog.ShowModal()
+                
+                if code==wx.ID_OK:
+                    taskname=dialog.GetValue()
 
-                if code==wx.ID_CANCEL or code==wx.ID_ABORT:
-                    self.Show()
+                    patron = r'^[a-zA-Z0-9_-]+$'
+                    ok=bool(re.match(patron, taskname))
+                elif code==wx.ID_CANCEL:
+                    cancel=True
+
+                if not ok and not cancel:
+                    wx.MessageBox("Invalid task name, it can only contain alphanumeric characters, '-' and '_'. ","Error",wx.OK|wx.ICON_ERROR)
+
+            #print(f"TASK: \n - name {taskname} \n - validation: {self.validation} \n - models: {self.model_selection}")
+
+            if not cancel:
+                response=self.controller.create_task(taskname,self.model_selection,self.validation).getResponse()
+
+                if response['status']==Status.OK:
+                    
+                    self.Hide()
+                    dialog=TaskReportDialog(self.parent)
+                    code=dialog.ShowModal()
+
+                    if code==wx.ID_CANCEL or code==wx.ID_ABORT:
+                        self.Show()
+                    else:
+                        self.EndModal(wx.ID_OK)
+
+                elif response['status']==Status.EXISTING_TASK:
+                    wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
                 else:
-                    self.EndModal(wx.ID_OK)
-
-            elif response['status']==Status.EXISTING_TASK:
-                wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
-            else:
-                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+                    wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
 
 
@@ -2874,7 +2931,7 @@ class TaskReportDialog(wx.Dialog):
     def OnApply(self,event):
     
         self.progressbar = wx.ProgressDialog("Training", "Please, wait...",maximum=100,parent=self)
-        self.progressbar.Update(20,"Training in progress...")
+        #self.progressbar.Update(10,"Training in progress...")
 
         thread = threading.Thread(target=self.execute_thread)
         thread.start()
@@ -2918,8 +2975,11 @@ class ResultsDialog(wx.Dialog):
 
         self.outputs=[]
         response=self.controller.get_target_process_type().getResponse()
-
-        print(response)
+        
+        self.currentMetrics={}
+        self.currentModel={}
+        self.currentValidation=None
+        
         if response['status']==Status.OK:
             self.outputs=list(response['data'].keys())
         else:
@@ -2928,8 +2988,12 @@ class ResultsDialog(wx.Dialog):
 
         self.models=self.controller.get_variable_models().getResponse()['data']
 
-        print(self.outputs)
+      
 
+        self.cb_selections=[]
+
+        self.saved=False
+        self.path=""
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -2947,7 +3011,7 @@ class ResultsDialog(wx.Dialog):
         sizer_4.Add(sizer_5, 0, wx.ALL | wx.EXPAND, 10)
 
         self.lb_outputs = wx.ListBox(self, wx.ID_ANY, choices=self.outputs)
-        sizer_5.Add(self.lb_outputs, 1, 0, 0)
+        sizer_5.Add(self.lb_outputs, 1, 0, 5)
 
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
         sizer_4.Add(sizer_6, 1, wx.EXPAND, 0)
@@ -2955,23 +3019,40 @@ class ResultsDialog(wx.Dialog):
         sizer_9 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model"), wx.HORIZONTAL)
         sizer_6.Add(sizer_9, 0, wx.ALL | wx.EXPAND, 10)
 
-        self.cb_model = wx.ComboBox(self, wx.ID_ANY, choices=[], style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.cb_model = wx.ComboBox(self, wx.ID_ANY, choices=self.cb_selections, style=wx.CB_DROPDOWN|wx.CB_READONLY)
         sizer_9.Add(self.cb_model, 1, wx.ALL, 5)
 
         sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Metrics"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_7, 0, wx.ALL | wx.EXPAND, 10)
+        sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 10)
 
-        label_metrics = wx.StaticText(self, wx.ID_ANY, "R2 = 0.78\nMSE = 104.41")
-        sizer_7.Add(label_metrics, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.label_metrics = wx.StaticText(self, wx.ID_ANY,label="Select output")
+        sizer_7.Add(self.label_metrics, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_plot=wx.BoxSizer(wx.VERTICAL)
+        sizer_7.Add(sizer_plot,0,wx.EXPAND,10)
+
+        self.button_plot_metrics=wx.Button(self,id=wx.ID_ANY,label="Plot testing metrics")
+        sizer_plot.Add(self.button_plot_metrics,0,wx.ALL,5)
+
+        self.button_plot_metrics_trainings=wx.Button(self,id=wx.ID_ANY,label="Plot training metrics")
+        sizer_plot.Add(self.button_plot_metrics_trainings,0,wx.ALL,5)
+
+        self.button_plot_metrics.Enable(False)
 
         sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model Information"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 10)
+        sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 10)
 
-        label_model_info = wx.StaticText(self, wx.ID_ANY, "Model informations")
-        sizer_8.Add(label_model_info, 1, wx.ALL | wx.EXPAND, 5)
+        self.label_model_info = wx.StaticText(self, wx.ID_ANY, "Select output")
+        sizer_8.Add(self.label_model_info, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.button_show_params=wx.Button(self,id=wx.ID_ANY,label="Show params")
+        sizer_8.Add(self.button_show_params,0,wx.ALL,5)
+
+        self.button_show_params.Enable(False)
 
         sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Actions"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_10, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        sizer_6.Add(sizer_10, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
         grid_sizer_1 = wx.GridSizer(2, 2, 1, 1)
         sizer_10.Add(grid_sizer_1, 1, 0, 0)
@@ -2991,21 +3072,321 @@ class ResultsDialog(wx.Dialog):
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
-        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "Save*")
         self.button_SAVE.SetDefault()
         sizer_2.AddButton(self.button_SAVE)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
 
+        self.Bind(wx.EVT_LISTBOX,self.OnSelectOutput,self.lb_outputs)
+        self.Bind(wx.EVT_COMBOBOX,self.OnSelectModel,self.cb_model)
+        self.Bind(wx.EVT_BUTTON,self.OnPlotMetrics,self.button_plot_metrics)
+        self.Bind(wx.EVT_BUTTON,self.OnPlotMetricsTraining,self.button_plot_metrics_trainings)
+        self.Bind(wx.EVT_BUTTON,self.OnShowParams,self.button_show_params)
+        self.Bind(wx.EVT_BUTTON,self.OnSaveTask,self.button_SAVE)
+        sizer_2.Realize()   
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        
+        self.SetAffirmativeId(self.button_SAVE.GetId())
+        self.SetEscapeId(self.button_CANCEL.GetId())
+        self.SetSize(500,500)
+        self.Center()
+        self.Layout()
+    
+    def OnSaveTask(self,evt):
+        print("SAVING ")
+        taskname=self.controller.get_task_name().getResponse()
+        if taskname['status']==Status.OK:
+            taskname=taskname['data']
+
+            if not self.saved:
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname)
+            else:
+                pathname=self.path
+
+            response=self.controller.save_task(pathname).getResponse()
+
+            if response['status']==Status.OK:
+                wx.MessageBox("Succesfully saved in "+pathname,"Info")
+                self.button_SAVE.SetLabel("Save")
+                self.saved=True
+                self.path=pathname
+            else:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+        else:
+            wx.MessageBox(taskname['data'],"Error",wx.ICON_ERROR)
+
+    def OnShowParams(self,evt):
+        model_info=self.currentModel
+        formated_model=""   
+        for param in model_info:
+            if str(model_info[param]) != "deprecated":
+                formated_model=formated_model+param+" : "+str(model_info[param])+"\n "
+
+        dialog=DisplayInfo(self,label="Params",content=formated_model)
+        dialog.ShowModal()
+
+    def OnPlotMetricsTraining(self,evt):
+        model=self.cb_model.GetValue()
+        variable=self.lb_outputs.GetString(self.lb_outputs.GetSelection())
+        title=variable+" prediction with "+model+" training"
+
+        if self.currentValidation=="Cross Validation":
+            title=variable+" prediction with "+model+" cross validation"
+
+            keys=list(self.currentMetrics['training_validation'].keys())
+            
+            metric=keys[0].split("_")[1]
+            data={}
+            for i in range(len(self.currentMetrics['training_validation'][keys[1]])):
+                data['fold'+str(i)]=self.currentMetrics['training_validation'][keys[1]][i]
+            
+            plot_barplot(data,title=title,xtitle="Folds",ytitle=metric)
+        else:
+            plot_barplot(self.currentMetrics['training_validation'],title=title,xtitle="Metrics",ytitle="Values")
+        
+    def OnPlotMetrics(self,evt):
+        model=self.cb_model.GetValue()
+        variable=self.lb_outputs.GetString(self.lb_outputs.GetSelection())
+        title=variable+" prediction with "+model+" testing"
+        plot_barplot(self.currentMetrics['test_validation'],title=title,xtitle="Metrics",ytitle="Values")
+
+        
+        
+
+    def OnSelectOutput(self,evt):
+        self.button_plot_metrics.Enable(False)
+        self.button_show_params.Enable(False)
+        output=evt.GetString()
+        self.cb_selections=[]
+
+        for model in self.models[output]:
+            self.cb_selections.append(model.modelname)
+        
+        self.cb_model.Clear()
+        self.cb_model.AppendItems(self.cb_selections)
+
+        self.label_metrics.SetLabelText("Select Model")
+        self.label_model_info.SetLabelText("Select Model")
+    
+
+    def OnSelectModel(self,evt):
+        model=evt.GetString()
+        output=self.lb_outputs.GetString(self.lb_outputs.GetSelection())
+        response=self.controller.get_output_info(output).getResponse()
+
+        if model!="":
+            self.button_plot_metrics.Enable(True)
+            self.button_show_params.Enable(True)
+        else:
+            self.button_plot_metrics.Enable(False)
+            self.button_show_params.Enable(False)
+
+        if response['status']==Status.OK:
+            
+            self.button_show_params.Enable(True)
+            self.button_plot_metrics.Enable(True)
+
+            metrics=response['data'][model]['metrics']
+            model_info=response['data'][model]['options']['params']
+            grid_search=response['data'][model]['options']['grid_search']
+            validation=response['data'][model]['validation']
+
+            self.currentMetrics=response['data'][model]['metrics']
+            self.currentModel=model_info
+            self.currentValidation=validation
+            formated_metrics=""
+            
+            
+            print(metrics)
+            for moment in metrics:
+                if 'test_validation'==moment:
+                    formated_metrics=formated_metrics+"Test validation: "
+                elif 'training_validation'==moment and validation=="Cross Validation":
+                    formated_metrics=formated_metrics+"Cross validation: "
+                else:
+                    formated_metrics=formated_metrics+"Train validation: "
+
+                for metric in metrics[moment]:
+                
+                    value=np.round(metrics[moment][metric],3)
+                    """
+                    color="black"
+                    if value<0.5:
+                        color="red"
+                    elif value<0.7:
+                        color="yellow"
+                    else:
+                        color="green"
+                    """
+                    
+                    if "r2" in metric or "accuracy" in metric:
+                        #formated_metrics=formated_metrics+metric+" : <font color='"+color+"'>"+str(value)+"</font>\n"
+                        formated_metrics=formated_metrics+metric+" = "+str(value)+"\n"
+            
+            if grid_search:
+                formated_model="Grid Search applied"
+            else:
+                formated_model="Static parameters"
+            self.label_metrics.SetLabelText(formated_metrics)
+            self.label_model_info.SetLabelText(formated_model)
+
+        else:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+
+
+
+class DisplayInfo(wx.Dialog):
+    def __init__(self,parent,label,content):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Display information")
+
+        sizer_1=wx.BoxSizer(wx.VERTICAL)
+
+        sizer_2=wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, label), wx.VERTICAL)
+        sizer_1.Add(sizer_2,1,wx.EXPAND,10)
+
+        self.content=wx.StaticText(self,label=content)
+        sizer_2.Add(self.content,1,wx.EXPAND,5)
+        
+        sizer_3 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_3, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "Close")
+        sizer_3.AddButton(self.button_CANCEL)
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        sizer_3.Realize()
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+        self.Center()
+        self.Layout()
+
+
+
+class RulePredictinglDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Rule generation model")
+
+        #TO DO: LOAD ON CHANGE VARIABLE CURRENT SELECTIONS
+        #TO DO: LOAD CONFIGURATION IF EXISTS
+        #TO DO: VALIDATIONS (NSETS!=0 TEST SIZE!=0 AND !=1)
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        self.shape=parent.controller.get_data_shape().getResponse()['data']
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+        self.parent=parent
+        self.names=["All"]
+        self.display_list=["All"]
+        self.controller=parent.controller
+        self.variables=parent.names
+        self.type_list=None
+        self.regression_models=[]
+        self.classification_models=[]
+        self.model_selection={}
+        self.regression_vars=[]
+        self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.3}}
+
+        response=self.controller.get_target_process_type().getResponse()
+
+        if response['status']==Status.OK:
+            
+            self.type_list=response['data']
+            for variable in response['data']:
+                self.names.append(variable)
+                self.display_list.append(variable+" - "+response['data'][variable])
+                if response['data'][variable]=="regression":
+                    self.regression_vars.append(variable)
+                self.model_selection[variable]={'model':['Neurofuzzy'],'params':''}
+                
+        else:
+            wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
+
+        response=self.controller.get_available_models().getResponse()
+        if response['status']==Status.OK:
+            self.regression_models=response['data']['regression'] 
+            self.classification_models=response['data']['classification']    
+        else:
+            wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
+
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.combo_box_targets = wx.ComboBox(self, wx.ID_ANY, choices=self.display_list,value="All", style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        sizer_4.Add(self.combo_box_targets, 1, wx.ALL, 5)
+
+        self.notebook_type = wx.Notebook(self, wx.ID_ANY)
+        sizer_3.Add(self.notebook_type, 1, wx.ALL | wx.EXPAND, 10)
+        self.notebook_type.SetBackgroundColour(wx.Colour(240,240,240,255))
+
+        self.notebook_regression = wx.Panel(self.notebook_type, wx.ID_ANY)
+        self.notebook_type.AddPage(self.notebook_regression, "Regression")
+
+        
+
+
+        self.notebook_classification = wx.Panel(self.notebook_type, wx.ID_ANY)
+        self.notebook_type.AddPage(self.notebook_classification, "Classification")
+
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "Continue")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_HELP = wx.Button(self, wx.ID_HELP, "")
+        sizer_2.AddButton(self.button_HELP)
+
         sizer_2.Realize()
 
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
-        self.SetAffirmativeId(self.button_SAVE.GetId())
+        self.Bind(wx.EVT_BUTTON,self.OnContinue,self.button_OK)
+        #self.Bind(wx.EVT_COMBOBOX,self.OnChangeValidation,self.combo_box_validation)
+        #self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
+        #self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_classification)
+        #self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_regression)
+        
         self.SetEscapeId(self.button_CANCEL.GetId())
+
 
         self.Center()
         self.Layout()
-        
+
+    def OnContinue(self,evt):
+        print(self.model_selection)
+        response=self.controller.create_task("taskname",self.model_selection,self.validation).getResponse()
+    
+        if response['status']==Status.OK:        
+            self.Hide()
+            dialog=TaskReportDialog(self.parent)
+            code=dialog.ShowModal()
+
+            if code==wx.ID_CANCEL or code==wx.ID_ABORT:
+                self.Show()
+            else:
+                self.EndModal(wx.ID_OK)
+
+        elif response['status']==Status.EXISTING_TASK:
+            wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
+        else:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)

@@ -69,7 +69,7 @@ class ContextData():
         return self.data
 
     def get_values_inputs(self):
-        return self.values[:,self.variables_index]
+        return self.values[:,self.variables_index],self.data[self.variables].dtypes
     
     def get_values_output(self,output):
         index=list(self.data.columns).index(output)

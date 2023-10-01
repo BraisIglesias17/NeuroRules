@@ -143,3 +143,17 @@ def plot_general_group(data,group):
     else:
         g =sns.pairplot(data,height=2.5)
     plt.show()
+
+def plot_barplot(dict,title,xtitle,ytitle):
+    labels = list(dict.keys())
+    values = list(dict.values())
+    
+    plot=plt.bar(labels, values,color=plt.cm.Paired(range(len(labels))))
+    plt.axhline(y=0, color='black', linestyle='-',linewidth=0.5)
+
+    plt.xlabel(xtitle)
+    plt.ylabel(ytitle)
+    plt.title(title)
+    for i in range(len(labels)):
+        plt.text(labels[i], values[i], str(np.round(values[i],4)), ha='center', va='bottom')
+    plt.show()

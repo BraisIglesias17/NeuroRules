@@ -1,12 +1,13 @@
 from back.data.contextData import ContextData
 from back.respuestas import Response,Status
-from ..IO.IOManage import IOManage
 from back.ML.modelImplementation import SVRModel,RandomForest,SVMModel
 from back.ML.neurofuzzy import NeuroFuzzy
 from sklearn.metrics import confusion_matrix, classification_report
 import numpy as np
 from sklearn.model_selection import train_test_split
 from ..statistic.statistic import StatisticTest
+from ..ML.model import Model
+from ..task import Task
 
 class Controller():
 
@@ -18,11 +19,13 @@ class Controller():
         self.contextData=None
         self.models={}
 
-    def load_content(self,window,event):
+        self.currentTask=None
+
+    def load_content(self,df,filename):
         state=True
         message=""
         try:
-            df,filename=IOManage.LoadFile(window,event)
+            #df,filename=IOManage.LoadFile(window,event)
             self.contextData=ContextData(df)
         except Exception as exc:
             state=False
@@ -79,6 +82,12 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
+    def get_target_process_type(self):
+        try:
+            return Response(data=self.contextData.get_type_process_target(),status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
     def get_summary(self):
         try: 
             data=self.contextData.get_data_summary()
@@ -203,6 +212,13 @@ class Controller():
             return Response(data="",status=Status.OK)
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def set_preprocess_option(self,variable,options):
+        try:
+            self.contextData.set_preprocess(variable,options)
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_cleanse(self):
         try:
@@ -211,7 +227,13 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
-
+    def get_preprocess(self):
+        try:
+            ret=self.contextData.get_preprocess()
+            return Response(data=ret,status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
     def apply_cleanse(self,variable):
         try:
             result=self.contextData.apply_cleanse(variable)
@@ -220,7 +242,23 @@ class Controller():
         except Exception as exc:
             
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def apply_preprocess(self,variable):
+        try:
+            
+            result=self.contextData.apply_preprocess(variable)
+            
+            return Response(data={result},status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
+    def refresh_types(self):
+        try:
+            self.contextData._get_types()
+            return Response(data={},status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
     def delete_row(self,row):
         try:
             value=self.contextData.delete_row(row)
@@ -270,6 +308,28 @@ class Controller():
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     
+    def get_outliers(self):
+        try:
+            
+            res=self.contextData.get_outliers()
+            
+            return Response(data=res,status=Status.OK)
+        
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
+    def get_available_models(self):
+        try:
+            
+            res={'regression':Model.GET_REGRESSION_LIST(),'classification':Model.GET_CLASSIFICATION_LIST()}
+            
+            return Response(data=res,status=Status.OK)
+        
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
     def automatic_statistic_test(self):
         try:
             """
@@ -293,3 +353,89 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
+    
+    def create_task(self,taskname,models,validation):
+
+        try:
+            
+            if self.currentTask!=None:
+                #return existing task
+                return Response(data={},status=Status.EXISTING_TASK)
+            else:
+                self.currentTask=Task(taskname,self.contextData,models,validation)
+
+                return Response(data={},status=Status.OK)
+            
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    def get_task_info(self):
+
+        try:
+            
+            info=self.currentTask.get_info()
+            return Response(data=info,status=Status.OK)
+            
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    def execute_task(self,callable,*args):
+        try:
+            
+            self.currentTask.execute(callable,args)
+            
+            return Response(data={},status=Status.OK)
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    def get_variable_models(self):
+        try:
+            
+            if self.currentTask!=None:
+                return Response(data=self.currentTask.models,status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def get_output_info(self,variable):
+
+        try:
+            
+            return Response(data=self.currentTask.get_report(variable),status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
+    def get_task_name(self):
+        try:
+            
+            return Response(data=self.currentTask.taskName,status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    def save_task(self,path):
+        try:
+            
+            self.currentTask.save(path)
+            return Response(data={},status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def import_task(self,path):
+        try:
+            
+            self.currentTask=Task.load(path)
+            self.contextData=self.currentTask.contextData
+            
+            return Response(data={},status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
