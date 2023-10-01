@@ -1,7 +1,8 @@
 
 from .ML.model import ModelImplementation
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,precision_recall_curve,auc
+import pickle
+import time
 
 class Task():
 
@@ -23,6 +24,9 @@ class Task():
         self.validation=validation
         self.models={}
         self.results={}
+        
+        self.input_names=list(self.contextData.variables)
+        self.output_name=self.contextData.targets[0]
 
         for variable in outputs:
             self.models[variable]=[]
@@ -33,8 +37,9 @@ class Task():
 
 
         indexes = list(range(self.contextData.values.shape[0])) 
-        X=self.contextData.get_values_inputs()
-        print(self.validation)
+        tmp=self.contextData.get_values_inputs()
+        X=tmp[0]
+        self.types=tmp[1]
         train_index, test_index= train_test_split(indexes, test_size=self.validation['params']['test_size'], random_state=42, shuffle=True)
 
         self.train_index=train_index
@@ -49,34 +54,46 @@ class Task():
     @staticmethod
     def load(path):
         print(f"Loading task from {path}")
+        with open(path, 'rb') as file:
+            task = pickle.load(file)
+        return task
 
-    def save(self):
-        print("Saving task ...")
-
+    def save(self,pathname):
+        with open(pathname, 'wb') as file:
+            pickle.dump(self, file)
+        
     def execute(self,callable,*args,**kwargs):
         
         i=0
         inc=100/len(self.models)
+        i+=inc
 
+        callable(self._update_progressbar,args[0][0],int(i))  
+        
         print("Performing model training ...")
         for variable in self.models:
             y=self.contextData.get_values_output(variable)
             y_train=y[self.train_index]
 
-    
+            print(f"\tstarting "+variable+"...")
             for model in self.models[variable]:
                 #grid search?
                 #test train split ?
                 #cv ?
                 
-                model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'])
                 
+                model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'],names_input=self.input_names,name_output=self.output_name,types=self.types)
+                
+                time.sleep(0.1)
                 callable(self._update_progressbar,args[0][0],int(i))           
                 i+=inc
+            print(f"\tfinishing "+variable+"...")
 
         print("Training finished")
                 
             
+    
+
     def _update_progressbar(self,progressbar,value):
         
         progressbar.Update(value,"Training in progress...")
@@ -93,19 +110,11 @@ class Task():
             tmp={}
             y=self.contextData.get_values_output(variable)
             y_test=y[self.test_index]
-            y_pred=model.predict(self.X_test)
+            tmp=model.report(self.X_test,y_test)
+            toret[model.modelname]={'validation':self.validation['method'],'metrics':tmp,'options':model.get_params()}
+            #toret[model.modelname]['params']=model.get_params()
 
-            if model.estimator_type=="regressor": 
-                tmp['r2']=r2_score(y_pred=y_pred,y_true=y_test)
-                tmp['mse']=mean_squared_error(y_pred=y_pred,y_true=y_test)
-            elif model.estimator_type=="regressor":
-                tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y_test)
-                tmp['f1']=f1_score(y_pred=y_pred,y_true=y_test)
-                tmp['precision']=precision_recall_curve(y_pred=y_pred,y_true=y_test)
-                tmp['auc']=auc(y_pred,y_test)
-            
-            toret[model.modelname]=tmp
-
+        
         return toret
 
     def get_info(self):
@@ -114,10 +123,14 @@ class Task():
         message=message+"Outputs:"+"\n"
         for variable in self.outputs:
             message=message+" - "+variable+": \n     Model: "
+            rule_generating=False
             for model in self.outputs[variable]['model']:
+                if model=="Neurofuzzy":
+                    rule_generating=True
                 message=message+str(model)+","
-            
-            message=message+"\n     Grid Search: "+str(self.outputs[variable]['params'])+"\n\n"
+
+            if not rule_generating:
+                message=message+"\n     Grid Search: "+str(self.outputs[variable]['params'])+"\n\n"
         
         return message
     
