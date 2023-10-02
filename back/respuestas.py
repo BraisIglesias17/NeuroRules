@@ -6,7 +6,9 @@ class Status():
     GENERAL_ERROR=3
     IO_ERROR=4
     EXISTING_TASK=6
+    EXISTING_TASK_UNSAVED=7
     CANCEL=5
+    EXISTING_TASK_NO_EXECUTED=8
 
 class Response():
 

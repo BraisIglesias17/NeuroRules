@@ -17,8 +17,7 @@ class IOManage():
 
             # save the current contents in the file
             pathname = fileDialog.GetPath()
-
-            return pathname 
+            return Response(data=pathname,status=Status.OK) 
     
     @staticmethod
     def GetPathImport(window,message,wildcard,defaultname=""):
@@ -31,7 +30,7 @@ class IOManage():
             # save the current contents in the file
             pathname = fileDialog.GetPath()
 
-            return pathname 
+            return Response(data=pathname,status=Status.OK)  
         
 
 
@@ -48,7 +47,11 @@ class IOManage():
             pathname = fileDialog.GetPath()
             try:
                 with open(pathname, 'r') as file:
-                    return IOManage.load_file(file)
+                    tmp=IOManage.load_file(file)
+                    df=tmp[0]
+                    filename=tmp[1]
+                    return Response(data={'df':df,'filename':filename},status=Status.OK)
+                
             except IOError:
                 wx.LogError("Cannot open file '%s'.")
     

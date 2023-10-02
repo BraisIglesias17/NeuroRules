@@ -2053,7 +2053,7 @@ class PickDialog(wx.Dialog):
     def __init__(self, parent):
         
         super(PickDialog, self).__init__(parent)
-        self.SetTitle("Pick dialog")
+        self.SetTitle("New task")
 
         self.names=parent.names
 
@@ -2865,10 +2865,10 @@ class PredictionModelDialog(wx.Dialog):
             #print(f"TASK: \n - name {taskname} \n - validation: {self.validation} \n - models: {self.model_selection}")
 
             if not cancel:
-                response=self.controller.create_task(taskname,self.model_selection,self.validation).getResponse()
+                response=self.controller.create_task(taskname,self.model_selection,self.validation,False).getResponse()
 
                 if response['status']==Status.OK:
-                    
+                    self.Parent.updateStatusTask(taskname)
                     self.Hide()
                     dialog=TaskReportDialog(self.parent)
                     code=dialog.ShowModal()
@@ -2940,10 +2940,6 @@ class TaskReportDialog(wx.Dialog):
     def execute_thread(self):
         
         response=self.controller.execute_task(wx.CallAfter,self.progressbar).getResponse()
-
-        for i in range(0,100):
-            time.sleep(0.01)
-            
             
         wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
 
@@ -3085,6 +3081,7 @@ class ResultsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnPlotMetricsTraining,self.button_plot_metrics_trainings)
         self.Bind(wx.EVT_BUTTON,self.OnShowParams,self.button_show_params)
         self.Bind(wx.EVT_BUTTON,self.OnSaveTask,self.button_SAVE)
+        self.Bind(wx.EVT_BUTTON,self.OnPredict,self.button_predict)
         sizer_2.Realize()   
 
         self.SetSizer(sizer_1)
@@ -3097,26 +3094,49 @@ class ResultsDialog(wx.Dialog):
         self.Center()
         self.Layout()
     
+    def OnPredict(self,evt):
+
+        index=self.lb_outputs.GetSelection()
+        if index==-1:
+            wx.MessageBox("You have to select a variable","Error",wx.ICON_ERROR)
+        else:
+            model=self.cb_model.GetValue()
+            if model=="":
+                wx.MessageBox("You have to select a model","Error",wx.ICON_ERROR)
+            else:
+                variable=self.lb_outputs.GetString(index)
+                inputs=self.controller.get_inputs_task().getResponse()['data']
+                dialog=PredictDialog(self.Parent,variable,model,inputs)
+                code=dialog.ShowModal()
+
     def OnSaveTask(self,evt):
         print("SAVING ")
+        cancel=False
         taskname=self.controller.get_task_name().getResponse()
         if taskname['status']==Status.OK:
             taskname=taskname['data']
 
             if not self.saved:
-                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname)
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname).getResponse()
+                
+                if pathname['status']==Status.OK:
+                    pathname=pathname['data']
+                else:
+                    cancel=True
+
             else:
                 pathname=self.path
 
-            response=self.controller.save_task(pathname).getResponse()
+            if not cancel:
+                response=self.controller.save_task(pathname).getResponse()
 
-            if response['status']==Status.OK:
-                wx.MessageBox("Succesfully saved in "+pathname,"Info")
-                self.button_SAVE.SetLabel("Save")
-                self.saved=True
-                self.path=pathname
-            else:
-                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+                if response['status']==Status.OK:
+                    wx.MessageBox("Succesfully saved in "+pathname,"Info")
+                    self.button_SAVE.SetLabel("Save")
+                    self.saved=True
+                    self.path=pathname
+                else:
+                    wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
         else:
             wx.MessageBox(taskname['data'],"Error",wx.ICON_ERROR)
@@ -3246,15 +3266,15 @@ class DisplayInfo(wx.Dialog):
     def __init__(self,parent,label,content):
         
         wx.Dialog.__init__(self,parent)
-        self.SetTitle("Display information")
+        self.SetTitle("Information")
 
         sizer_1=wx.BoxSizer(wx.VERTICAL)
 
-        sizer_2=wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, label), wx.VERTICAL)
-        sizer_1.Add(sizer_2,1,wx.EXPAND,10)
+        sizer_2=wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, label), wx.HORIZONTAL)
+        sizer_1.Add(sizer_2,1,wx.EXPAND|wx.ALL,10)
 
         self.content=wx.StaticText(self,label=content)
-        sizer_2.Add(self.content,1,wx.EXPAND,5)
+        sizer_2.Add(self.content,1,wx.EXPAND|wx.ALL,5)
         
         sizer_3 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_3, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -3266,7 +3286,9 @@ class DisplayInfo(wx.Dialog):
 
         sizer_3.Realize()
         self.SetSizer(sizer_1)
+
         sizer_1.Fit(self)
+        
         self.Center()
         self.Layout()
 
@@ -3374,7 +3396,7 @@ class RulePredictinglDialog(wx.Dialog):
 
     def OnContinue(self,evt):
         print(self.model_selection)
-        response=self.controller.create_task("taskname",self.model_selection,self.validation).getResponse()
+        response=self.controller.create_task("taskname",self.model_selection,self.validation,True).getResponse()
     
         if response['status']==Status.OK:        
             self.Hide()
@@ -3390,3 +3412,90 @@ class RulePredictinglDialog(wx.Dialog):
             wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
         else:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+
+
+class PredictDialog(wx.Dialog):
+    def __init__(self,parent,variable,model,inputs):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Predictions on "+variable)
+
+        self.controller=parent.controller
+        self.nominals=parent.string_variable_names
+        self.inputs=inputs
+        self.n_inputs=len(inputs)    
+        self.variable=variable
+        self.model=model
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Inputs"), wx.VERTICAL)
+        sizer_3.Add(sizer_4, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.grid_inputs = wx.grid.Grid(self, wx.ID_ANY)
+        self.grid_inputs.CreateGrid(self.n_inputs, 2)
+        self.grid_inputs.SetColLabelValue(0, "Variable")
+        self.grid_inputs.SetColLabelValue(1, "Value")
+        self.grid_inputs.HideRowLabels()
+        self.fillInputs()
+        sizer_4.Add(self.grid_inputs, 0, wx.ALL | wx.EXPAND, 5)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Output"), wx.VERTICAL)
+        sizer_3.Add(sizer_5,0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        self.output_field = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_5.Add(self.output_field, 0, wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_PREDICT = wx.Button(self, wx.ID_APPLY, "Predict")
+        sizer_2.AddButton(self.button_PREDICT)
+
+        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
+        sizer_2.AddButton(self.button_CLOSE)
+
+        self.Bind(wx.EVT_BUTTON,self.OnPredict,self.button_PREDICT)
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CLOSE.GetId())
+
+        self.Center()
+        self.Layout()  
+
+
+    def OnPredict(self,evt):
+        values=[]
+        for row in range(self.n_inputs):
+            values.append(self.grid_inputs.GetCellValue(row,1))
+
+        response=self.controller.get_prediction(self.variable,self.model,values).getResponse()
+
+        if response['status']!=Status.OK:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+        elif response['status']==Status.OK:
+            value=np.round(response['data'],2)[0]
+            self.output_field.SetLabelText(str(value))
+
+    def fillInputs(self):
+        
+        for row in range(self.n_inputs):
+            self.grid_inputs.SetCellValue(row,0,self.inputs[row])
+            self.grid_inputs.SetReadOnly(row,0)
+            print(self.inputs[row])
+            if self.inputs[row] in self.nominals:
+                renderer=wx.grid.GridCellStringRenderer()
+                self.grid_inputs.SetCellRenderer(row,1,renderer)
+                self.grid_inputs.SetCellValue(row,1,"")
+            else:
+                renderer=wx.grid.GridCellFloatRenderer()
+                self.grid_inputs.SetCellRenderer(row,1,renderer)
+                
+                self.grid_inputs.SetCellValue(row,1,"0.0")
+                

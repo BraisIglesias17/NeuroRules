@@ -354,17 +354,13 @@ class Controller():
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     
-    def create_task(self,taskname,models,validation):
+    def create_task(self,taskname,models,validation,rules):
 
         try:
             
-            if self.currentTask!=None:
-                #return existing task
-                return Response(data={},status=Status.EXISTING_TASK)
-            else:
-                self.currentTask=Task(taskname,self.contextData,models,validation)
+            self.currentTask=Task(taskname,self.contextData,models,validation,rules)
 
-                return Response(data={},status=Status.OK)
+            return Response(data={},status=Status.OK)
             
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
@@ -418,6 +414,24 @@ class Controller():
             print(exc)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
+    def task_state(self):
+        try:
+            
+            if self.currentTask!=None and self.currentTask.executed and self.currentTask.saved:
+                #se cierra la tarea actual
+                return Response(data=self.currentTask.taskName,status=Status.EXISTING_TASK)
+            elif self.currentTask!=None and self.currentTask.executed and not self.currentTask.saved:
+                #se pregunta al usuario si quiere guardar
+                return Response(data=self.currentTask.taskName,status=Status.EXISTING_TASK_UNSAVED)
+            elif self.currentTask!=None and not self.currentTask.executed:
+                #se pregunta al usuario si quiere mantener las variables o si quiere cambiar
+                return Response(data=self.currentTask.taskName,status=Status.EXISTING_TASK_NO_EXECUTED)            
+            else:
+                return Response(data='',status=Status.OK)
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
     def save_task(self,path):
         try:
             
@@ -428,6 +442,16 @@ class Controller():
             print(exc)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
+    def get_inputs_task(self):
+        try:
+            
+            
+            return Response(data=self.currentTask.input_names,status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
     def import_task(self,path):
         try:
             
@@ -435,6 +459,16 @@ class Controller():
             self.contextData=self.currentTask.contextData
             
             return Response(data={},status=Status.OK)
+            
+        except Exception as exc:
+            print(exc)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    def get_prediction(self,variable,model,input):
+        try:
+            
+            prediction=self.currentTask.get_prediction(variable,model,input)
+            return Response(data=prediction,status=Status.OK)
             
         except Exception as exc:
             print(exc)

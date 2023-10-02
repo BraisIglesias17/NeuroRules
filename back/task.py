@@ -3,11 +3,12 @@ from .ML.model import ModelImplementation
 from sklearn.model_selection import train_test_split
 import pickle
 import time
+import numpy as np
 
 class Task():
 
 
-    def __init__(self,name,data,outputs,validation):
+    def __init__(self,name,data,outputs,validation,rules=False):
 
         assert name!="" and name!=None
 
@@ -18,6 +19,7 @@ class Task():
         assert validation!=None
 
 
+        self.rules=False
         self.taskName=name
         self.contextData=data
         self.outputs=outputs
@@ -61,6 +63,8 @@ class Task():
     def save(self,pathname):
         with open(pathname, 'wb') as file:
             pickle.dump(self, file)
+            
+        self.saved=True
         
     def execute(self,callable,*args,**kwargs):
         
@@ -80,8 +84,7 @@ class Task():
                 #grid search?
                 #test train split ?
                 #cv ?
-                
-                
+            
                 model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'],names_input=self.input_names,name_output=self.output_name,types=self.types)
                 
                 time.sleep(0.1)
@@ -89,7 +92,9 @@ class Task():
                 i+=inc
             print(f"\tfinishing "+variable+"...")
 
+        self.executed=True
         print("Training finished")
+    
                 
             
     
@@ -123,13 +128,11 @@ class Task():
         message=message+"Outputs:"+"\n"
         for variable in self.outputs:
             message=message+" - "+variable+": \n     Model: "
-            rule_generating=False
+            
             for model in self.outputs[variable]['model']:
-                if model=="Neurofuzzy":
-                    rule_generating=True
                 message=message+str(model)+","
 
-            if not rule_generating:
+            if not self.rules:
                 message=message+"\n     Grid Search: "+str(self.outputs[variable]['params'])+"\n\n"
         
         return message
@@ -137,8 +140,20 @@ class Task():
     def get_output_result(self,output):
         print(f"Returning the concrete result for {output}")
     
-    def get_prediction(self,input,output_variable):
-        print(f"Returning the prediction of {output_variable} with the input:{input}")
+    def get_prediction(self,output_variable,model,input):
+        #apply transformations to inputs
+        i=0
+        prediction=None
+        for variable in self.input_names:
+            input[i]=self.contextData.apply_transform(variable,input[i])
+            i+=1
+        if not self.rules:
+            for model in self.models[output_variable]:
+                if model==model:
+                    prediction=model.predict(np.array(input,dtype=np.float64).reshape(1,-1))
+        
+        return prediction
+        
         
 
 

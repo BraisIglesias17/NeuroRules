@@ -43,6 +43,7 @@ class ContextData():
 
         self.data_cleanse={} # 'lubricant':{'delete_missing':0,'substitute_missing':'Mean','delete_outliers':0,'substitute_outliers':'Mean'}
         self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
+        self.transformers={}
 
         self.set_initial_cleanse()
         self.set_initial_preprocess()
@@ -60,8 +61,10 @@ class ContextData():
         self.data_preprocess['All']={'apply':True,'numerical':'None','categorical':'None'}   
 
         for variable in self.data.columns:
-            self.data_preprocess[variable]={'transformation':'None','keep_original':True} 
-    
+            self.data_preprocess[variable]={'transformation':'None','keep_original':True}
+            self.transformers[variable]=None
+
+
     def update_set(self,df):
         self.__init__(df)
         
@@ -415,8 +418,11 @@ class ContextData():
                     numerical=True
                 
                 transformer=Transformer(transformation,variable)
+                
                 transformed=transformer.fit(original)
                 
+                self.transformers[variable]=transformer
+
                 if transformation=="One hot encoding":
                     for col in transformed:
                         self.data_cleanse[col]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
@@ -441,8 +447,23 @@ class ContextData():
                         self.data_preprocess[col_name]={'transformation':'None','keep_original':True} 
                 
                 self.values=self.data.values
+            else:
+                self.transformers[variable]=None
                             
         
+    def apply_transform(self,variable,input):
+        
+        numeric=self.get_numeric_variables()
+        value=input
+        if variable in numeric:
+            value=np.float64(input)
+            
+        trasnformer=self.transformers[variable]
+        if trasnformer!=None:
+            value=trasnformer.transform(value)
+        
+        return value
+    
     def apply_cleanse(self,variable):
         settings=self.data_cleanse[variable]
 

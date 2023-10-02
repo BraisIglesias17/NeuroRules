@@ -105,6 +105,8 @@ class MainWindow(wx.Frame):
         self.neurofuzzy_button = wx.Button(self.panel, wx.ID_ANY, "Neurofuzzy Model\n")
         sizer_7.Add(self.neurofuzzy_button, 1, wx.ALL, 5)
 
+        self.results_button = wx.Button(self.panel, wx.ID_ANY, "Results \n")
+        sizer_7.Add(self.results_button, 0, wx.ALL, 5)
         #self.train_button.Enable(False)
         
         self.grid_sizer = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Data Sheet"), wx.VERTICAL)
@@ -115,10 +117,11 @@ class MainWindow(wx.Frame):
         self.grid.CreateGrid(self.ROW_BOUND,25)
         self.grid_sizer.Add(self.grid, 1, wx.EXPAND, 0)
         
-        self.status_bar=self.CreateStatusBar(2)
-        self.status_bar.SetStatusWidths([-1,300])
+        self.status_bar=self.CreateStatusBar(3)
+        self.status_bar.SetStatusWidths([-1,300,300])
         self.status_bar.SetStatusText("  Empty sheet")
-        self.status_bar.SetStatusText("None data",1)
+        self.status_bar.SetStatusText("  None task",1)
+        self.status_bar.SetStatusText("None data",2)
 
         #Declaracion de eventos
         
@@ -128,6 +131,7 @@ class MainWindow(wx.Frame):
         #self.Bind(wx.EVT_BUTTON,self.OnNext,self.next_button)
         self.Bind(wx.EVT_BUTTON,self.OnNeurofuzzyModel,self.neurofuzzy_button)
         self.Bind(wx.EVT_BUTTON,self.OnPredictionModel,self.prediction_button)
+        self.Bind(wx.EVT_BUTTON,self.OnShowResults,self.results_button)
         #self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
         self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnCleanData,self.clean_data_button)
@@ -151,11 +155,18 @@ class MainWindow(wx.Frame):
         self.Show(True)
 
 
+    def OnShowResults(self,evt):
+
+        dialog=ResultsDialog(self)
+        code=dialog.ShowModal()
+
     def OnPredictionModel(self,evt):
         print("prediction")
-        dialog=PickDialog(self)#VariableTypeDialog(self)
-        code=dialog.ShowModal()    
+        #dialog=PickDialog(self)#VariableTypeDialog(self)
+        #code=dialog.ShowModal()    
     
+        code=self.OnManageCurrentTask()
+
         if code == wx.ID_APPLY:
             #self.train_button.Enable(True)
             self.updateColors()
@@ -168,10 +179,66 @@ class MainWindow(wx.Frame):
                 dialog=ResultsDialog(self)
                 code=dialog.ShowModal() 
     
+    def OnManageCurrentTask(self):
+        response=self.controller.task_state().getResponse()
+        status=response['status']
+        data=response['data']
+
+        if status==Status.OK or status==Status.EXISTING_TASK:
+            dialog=PickDialog(self)
+            code=dialog.ShowModal()
+            return code
+        
+        elif status==Status.EXISTING_TASK_NO_EXECUTED:
+            code=wx.MessageBox("Do you want to change the inputs or outputs?","Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
+            
+            if code!=wx.CANCEL:
+                if code == wx.YES:
+                    dialog=PickDialog(self)
+                    code=dialog.ShowModal()
+                    return code
+                else:
+                    return wx.ID_APPLY
+            else:
+                return code
+            
+        elif status==Status.EXISTING_TASK_UNSAVED:
+            code=wx.MessageBox("Do you want to save the current task before continue?","Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
+            
+            if code!=wx.CANCEL:
+                if code == wx.YES:
+                    self.saveTask()
+                
+                dialog=PickDialog(self)
+                code=dialog.ShowModal()
+                return code
+            
+            return code
+
+    def saveTask(self):
+        cancel=False
+        taskname=self.controller.get_task_name().getResponse()
+        if taskname['status']==Status.OK:
+            taskname=taskname['data']
+            pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname).getResponse()
+            
+            if pathname['status']==Status.OK:
+                pathname=pathname['data']
+            else:
+                cancel=True
+        if not cancel:
+            response=self.controller.save_task(pathname).getResponse()
+            print(response)
+            if response['status']==Status.OK:
+                wx.MessageBox("Succesfully saved in "+pathname,"Info")
+            else:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+            
     def OnNeurofuzzyModel(self,evt):
         print("neurofuzzy")
-        dialog=PickDialog(self)#VariableTypeDialog(self)
-        code=dialog.ShowModal()    
+        #dialog=PickDialog(self)#VariableTypeDialog(self)
+        #code=dialog.ShowModal()    
+        code=self.OnManageCurrentTask()
 
         if code == wx.ID_APPLY:
             #self.train_button.Enable(True)
@@ -297,19 +364,25 @@ class MainWindow(wx.Frame):
         self.summary_button.Enable(val)
         self.plot_data_button.Enable(val)
         self.preprocess_data_button.Enable(val)
+        self.neurofuzzy_button.Enable(val)
+        self.prediction_button.Enable(val)
+        self.results_button.Enable(val)
         #self.next_button.Enable(val)
         self.transform_data_button.Enable(val)
 
     def OnOpenFile(self,event):
-        file,name=IOManage.LoadFile(self,event)
-        response=self.controller.load_content(file,name).getResponse()
+        response=IOManage.LoadFile(self,event).getResponse()
         if response['status']==Status.OK:
-            
-            self.ClearGrid()
-            self.updateGrid(response['data']['data'])
-            self.filename=response['data']['file']
-            
-            self.SetStatusText(str(" Working on "+self.filename))
+            file=response['data']['df']
+            name=response['data']['filename']
+            response=self.controller.load_content(file,name).getResponse()
+            if response['status']==Status.OK:
+                
+                self.ClearGrid()
+                self.updateGrid(response['data']['data'])
+                self.filename=response['data']['file']
+                
+                self.SetStatusText(str(" Working on "+self.filename))
 
            
  
@@ -366,12 +439,19 @@ class MainWindow(wx.Frame):
 
     def updateStatus(self,rows,cols):
         message=str(rows)+" rows, "+str(cols)+" cols"
-        self.SetStatusText(message,1)
+        self.SetStatusText(message,2)
+        task=self.controller.get_task_name().getResponse()
+        if task['status']==Status.OK:
+            self.SetStatusText("Task: "+task['data'],1)
     
+    def updateStatusTask(self,taskname):
+        self.SetStatusText("Task: "+taskname,1)
+
 
     def restoreStatus(self):
         self.SetStatusText(" None existing file")
-        self.SetStatusText("None data",1)
+        self.SetStatusText("None task",1)
+        self.SetStatusText("None data",2)
 
 
     def updateGrid(self,df):
@@ -632,17 +712,22 @@ class MainWindow(wx.Frame):
             #if code==wx.OK:
                 
     def OnAboutUs(self,event):
+        
         dialog=AboutUsDialog(self)
         dialog.ShowModal()
 
 
     def OnImportTask(self,event):
-        pathname=IOManage.GetPathImport(self,message="Select a task file",wildcard=WILCARD_TASK)
-        response=self.controller.import_task(pathname).getResponse()
-        if response['status']!=Status.OK:
-            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
-        else:
-            self.restore()
+        pathname=IOManage.GetPathImport(self,message="Select a task file",wildcard=WILCARD_TASK).getResponse()
+        print(pathname)
+        if pathname['status']==Status.OK:
+            pathname=pathname['data']
+            response=self.controller.import_task(pathname).getResponse()
+        
+            if response['status']!=Status.OK:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+            else:
+                self.restore()
 
     def restore(self):
         response=self.controller.get_data().getResponse()
@@ -706,9 +791,9 @@ class MainWindow(wx.Frame):
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
 
         taskMenu = wx.Menu()  
-        importTaskOption=taskMenu.Append(wx.ID_ABOUT, '&Import task')
-        saveTaskOption=taskMenu.Append(wx.ID_ABOUT, '&Sava as')
-        closeTaskOption=taskMenu.Append(wx.ID_ABOUT, '&Close task')
+        importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task')
+        saveTaskOption=taskMenu.Append(wx.ID_ANY, '&Sava as')
+        closeTaskOption=taskMenu.Append(wx.ID_ANY, '&Close task')
 
         menubar.Append(fileMenu, '&File') 
         menubar.Append(dataMenu,"&Data")
@@ -721,7 +806,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnShowHidden,showHidden)
         self.Bind(wx.EVT_MENU,self.OnAboutUs,aboutUsOption)
         self.Bind(wx.EVT_MENU,self.OnShowIdentifierCols,showIdentifier)
-
         self.Bind(wx.EVT_MENU,self.OnImportTask,importTaskOption)
         
 
