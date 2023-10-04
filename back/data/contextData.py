@@ -4,6 +4,7 @@ from ..validation.validation import Validator
 from .process import substitute_outliers,susbstitute_missing,remove_missing,remove_outliers,count_outliers,Transformer
 from ..statistic.statistic import StatisticTest
 import copy
+from ..saver import Saver 
 class ContextData():
     """
     Class that represents de data to use in a workload
@@ -598,7 +599,11 @@ class ContextData():
         self.data.rename(columns=change,inplace=True)
         
         return True
-            
+
+
+    def save(self,pathname):
+        saver=Saver(pathname,self.data)
+        saver.save()
         
     """
     Añadir columna
