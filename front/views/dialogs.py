@@ -6,6 +6,8 @@ from front.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
+from back.saver import Saver
+from back.validation.validation import Validator
 from ..plots import plot_barplot,plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
@@ -224,6 +226,8 @@ class RulesDialog(wx.Dialog):
         # end wxGlade
 
     def OnSave(self,event):
+        print("to do")
+        """
         result=IOManage.OnSaveAs(self,event,self.rules_to_string,message="Save rules",wildcard=".txt files (*.txt)|*.txt").getResponse()
         if result['status']:
             
@@ -234,6 +238,8 @@ class RulesDialog(wx.Dialog):
         else:
             wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
             #dialog=MessageDialog(self,False,"error")
+        """
+       
             
 
 
@@ -903,10 +909,12 @@ class SummaryDialog(wx.Dialog):
         
 
     def OnSave(self,event):
-        result=self.IO.OnSaveAs(self,event,self.summary,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
+        result=self.IO.OnSaveAs(self,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
+        
         if result['status'] == Status.OK:
-            
-            cadena=str("File saved succesfully in "+result['data'])
+            path=result['data']
+            saver=Saver(path,self.summary).save()
+            cadena=str("File saved succesfully in "+path)
             wx.MessageBox(cadena,"Info")
         elif result['status'] != Status.CANCEL:
             wx.MessageBox("A problem has occurred","Error",wx.OK|wx.ICON_ERROR)
@@ -3018,6 +3026,7 @@ class ResultsDialog(wx.Dialog):
         self.cb_model = wx.ComboBox(self, wx.ID_ANY, choices=self.cb_selections, style=wx.CB_DROPDOWN|wx.CB_READONLY)
         sizer_9.Add(self.cb_model, 1, wx.ALL, 5)
 
+        self.cb_model.Enable(False)
         sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Metrics"), wx.HORIZONTAL)
         sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 10)
 
@@ -3035,6 +3044,7 @@ class ResultsDialog(wx.Dialog):
         sizer_plot.Add(self.button_plot_metrics_trainings,0,wx.ALL,5)
 
         self.button_plot_metrics.Enable(False)
+        self.button_plot_metrics_trainings.Enable(False)
 
         sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model Information"), wx.HORIZONTAL)
         sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 10)
@@ -3074,7 +3084,7 @@ class ResultsDialog(wx.Dialog):
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
-
+        self._enableButtons(False)
         self.Bind(wx.EVT_LISTBOX,self.OnSelectOutput,self.lb_outputs)
         self.Bind(wx.EVT_COMBOBOX,self.OnSelectModel,self.cb_model)
         self.Bind(wx.EVT_BUTTON,self.OnPlotMetrics,self.button_plot_metrics)
@@ -3090,7 +3100,7 @@ class ResultsDialog(wx.Dialog):
         
         self.SetAffirmativeId(self.button_SAVE.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
-        self.SetSize(500,500)
+        self.SetSize(600,500)
         self.Center()
         self.Layout()
     
@@ -3176,15 +3186,20 @@ class ResultsDialog(wx.Dialog):
         title=variable+" prediction with "+model+" testing"
         plot_barplot(self.currentMetrics['test_validation'],title=title,xtitle="Metrics",ytitle="Values")
 
-        
-        
+    def _enableButtons(self,val):
+        self.button_details.Enable(val)
+        self.button_plot_metrics.Enable(val)
+        self.button_plot_metrics_trainings.Enable(val)
+        self.button_show_params.Enable(val)
+        self.button_save_alone.Enable(val)
+        self.button_predict.Enable(val)
+        self.button_plots.Enable(val)
 
     def OnSelectOutput(self,evt):
-        self.button_plot_metrics.Enable(False)
-        self.button_show_params.Enable(False)
+        self._enableButtons(False)
         output=evt.GetString()
         self.cb_selections=[]
-
+        self.cb_model.Enable(True)
         for model in self.models[output]:
             self.cb_selections.append(model.modelname)
         
@@ -3201,16 +3216,15 @@ class ResultsDialog(wx.Dialog):
         response=self.controller.get_output_info(output).getResponse()
 
         if model!="":
-            self.button_plot_metrics.Enable(True)
-            self.button_show_params.Enable(True)
+            
+            self._enableButtons(True)
         else:
-            self.button_plot_metrics.Enable(False)
-            self.button_show_params.Enable(False)
+            
+            self._enableButtons(False)
 
         if response['status']==Status.OK:
             
-            self.button_show_params.Enable(True)
-            self.button_plot_metrics.Enable(True)
+            self._enableButtons(True)
 
             metrics=response['data'][model]['metrics']
             model_info=response['data'][model]['options']['params']
@@ -3319,7 +3333,7 @@ class RulePredictinglDialog(wx.Dialog):
         self.classification_models=[]
         self.model_selection={}
         self.regression_vars=[]
-        self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.3}}
+        self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
 
         response=self.controller.get_target_process_type().getResponse()
 
@@ -3480,7 +3494,11 @@ class PredictDialog(wx.Dialog):
         if response['status']!=Status.OK:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
         elif response['status']==Status.OK:
-            value=np.round(response['data'],2)[0]
+            if Validator.check_float(response['data'][0]):
+                value=np.round(response['data'],2)[0]
+            else:
+                value=response['data'][0]
+
             self.output_field.SetLabelText(str(value))
 
     def fillInputs(self):
@@ -3499,3 +3517,211 @@ class PredictDialog(wx.Dialog):
                 
                 self.grid_inputs.SetCellValue(row,1,"0.0")
                 
+
+
+
+class RulesResultsDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Neurofuzzy result")
+
+        self.controller=parent.controller
+
+        self.outputs=[]
+        response=self.controller.get_target_process_type().getResponse()
+        
+        self.currentMetrics={}
+        self.currentModel={}
+        self.currentValidation=None
+        self.currentSubmodels={}
+        
+        if response['status']==Status.OK:
+            self.outputs=list(response['data'].keys())
+        else:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+
+        self.models=self.controller.get_variable_models().getResponse()['data']
+        self.submodels={}
+        i=0
+        for output in self.outputs:
+            self.submodels[output]=self.models[output][0].submodels
+
+        
+        self.cb_selections=[]
+
+        self.saved=False
+        self.path=""
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Results")
+        label_1.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Outputs"), wx.VERTICAL)
+        sizer_4.Add(sizer_5, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.lb_outputs = wx.ListBox(self, wx.ID_ANY, choices=self.outputs)
+        sizer_5.Add(self.lb_outputs, 1, 0, 0)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        sizer_9 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "SubModel"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_9, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.cb_submodel = wx.ComboBox(self, wx.ID_ANY, choices=[], style=wx.CB_DROPDOWN |wx.CB_READONLY)
+        self.cb_submodel.Enable(False)
+        sizer_9.Add(self.cb_submodel, 1, wx.ALL, 5)
+
+        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Rules"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.label_rules = wx.StaticText(self, wx.ID_ANY, "Select an output")
+        sizer_7.Add(self.label_rules, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model Information"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.label_model_info = wx.StaticText(self, wx.ID_ANY, "Select an output")
+        sizer_8.Add(self.label_model_info, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Actions"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_10, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        grid_sizer_1 = wx.GridSizer(2, 2, 1, 1)
+        sizer_10.Add(grid_sizer_1, 1, 0, 0)
+
+        self.button_plots = wx.Button(self, wx.ID_ANY, "Plots")
+        grid_sizer_1.Add(self.button_plots, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.button_predict = wx.Button(self, wx.ID_ANY, "Predict")
+        grid_sizer_1.Add(self.button_predict, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.button_save_alone = wx.Button(self, wx.ID_ANY, "Save alone")
+        grid_sizer_1.Add(self.button_save_alone, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.button_details = wx.Button(self, wx.ID_ANY, "Details")
+        grid_sizer_1.Add(self.button_details, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "Save*")
+        self.button_SAVE.SetDefault()
+        sizer_2.AddButton(self.button_SAVE)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.Bind(wx.EVT_LISTBOX,self.OnSelectOutput,self.lb_outputs)
+        self.Bind(wx.EVT_COMBOBOX,self.OnSelectSubmodel,self.cb_submodel)
+        self.Bind(wx.EVT_BUTTON,self.OnSaveTask,self.button_SAVE)
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        
+        self.SetEscapeId(self.button_CANCEL.GetId())
+        self.SetSize(700,600)
+        self.Center()
+        self.Layout()
+
+    def OnSelectOutput(self,evt):
+        self.label_rules.SetLabelText("Select a submodel")
+        self.label_model_info.SetLabelText("Select a submodel")
+        model=evt.GetString()
+        self.cb_submodel.Enable(True)
+
+        submodels=self.submodels[model]
+        self.currentSubmodels=(submodels)
+        self._format_selection(submodels)
+
+    def _format_selection(self,submodels):
+
+        formated_submodels=list()
+        
+        for submodel in submodels:
+           
+            chain=submodel+" - ("
+            for input in submodels[submodel]['inputs']:
+                chain=chain+input
+                if input!=submodels[submodel]['inputs'][-1]:
+                    chain=chain+" +"
+            chain=chain+")"
+
+            formated_submodels.append(chain)
+
+        self.cb_submodel.Clear()
+        self.cb_submodel.AppendItems(formated_submodels)
+    
+    def OnSelectSubmodel(self,evt):
+        submodel=evt.GetString().split(" - ")[0]
+        
+        submodel=self.currentSubmodels[submodel]
+        
+        metrics=""
+        for metric in submodel['training_score']:
+            value=np.round(submodel['training_score'][metric],3)
+            metrics=metrics+metric+": "+str(value)+"\n"
+
+        r2=submodel['training_score']['r2']
+        model=submodel['model']
+
+        rules=model.get_rules()
+
+        if r2>0.7:
+            self.label_model_info.SetForegroundColour(wx.Colour(77,150,66))
+        elif r2>0.6:
+            self.label_model_info.SetForegroundColour(wx.Colour(160,180,50))
+        else:
+            self.label_model_info.SetForegroundColour(wx.Colour(138,39,28))
+
+        self.label_model_info.SetLabelText(str(metrics))
+
+        rules_formatted=""
+        for rule in rules:
+            rules_formatted=rules_formatted+rule+"\n"
+        
+        self.label_rules.SetLabelText(rules_formatted)
+
+    def OnSaveTask(self,evt):
+        print("SAVING ")
+        cancel=False
+        taskname=self.controller.get_task_name().getResponse()
+        if taskname['status']==Status.OK:
+            taskname=taskname['data']
+
+            if not self.saved:
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname).getResponse()
+                
+                if pathname['status']==Status.OK:
+                    pathname=pathname['data']
+                else:
+                    cancel=True
+
+            else:
+                pathname=self.path
+
+            if not cancel:
+                response=self.controller.save_task(pathname).getResponse()
+
+                if response['status']==Status.OK:
+                    wx.MessageBox("Succesfully saved in "+pathname,"Info")
+                    self.button_SAVE.SetLabel("Save")
+                    self.saved=True
+                    self.path=pathname
+                else:
+                    wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+        else:
+            wx.MessageBox(taskname['data'],"Error",wx.ICON_ERROR)
