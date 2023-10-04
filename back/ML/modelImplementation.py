@@ -16,7 +16,6 @@ class SVRModel(ModelImplementation):
         self.parameters=parameters
         self.model=SVR()
     
-
 class RandomForest(ModelImplementation):
 
     def __init__(self,parameters=None):
