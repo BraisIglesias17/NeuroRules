@@ -145,6 +145,8 @@ def plot_general_group(data,group):
     plt.show()
 
 def plot_barplot(dict,title,xtitle,ytitle):
+    plt.figure(title)
+    
     labels = list(dict.keys())
     values = list(dict.values())
     
