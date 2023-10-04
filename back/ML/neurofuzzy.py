@@ -38,6 +38,7 @@ class NeuroFuzzy():
 
     def __init__(self,input,input_names,output,output_name,n_membership_input,n_membership_output,types,memebership_function="default"):
         
+        
         """
         Constructor
         
@@ -137,6 +138,8 @@ class NeuroFuzzy():
         self.metrics={'r2':0.0,'rmse':0.0,'mse':0.0}
         
         self.done=False
+
+        
         
     def fuzzyfication(self,C=0.3):
         """
@@ -370,11 +373,12 @@ class NeuroFuzzy():
         
         batch=int(np.ceil(training_size/2))
         god=False
-        iterations=epochs*int((training_size/batch))
+        iterations=epochs*int(np.ceil((training_size/batch)))
 
         if training_size%batch==0:
             god=True
 
+        
         self.historic_weigths=np.zeros(shape=(iterations,self.n_membership**self.n_variables))
         self.historic_error=np.zeros(shape=(epochs,1))
         self.historic_r2=np.zeros(shape=(epochs,1))
@@ -411,6 +415,7 @@ class NeuroFuzzy():
                 if i_batch==batch-1 or (i==training_size-1):
                     
                     self.historic_weigths[counter]=self.weigths
+                    
                     counter+=1
 
                     if i==training_size-1:
@@ -449,7 +454,7 @@ class NeuroFuzzy():
 
 
     def calculate_gradient_mse(self,M,w,y):
-
+        
         """
         Funcion que calcula la derivada de la funcion de coste (MSE) que se utiliza como gradiente
 
@@ -461,6 +466,9 @@ class NeuroFuzzy():
         return
             - gradient: gradiente de la funcion de costo
         """
+        if M.shape[0]!=y.shape[0]:
+            M=M[0:y.shape[0]]
+            
         n=M.shape[0]
         grandient=np.zeros(shape=(n,w.shape[0]))
         i=0
@@ -769,8 +777,9 @@ data.to_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",index=False)
 """
 
 
-"""
 
+
+"""
 example_high=np.arange(51,103)
 example_low=np.arange(start=206,stop=154,step=-1)
 example_nominal=["si" if num %2 ==0 else "no" for  num in example_high]
@@ -781,22 +790,24 @@ df=pd.DataFrame({'x':example_high,'y':example_low,'nominal':example_nominal,'z':
 
 
 
-#data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
-data=df
 
+data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
+#data=data[0:4]
+data=df
+print(data)
 #x_names=['% Tween','% RFB']
 #y_variable='SIZE (nm)'
-x_names=['x','binary']
+x_names=['x']
 y_variable='y'
 X=(data[x_names])
 y=data[y_variable]
 types=data[x_names].dtypes
 
 model=NeuroFuzzy(input=X.values,types=types,output=y.values,n_membership_input=2,n_membership_output=2,output_name=y_variable,input_names=x_names)
-model.fit(learning_rate=0.001,epochs=50)
+model.fit(learning_rate=0.001,epochs=2)
 
 print(model.get_weigths())
-
+"""
 #for rule in model.get_rules():
 #    print(rule)
 
@@ -809,8 +820,6 @@ print(model.get_weigths())
 #model.plot_precisewise()
 #print(model.metrics)
 #print(model.predict([70]))
-"""
-
 
 
 
