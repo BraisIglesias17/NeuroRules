@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from ..statistic.statistic import StatisticTest
 from ..ML.model import Model
 from ..task import Task
+import traceback
 
 class Controller():
 
@@ -206,6 +207,15 @@ class Controller():
             
         return toret
     
+
+    def save_data(self,pathname):
+        try:
+            if self.contextData!=None:
+                self.contextData.save(pathname)
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
     def set_cleanse_option(self,variable,options):
         try:
             self.contextData.set_cleanse(variable,options)
@@ -383,6 +393,7 @@ class Controller():
             return Response(data={},status=Status.OK)
         except Exception as exc:
             print(exc)
+            traceback.print_exc() 
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_variable_models(self):
@@ -419,13 +430,13 @@ class Controller():
             
             if self.currentTask!=None and self.currentTask.executed and self.currentTask.saved:
                 #se cierra la tarea actual
-                return Response(data=self.currentTask.taskName,status=Status.EXISTING_TASK)
+                return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK)
             elif self.currentTask!=None and self.currentTask.executed and not self.currentTask.saved:
                 #se pregunta al usuario si quiere guardar
-                return Response(data=self.currentTask.taskName,status=Status.EXISTING_TASK_UNSAVED)
+                return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_UNSAVED)
             elif self.currentTask!=None and not self.currentTask.executed:
                 #se pregunta al usuario si quiere mantener las variables o si quiere cambiar
-                return Response(data=self.currentTask.taskName,status=Status.EXISTING_TASK_NO_EXECUTED)            
+                return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_NO_EXECUTED)            
             else:
                 return Response(data='',status=Status.OK)
         except Exception as exc:
