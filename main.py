@@ -8,7 +8,7 @@ from front.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import VariableTypeDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -50,63 +50,70 @@ class MainWindow(wx.Frame):
 
         self.identifier_cols=[]
 
+        self.override_warning=True
+
+        ##interface
+        self.showPrediction=True
+        self.showAnalysis=True
+        self.showData=True
+        self.showTask=True
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)  
         
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 0, wx.ALL | wx.EXPAND, 15)
 
-        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Data"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_4, 0, wx.ALL, 10)
+        self.sizer_data = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Data"), wx.HORIZONTAL)
+        sizer_3.Add(self.sizer_data, 0, wx.ALL, 10)
 
         self.import_file_button = wx.Button(self.panel, wx.ID_ANY, "Import data\n")
-        sizer_4.Add(self.import_file_button, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_data.Add(self.import_file_button, 1, wx.ALL | wx.EXPAND, 5)
 
         #self.create_set_button = wx.Button(self.panel, wx.ID_ANY, "Create set")
         #sizer_4.Add(self.create_set_button, 1, wx.ALL | wx.EXPAND, 5)
 
         self.clear_set_button = wx.Button(self.panel, wx.ID_ANY, "Clear")
-        sizer_4.Add(self.clear_set_button, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_data.Add(self.clear_set_button, 1, wx.ALL | wx.EXPAND, 5)
         
-
-        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Preprocess"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_5, 0, wx.ALL, 10)
+        self.sizer_preprocess = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Preprocess"), wx.HORIZONTAL)
+        sizer_3.Add(self.sizer_preprocess, 0, wx.ALL, 10)
 
         self.clean_data_button = wx.Button(self.panel, wx.ID_ANY, "Clean data\n")
-        sizer_5.Add(self.clean_data_button, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_preprocess.Add(self.clean_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
         self.transform_data_button = wx.Button(self.panel, wx.ID_ANY, "Transform data\n")
-        sizer_5.Add(self.transform_data_button, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_preprocess.Add(self.transform_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
         self.preprocess_data_button = wx.Button(self.panel, wx.ID_ANY, "Preprocess data\n")
-        sizer_5.Add(self.preprocess_data_button, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_preprocess.Add(self.preprocess_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
-        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Analysis"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_6, 0, wx.ALL, 10)
+        self.sizer_analysis = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Analysis"), wx.HORIZONTAL)
+        sizer_3.Add(self.sizer_analysis, 0, wx.ALL, 10)
 
         self.plot_data_button = wx.Button(self.panel, wx.ID_ANY, "Plot\n")
-        sizer_6.Add(self.plot_data_button, 1, wx.ALL, 5)
+        self.sizer_analysis.Add(self.plot_data_button, 1, wx.ALL, 5)
 
         self.statistics_button = wx.Button(self.panel, wx.ID_ANY, "Statistics\n")
-        sizer_6.Add(self.statistics_button, 1, wx.ALL, 5)
+        self.sizer_analysis.Add(self.statistics_button, 1, wx.ALL, 5)
 
         self.summary_button = wx.Button(self.panel, wx.ID_ANY, "Summary\n")
-        sizer_6.Add(self.summary_button, 1, wx.ALL, 5)
+        self.sizer_analysis.Add(self.summary_button, 1, wx.ALL, 5)
 
         
-        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Task"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_7, 0, wx.ALL, 10)
+        self.sizer_task = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Task"), wx.HORIZONTAL)
+        sizer_3.Add(self.sizer_task, 0, wx.ALL, 10)
 
         #self.next_button = wx.Button(self.panel, wx.ID_ANY, "Select variables\n")
         #sizer_7.Add(self.next_button, 1, wx.ALL, 5)
 
         self.prediction_button = wx.Button(self.panel, wx.ID_ANY, "Prediction Model\n")
-        sizer_7.Add(self.prediction_button, 1, wx.ALL, 5)
+        self.sizer_task.Add(self.prediction_button, 1, wx.ALL, 5)
 
         self.neurofuzzy_button = wx.Button(self.panel, wx.ID_ANY, "Neurofuzzy Model\n")
-        sizer_7.Add(self.neurofuzzy_button, 1, wx.ALL, 5)
+        self.sizer_task.Add(self.neurofuzzy_button, 1, wx.ALL, 5)
 
         self.results_button = wx.Button(self.panel, wx.ID_ANY, "Results \n")
-        sizer_7.Add(self.results_button, 0, wx.ALL, 5)
+        self.sizer_task.Add(self.results_button, 0, wx.ALL, 5)
         #self.train_button.Enable(False)
         
         self.grid_sizer = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Data Sheet"), wx.VERTICAL)
@@ -156,9 +163,21 @@ class MainWindow(wx.Frame):
 
 
     def OnShowResults(self,evt):
-
-        dialog=ResultsDialog(self)
-        code=dialog.ShowModal()
+        
+        task=self.controller.task_state().getResponse()
+        if task['status']==Status.EXISTING_TASK or task['status']==Status.EXISTING_TASK_NO_EXECUTED or task['status']==Status.EXISTING_TASK_UNSAVED:
+            rules=task['data']['rules']
+            print(rules)
+            if not rules:
+                dialog=ResultsDialog(self)
+                code=dialog.ShowModal()
+            else:
+                dialog=RulesResultsDialog(self)
+                code=dialog.ShowModal()
+        elif task['status']==Status.OK:
+            wx.MessageBox("There is no task loaded","Info")
+        else:
+            wx.MessageBox(task['data'],"Error",wx.ICON_ERROR)
 
     def OnPredictionModel(self,evt):
         print("prediction")
@@ -182,7 +201,7 @@ class MainWindow(wx.Frame):
     def OnManageCurrentTask(self):
         response=self.controller.task_state().getResponse()
         status=response['status']
-        data=response['data']
+        
 
         if status==Status.OK or status==Status.EXISTING_TASK:
             dialog=PickDialog(self)
@@ -246,6 +265,11 @@ class MainWindow(wx.Frame):
 
             dialog_prediction=RulePredictinglDialog(self)
             code=dialog_prediction.ShowModal()
+
+            if code==wx.ID_OK:
+                dialog=RulesResultsDialog(self)
+                code=dialog.ShowModal()
+
 
     
     def OnTransformData(self,evt):
@@ -409,6 +433,7 @@ class MainWindow(wx.Frame):
             self.enableButtons(False)
             #self.train_button.Enable(False)
             self.restoreStatus()
+            self.override_warning=True
     
     def ClearDataStructures(self):
         self.hidden_columns=[]
@@ -736,19 +761,48 @@ class MainWindow(wx.Frame):
             self.updateGrid(df)
             self.updateColors()
 
+    def OnFileSaveAsMenu(self,evt):
+        print("Save as...")
+        path=self.filename
+        arr=self.filename.split("\\")
+        name=arr[len(arr)-1]
+        response=self.IO.OnSaveAs(self,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx",dir=path,file=name).getResponse()
+
+        if response['status']==Status.OK:
+            pathname=response['data']
+            response=self.controller.save_data(pathname).getResponse()
+            if response['status']==Status.OK:
+                wx.MessageBox("Filed saved on "+pathname,"Info")
+
+    def OnFileSaveMenu(self,evt):
+        code=wx.YES
+        if self.override_warning and self.filename!="":
+            code=wx.MessageBox("Are you sure you want to override "+self.filename,"Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
+            self.override_warning=False
+        
+        if code==wx.YES:
+            print("Saving on ..."+self.filename)
+            self.controller.save_data(self.filename)
+
+    def OnShowHideOptions(self,evt):
+        self.sizer_task.ShowItems(not self.showPredictionOptions.IsChecked())
+        self.sizer_analysis.ShowItems(not self.showAnalysisOptions.IsChecked())
+        self.sizer_data.ShowItems(not self.showDataOptions.IsChecked())
+        self.sizer_preprocess.ShowItems(not self.showPreprocessOptions.IsChecked())
+        
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         
         fileMenu = wx.Menu()  
-        fileMenu.Append(wx.ID_NEW, '&Import file') 
+        importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
 
-        item=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save')
-        image = wx.Image('./front/resources/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save')
+        #image = wx.Image('./front/resources/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
         #wx.Bitmap.Rescale(image,wx.Size(16,16))
-        item.SetBitmap(image)
+        #fileSaveMenu.SetBitmap(image)
 
-        fileMenu.Append(item)
-        fileMenu.Append(wx.ID_ANY,'&Save as\tCtrl+a',"Save current file")
+        fileMenu.Append(fileSaveMenu)
+        fileAsSaveMenu=fileMenu.Append(wx.ID_ANY,'&Save as\tCtrl+a',"Save current file")
 
         modelMenu= wx.Menu()
         modelMenu.Append(wx.ID_ANY, '&Options')
@@ -779,11 +833,11 @@ class MainWindow(wx.Frame):
         item=wx.MenuItem(viewMenu,wx.ID_ANY,'&Show hidden columns')
         
         viewOptionsMenu=wx.Menu()
-        viewOptionsMenu.Append(wx.ID_ANY,'&Show rules options')
-        viewOptionsMenu.Append(wx.ID_ANY,'&Show model option')
-        viewOptionsMenu.Append(wx.ID_ANY,'&Show analysis options')
-        viewOptionsMenu.Append(wx.ID_ANY,'&Show preprocess options')
-        
+        self.showPredictionOptions=viewOptionsMenu.AppendCheckItem(wx.ID_ANY,'&Hide prediction options',help="")
+        self.showAnalysisOptions=viewOptionsMenu.AppendCheckItem(wx.ID_ANY,'&Hide analysis options')
+        self.showDataOptions=viewOptionsMenu.AppendCheckItem(wx.ID_ANY,'&Hide data options')
+        self.showPreprocessOptions=viewOptionsMenu.AppendCheckItem(wx.ID_ANY,'&Hide preprocess options')
+
         showHidden=viewMenu.Append(item)
         viewMenu.AppendSubMenu(viewOptionsMenu,"Display options")        
 
@@ -792,7 +846,7 @@ class MainWindow(wx.Frame):
 
         taskMenu = wx.Menu()  
         importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task')
-        saveTaskOption=taskMenu.Append(wx.ID_ANY, '&Sava as')
+        saveTaskOption=taskMenu.Append(wx.ID_ANY, '&Save as')
         closeTaskOption=taskMenu.Append(wx.ID_ANY, '&Close task')
 
         menubar.Append(fileMenu, '&File') 
@@ -807,9 +861,16 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnAboutUs,aboutUsOption)
         self.Bind(wx.EVT_MENU,self.OnShowIdentifierCols,showIdentifier)
         self.Bind(wx.EVT_MENU,self.OnImportTask,importTaskOption)
-        
-
+        self.Bind(wx.EVT_MENU,self.OnFileSaveAsMenu,fileAsSaveMenu)
+        self.Bind(wx.EVT_MENU,self.OnFileSaveMenu,fileSaveMenu)
+        self.Bind(wx.EVT_MENU,self.OnOpenFile,importFileMenu)
+        self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showPredictionOptions)
+        self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showAnalysisOptions)
+        self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showDataOptions)
+        self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showPreprocessOptions)
+       
         self.SetMenuBar(menubar)  
+
 
 if __name__ == '__main__':
     app = wx.App()
