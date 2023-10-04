@@ -19,7 +19,7 @@ class Task():
         assert validation!=None
 
 
-        self.rules=False
+        self.rules=rules
         self.taskName=name
         self.contextData=data
         self.outputs=outputs
