@@ -72,35 +72,21 @@ class IOManage():
         return df,file.name
         
     @staticmethod
-    def OnSaveAs(self, event,data,message,wildcard):
-        with wx.FileDialog(self, message, wildcard=wildcard,
+    def OnSaveAs(window,message,wildcard,dir="",file=""):
+        with wx.FileDialog(window, message, wildcard=wildcard,defaultDir=dir,defaultFile=file,
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return  Response(data="",status=Status.CANCEL)# the user changed their mind
 
-            # save the current contents in the file
-            pathname = fileDialog.GetPath()
-            toret=Response()
             try:
-                pathname=str(pathname).replace("\\","/")
-                if str(pathname).endswith(".xlsx"):
-                    
-                    data.to_csv(pathname)
-                elif str(pathname).endswith(".csv"):
-                    
-                    
-                    data.to_excel(pathname)
-                elif str(pathname).endswith(".txt"):
-                    with open(pathname, 'w') as file:
-                        file.write(data)    
-                    
+                # save the current contents in the file
+                pathname = fileDialog.GetPath()
                 toret=Response(data=pathname,status=Status.OK)
-            except IOError:
-                wx.LogError("Cannot save current data in file '%s'." % pathname)
-                toret=Response(data=None,status=Status.IO_ERROR)
+
             except Exception as exc:
                 print(exc)
+                toret=Response(data=None,status=Status.IO_ERROR)
             finally:
                 return toret
 
