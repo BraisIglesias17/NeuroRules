@@ -21,6 +21,16 @@ class Validator():
         else:
             return False
     
+    def check_parse_float(val):
+        toret=False
+        try:
+            np.float32(val)
+            toret=True
+        except:
+            toret=False
+        finally:
+            return toret
+
     @staticmethod
     def check_string(val):
         return True

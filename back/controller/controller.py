@@ -483,4 +483,5 @@ class Controller():
             
         except Exception as exc:
             print(exc)
+            #traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)

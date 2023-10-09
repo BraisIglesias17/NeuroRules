@@ -430,6 +430,9 @@ class ContextData():
                         self.data_preprocess[col]={'transformation':'None','keep_original':True}
 
                     self.data=self.data.join(transformed)
+                    for col in transformed.columns:
+                        self.transformers[col]=None
+
                 else:
                     if numerical:
                         transformed=transformed.reshape(1,-1)[0]
@@ -456,7 +459,9 @@ class ContextData():
         
         numeric=self.get_numeric_variables()
         value=input
-        if variable in numeric:
+       
+        
+        if variable in numeric and Validator.check_parse_float(value):
             value=np.float64(input)
             
         trasnformer=self.transformers[variable]

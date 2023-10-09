@@ -131,8 +131,11 @@ class Transformer():
         return result 
     
     def transform(self,x):
-        #if self.name=="One hot encoding":
-        x=x.reshape(1,-1)
+        if self.name=="Label encoding":
+            x=np.array([x])
+        else:
+            x=x.reshape(1,-1)
+        
 
         result=self.operation.transform(x)
         

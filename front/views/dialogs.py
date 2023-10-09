@@ -17,6 +17,7 @@ import time
 import re
 from wx.lib.stattext import GenStaticText
 from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE
+from .functions import get_task_name
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
@@ -2852,28 +2853,12 @@ class PredictionModelDialog(wx.Dialog):
             
         if ok:
             ok=False
-            taskname=""
-            cancel=False
-
-            while(not ok and not cancel):
-                dialog=wx.TextEntryDialog(self,message="Entry a name for the task",caption="Task name")
-                code=dialog.ShowModal()
-                
-                if code==wx.ID_OK:
-                    taskname=dialog.GetValue()
-
-                    patron = r'^[a-zA-Z0-9_-]+$'
-                    ok=bool(re.match(patron, taskname))
-                elif code==wx.ID_CANCEL:
-                    cancel=True
-
-                if not ok and not cancel:
-                    wx.MessageBox("Invalid task name, it can only contain alphanumeric characters, '-' and '_'. ","Error",wx.OK|wx.ICON_ERROR)
-
+            name,cancel=get_task_name(self)
+            
             #print(f"TASK: \n - name {taskname} \n - validation: {self.validation} \n - models: {self.model_selection}")
 
             if not cancel:
-                response=self.controller.create_task(taskname,self.model_selection,self.validation,False).getResponse()
+                response=self.controller.create_task(name,self.model_selection,self.validation,False).getResponse()
 
                 if response['status']==Status.OK:
                     self.Parent.updateStatusTask(taskname)
@@ -2937,30 +2922,37 @@ class TaskReportDialog(wx.Dialog):
         self.Layout()
 
     def OnApply(self,event):
-    
-        self.progressbar = wx.ProgressDialog("Training", "Please, wait...",maximum=100,parent=self)
-        #self.progressbar.Update(10,"Training in progress...")
-
-        thread = threading.Thread(target=self.execute_thread)
-        thread.start()
+        targets=self.controller.get_target_indexes().getResponse()['data']
+        maximum=len(targets)*100
         
+        self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_REMAINING_TIME|wx.PD_ESTIMATED_TIME)
+        #self.progressbar.Update(10,"Training in progress...")
+        self.execute_thread()
+        #thread = threading.Thread(target=self.execute_thread)
+        #thread.start()
             
     def execute_thread(self):
         
-        response=self.controller.execute_task(wx.CallAfter,self.progressbar).getResponse()
-            
-        wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
+        response=self.controller.execute_task(self.update_progress).getResponse()
+     
+        #wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
+        self.progressBar.Update(self.progressBar.GetRange())
 
+        
         if response['status']!=Status.OK:
-            wx.CallAfter(wx.MessageBox,response['data'],"Error",wx.ICON_ERROR)
-            wx.CallAfter(self.EndModal,wx.ID_ABORT)
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+            #wx.CallAfter(wx.MessageBox,response['data'],"Error",wx.ICON_ERROR)
+            #wx.CallAfter(self.EndModal,wx.ID_ABORT)
+            self.EndModal(wx.ID_ABORT)
         else:        
-            wx.CallAfter(wx.MessageBox,"Training completed!","Info")
-            wx.CallAfter(self.EndModal,wx.ID_APPLY)
+            #wx.CallAfter(wx.MessageBox,"Training completed!","Info")
+            wx.MessageBox("Training completed!","Info")
+            #wx.CallAfter(self.EndModal,wx.ID_APPLY)
+            self.EndModal(wx.ID_APPLY)
             
     def update_progress(self, value):
-        
-        self.progressbar.Update(value,"Training in progress...")
+        print(value)
+        self.progressBar.Update(value,"Training in progress...")
 
 
 
@@ -3409,23 +3401,26 @@ class RulePredictinglDialog(wx.Dialog):
         self.Layout()
 
     def OnContinue(self,evt):
-        print(self.model_selection)
-        response=self.controller.create_task("taskname",self.model_selection,self.validation,True).getResponse()
-    
-        if response['status']==Status.OK:        
-            self.Hide()
-            dialog=TaskReportDialog(self.parent)
-            code=dialog.ShowModal()
+        
+        name,cancel=get_task_name(self)
 
-            if code==wx.ID_CANCEL or code==wx.ID_ABORT:
-                self.Show()
+        if not cancel:
+            response=self.controller.create_task(name,self.model_selection,self.validation,True).getResponse()
+        
+            if response['status']==Status.OK:        
+                self.Hide()
+                dialog=TaskReportDialog(self.parent)
+                code=dialog.ShowModal()
+
+                if code==wx.ID_CANCEL or code==wx.ID_ABORT:
+                    self.Show()
+                else:
+                    self.EndModal(wx.ID_OK)
+
+            elif response['status']==Status.EXISTING_TASK:
+                wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
             else:
-                self.EndModal(wx.ID_OK)
-
-        elif response['status']==Status.EXISTING_TASK:
-            wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
-        else:
-            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
 
 
@@ -3450,6 +3445,7 @@ class PredictDialog(wx.Dialog):
         sizer_3.Add(sizer_4, 1, wx.ALL | wx.EXPAND, 10)
 
         self.grid_inputs = wx.grid.Grid(self, wx.ID_ANY)
+        self.grid_inputs.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
         self.grid_inputs.CreateGrid(self.n_inputs, 2)
         self.grid_inputs.SetColLabelValue(0, "Variable")
         self.grid_inputs.SetColLabelValue(1, "Value")
@@ -3600,11 +3596,11 @@ class RulesResultsDialog(wx.Dialog):
         grid_sizer_1 = wx.GridSizer(2, 2, 1, 1)
         sizer_10.Add(grid_sizer_1, 1, 0, 0)
 
-        self.button_plots = wx.Button(self, wx.ID_ANY, "Plots")
-        grid_sizer_1.Add(self.button_plots, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.button_preciwise = wx.Button(self, wx.ID_ANY, "R2 evolution")
+        grid_sizer_1.Add(self.button_preciwise, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        self.button_predict = wx.Button(self, wx.ID_ANY, "Predict")
-        grid_sizer_1.Add(self.button_predict, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.button_mf = wx.Button(self, wx.ID_ANY, "Membership functions")
+        grid_sizer_1.Add(self.button_mf, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         self.button_save_alone = wx.Button(self, wx.ID_ANY, "Save alone")
         grid_sizer_1.Add(self.button_save_alone, 0, wx.ALIGN_CENTER | wx.ALL, 5)
@@ -3627,7 +3623,11 @@ class RulesResultsDialog(wx.Dialog):
         self.Bind(wx.EVT_LISTBOX,self.OnSelectOutput,self.lb_outputs)
         self.Bind(wx.EVT_COMBOBOX,self.OnSelectSubmodel,self.cb_submodel)
         self.Bind(wx.EVT_BUTTON,self.OnSaveTask,self.button_SAVE)
+        self.Bind(wx.EVT_BUTTON,self.OnPlotPrecisewise,self.button_preciwise)
+        self.Bind(wx.EVT_BUTTON,self.OnPotMembershipFunctions,self.button_mf)
         self.SetSizer(sizer_1)
+        
+        self._enable_buttons(False)
         sizer_1.Fit(self)
 
         
@@ -3636,7 +3636,29 @@ class RulesResultsDialog(wx.Dialog):
         self.Center()
         self.Layout()
 
+    def _enable_buttons(self,val):
+        self.button_details.Enable(val)
+        self.button_mf.Enable(val)
+        self.button_preciwise.Enable(val)
+        self.button_save_alone.Enable(val)
+
+    def OnPlotPrecisewise(self,evt):
+        submodel=self.cb_submodel.GetString(self.cb_submodel.GetSelection()).split(" - ")[0]
+        
+        model=self.currentSubmodels[submodel]['model']
+
+        model.plot_r2_evolution()
+
+    def OnPotMembershipFunctions(self,evt):
+        
+        submodel=self.cb_submodel.GetString(self.cb_submodel.GetSelection()).split(" - ")[0]
+        
+        model=self.currentSubmodels[submodel]['model']
+
+        model.plot_membership_functions()
+
     def OnSelectOutput(self,evt):
+        self._enable_buttons(False)
         self.label_rules.SetLabelText("Select a submodel")
         self.label_model_info.SetLabelText("Select a submodel")
         model=evt.GetString()
@@ -3665,6 +3687,7 @@ class RulesResultsDialog(wx.Dialog):
         self.cb_submodel.AppendItems(formated_submodels)
     
     def OnSelectSubmodel(self,evt):
+        self._enable_buttons(True)
         submodel=evt.GetString().split(" - ")[0]
         
         submodel=self.currentSubmodels[submodel]
@@ -3725,3 +3748,7 @@ class RulesResultsDialog(wx.Dialog):
 
         else:
             wx.MessageBox(taskname['data'],"Error",wx.ICON_ERROR)
+
+
+
+

@@ -69,10 +69,11 @@ class Task():
     def execute(self,callable,*args,**kwargs):
         
         i=0
-        inc=100/len(self.models)
-        i+=inc
+        inc=100
+        
+        #i+=inc
 
-        callable(self._update_progressbar,args[0][0],int(i))  
+        #callable(self._update_progressbar,args[0][0],int(i))  
         
         print("Performing model training ...")
         for variable in self.models:
@@ -87,8 +88,8 @@ class Task():
             
                 model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'],names_input=self.input_names,name_output=self.output_name,types=self.types)
                 
-                time.sleep(0.1)
-                callable(self._update_progressbar,args[0][0],int(i))           
+                #time.sleep(0.1)
+                callable(int(i))           
                 i+=inc
             print(f"\tfinishing "+variable+"...")
 
@@ -96,9 +97,6 @@ class Task():
         print("Training finished")
     
                 
-            
-    
-
     def _update_progressbar(self,progressbar,value):
         
         progressbar.Update(value,"Training in progress...")
@@ -130,10 +128,15 @@ class Task():
             message=message+" - "+variable+": \n     Model: "
             
             for model in self.outputs[variable]['model']:
-                message=message+str(model)+","
+                message=message+str(model)
+
+                if model!=self.outputs[variable]['model'][-1]:
+                    message=message+","
 
             if not self.rules:
                 message=message+"\n     Grid Search: "+str(self.outputs[variable]['params'])+"\n\n"
+            else:
+                message=message+"\n\n"
         
         return message
     

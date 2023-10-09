@@ -8,6 +8,7 @@ from scipy.optimize import minimize
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.metrics import r2_score,mean_squared_error
 from sklearn.linear_model import Ridge
+import itertools
 
 class NeuroFuzzy():
     """
@@ -113,12 +114,16 @@ class NeuroFuzzy():
 
         self.mebm_info={}
         i=0
+        self.n_rules=1
         for name in input_names:
             
             if not i in self.nominal_variables:
                 self.mebm_info[name]=n_membership_input
+                self.n_rules=self.n_rules*n_membership_input
             else:
-                self.mebm_info[name]=len(np.unique(input[:,i]))
+                val=len(np.unique(input[:,i]))
+                self.mebm_info[name]=val
+                self.n_rules=self.n_rules*val
             i+=1
 
         
@@ -196,7 +201,12 @@ class NeuroFuzzy():
     def get_scores(self,X,y):
         y_pred=self.predict(X)
         r2=r2_score(y,y_pred)
-        mse=mean_squared_error(y,y_pred)
+        max=np.max(y)
+        min=np.min(y)
+        print(mse)
+        #normalize mean squared error
+        mse=mean_squared_error(y,y_pred)/(max-min)
+
         rmse=np.sqrt(mse)
 
         return {'r2':r2,'mse':mse,'rmse':rmse}
@@ -248,7 +258,30 @@ class NeuroFuzzy():
         """
         toret=None
         size=self.n_membership*self.X.shape[1]
+        """
         
+        start=0
+        end=0
+        arrays=[]
+        n_rules=1
+        for value in self.mebm_info:
+            n_rules=n_rules*self.mebm_info[value]
+            end=end+self.mebm_info[value]
+            mf=input[start:end]
+            arrays.append(mf)
+            start=end
+
+        #result=np.zeros((1,n_rules),dtype=np.float64)
+        i=0
+        previous=None
+        currentProduct=None
+        for array in arrays:
+            if i!=0:
+                currentProduct=previous.reshape(previous.shape[0],1).dot(array.reshape(1,array.shape[0]))
+            previous=array
+            i+=1
+        print(f"TRY: {(currentProduct.reshape(1,-1)[0])}")
+        """
         if self.n_variables == 1:
 
             #Combinaciones para una variable variables dos membresias
@@ -265,7 +298,7 @@ class NeuroFuzzy():
         elif self.n_variables==2 and self.n_membership==2:
             #Combinaciones para dos variables dos membresias
 
-            # TO DOOOO
+            # TO DO
             next_variable=0
             rules=[]
             textRules=[]
@@ -328,9 +361,41 @@ class NeuroFuzzy():
             r9=self.multivariate_operation(input[2],input[5])
 
             toret=[r1,r2,r3,r4,r5,r6,r7,r8,r9]
-        
+
+        #if len(self.rules)==0:
+        #self._create_rules_template()
+        #print(f"REAL: {(toret)}")
         return np.array(toret)
 
+    def _create_rules_template(self):
+        rules=[]
+        conditions={}
+        for variable in self.mebm_info:
+            conditions[variable]=[]
+            for i in range(self.mebm_info[variable]):
+                rule=variable+" is "+self.NAMES(self.mebm_info[variable])[i]
+                conditions[variable].append(rule)
+
+        i=0
+        for element in conditions:    
+           rules=self._get_combinations(conditions[element],rules)
+        
+        
+        self.rules=rules
+            
+    def _get_combinations(self,list1,list2):
+        toret=[]
+        if len(list1)==0:
+            return list2
+        elif len(list2)==0:
+            return list1
+        
+        for i in range(len(list1)):
+            for j in range(len(list2)):
+                toret.append(list1[i]+" AND "+list2[j])
+    
+        return toret
+    
     def multivariate_operation(self, a, b):
         return self.product_tnorm(a,b) 
 
@@ -346,6 +411,7 @@ class NeuroFuzzy():
             - output: array de valores de entrada normalizados
         
         """
+        
         s=np.sum(input)
         if s != 0:
             output=input/np.sum(input)
@@ -540,6 +606,17 @@ class NeuroFuzzy():
            
         return wi,d,gradient,norma
 
+    def get_predictions_on_train(self):
+        predictions=np.zeros((self.X.shape[0],1))
+    
+        for i in range(self.X.shape[0]):
+            row=self.X[i,:]
+            output=self.predict(row.reshape(1,-1))
+            predictions[i]=output
+           
+        self.y_pred=predictions
+
+        return predictions
 
     def plot_trend(self):
         if self.n_variables==1 and self.trained:
@@ -569,6 +646,7 @@ class NeuroFuzzy():
         
         y_calculada=np.zeros(self.X.shape[0])
         i=0
+        plt.figure("precisewise line")
         fig, ax = plt.subplots()
         for variable in self.X_names:
             j=0
@@ -760,66 +838,6 @@ class NeuroFuzzy():
 
         self.consecuence.view()
 
-"""
-data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",sep=",")
-
-
-def cod(val):
-    if val%2==0:
-        return "Si"
-    else:
-        return "No"
-    
-data['covid']=data['HAD'].apply(cod)
-
-
-data.to_csv("C:/Users/USUARIO/Desktop/TFM/project/example_HRV.csv",index=False)
-"""
-
-
-
-
-"""
-example_high=np.arange(51,103)
-example_low=np.arange(start=206,stop=154,step=-1)
-example_nominal=["si" if num %2 ==0 else "no" for  num in example_high]
-example_binary=[0 if num %2 !=0 else 1 for  num in example_high]
-example_nominal[2]="ah"
-df=pd.DataFrame({'x':example_high,'y':example_low,'nominal':example_nominal,'z':example_high,'binary':example_binary})
-
-
-
-
-
-data=pd.read_csv("C:/Users/USUARIO/Downloads/p.csv",sep=",")
-#data=data[0:4]
-data=df
-print(data)
-#x_names=['% Tween','% RFB']
-#y_variable='SIZE (nm)'
-x_names=['x']
-y_variable='y'
-X=(data[x_names])
-y=data[y_variable]
-types=data[x_names].dtypes
-
-model=NeuroFuzzy(input=X.values,types=types,output=y.values,n_membership_input=2,n_membership_output=2,output_name=y_variable,input_names=x_names)
-model.fit(learning_rate=0.001,epochs=2)
-
-print(model.get_weigths())
-"""
-#for rule in model.get_rules():
-#    print(rule)
-
-
-#model.plot_trend()
-#model.plot_membership_functions()
-#model.plot_r2_evolution()
-#model.plot_historic_error()
-#model.plot_historic_weight()
-#model.plot_precisewise()
-#print(model.metrics)
-#print(model.predict([70]))
 
 
 
