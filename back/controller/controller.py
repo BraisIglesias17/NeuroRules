@@ -446,6 +446,9 @@ class Controller():
     def save_task(self,path):
         try:
             
+            if self.currentTask==None:
+                raise ValueError("Non existing task")
+            
             self.currentTask.save(path)
             return Response(data={},status=Status.OK)
             

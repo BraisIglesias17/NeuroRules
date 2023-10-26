@@ -8,11 +8,15 @@ from front.IO.IOManage import IOManage
 from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
 from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
+
+
+
+#PETA DESPUES DE INTENTAR CREAR UN TASK DESPUES CARGAR UN ARCHIVO DISTINTO
 
 class MainWindow(wx.Frame):    
     def __init__(self,*args, **kwds):
@@ -23,13 +27,14 @@ class MainWindow(wx.Frame):
         self.ROW_BOUND=500
         self.COL_BOUND=30
 
+        self.setting=Settings()
+        self.SetFont(self.setting.font)
+
         self.SetIcon(wx.Icon('./front/resources/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
         self.SetTitle("NeuroRule 1.0.0")
-        font=self.GetFont()
-        print(f'Size:{font.GetPointSize()}, family:{font.GetFamily()}')
         self.createMenuBar()
         self.panel = wx.Panel(self, wx.ID_ANY)
-        self.setting=Settings()
+                
         self.IO=IOManage()
         self.controller=Controller()
         self.init=False
@@ -160,7 +165,6 @@ class MainWindow(wx.Frame):
         self.SetSize((1800, 900))
         self.Center()
         self.Show(True)
-
 
     def OnShowResults(self,evt):
         
@@ -326,7 +330,7 @@ class MainWindow(wx.Frame):
     def HighlightOutliers(self,outliers):
         
         for cell in self.highlighted_outliers_cells:
-            self.grid.SetCellBackgroundColour(cell[0],cell[1], wx.Colour(self.setting.defaultColor))
+            self.grid.SetCellBackgroundColour(cell[0],cell[1], self.setting.defaultColor)
 
         
         for var in outliers:    
@@ -335,7 +339,7 @@ class MainWindow(wx.Frame):
             col=outliers[var]['index']
 
             for i in range(len(positions)):
-                self.grid.SetCellBackgroundColour(positions[i],col, wx.Colour(self.setting.outlierColor))
+                self.grid.SetCellBackgroundColour(positions[i],col, self.setting.outlierColor)
                 self.highlighted_outliers_cells.append((positions[i],col))
 
         
@@ -372,13 +376,13 @@ class MainWindow(wx.Frame):
             for row in range(rows):
                 for col in range(cols):
                     if col in targets:
-                        self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.targetColor))
+                        self.grid.SetCellBackgroundColour(row, col, self.setting.targetColor)
                         self.highlighted_cols.append([row,col])
                     elif col in independent:
-                        self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.independentColor))
+                        self.grid.SetCellBackgroundColour(row, col, self.setting.independentColor)
                         self.highlighted_cols.append([row,col])
                     else:
-                        self.grid.SetCellBackgroundColour(row, col, wx.Colour(self.setting.defaultColor))
+                        self.grid.SetCellBackgroundColour(row, col, self.setting.defaultColor)
         
        
     def enableButtons(self,val):
@@ -527,7 +531,7 @@ class MainWindow(wx.Frame):
                     
                     
                     if value=="" or value=="nan":
-                        self.grid.SetCellBackgroundColour(j, i, wx.Colour(self.setting.NanColor))
+                        self.grid.SetCellBackgroundColour(j, i, self.setting.NanColor)
                         self.highlighted_cells.append([i,j])
                     
                     elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
@@ -790,13 +794,21 @@ class MainWindow(wx.Frame):
         self.sizer_data.ShowItems(not self.showDataOptions.IsChecked())
         self.sizer_preprocess.ShowItems(not self.showPreprocessOptions.IsChecked())
         
+    def OnShowGeneralSettings(self,evt):
+        dialog=SettingsDialog(self)
+        code=dialog.ShowModal()
+        
+        if code==wx.ID_REFRESH:
+            self.Refresh()
+
     def createMenuBar(self):
         menubar = wx.MenuBar()  
-        
+        menubar.SetFont(self.setting.font)
+
         fileMenu = wx.Menu()  
         importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
 
-        fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save')
+        fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save\tCtrl+s')
         #image = wx.Image('./front/resources/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
         #wx.Bitmap.Rescale(image,wx.Size(16,16))
         #fileSaveMenu.SetBitmap(image)
@@ -808,7 +820,7 @@ class MainWindow(wx.Frame):
         modelMenu.Append(wx.ID_ANY, '&Options')
 
         settingsMenu= wx.Menu()
-        settingsMenu.Append(wx.ID_ANY, '&Settings')
+        generalSettings=settingsMenu.Append(wx.ID_ANY, '&General Settings')
 
         preprocessSubmenu=wx.Menu()
         preprocessSubmenu.Append(wx.ID_ANY,"&Options")
@@ -845,9 +857,20 @@ class MainWindow(wx.Frame):
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
 
         taskMenu = wx.Menu()  
-        importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task')
+        importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task\tCtrl+D')
         saveTaskOption=taskMenu.Append(wx.ID_ANY, '&Save as')
         closeTaskOption=taskMenu.Append(wx.ID_ANY, '&Close task')
+
+
+        #Key events
+        entries = [wx.AcceleratorEntry() for i in range(3)]
+
+        entries[0].Set(wx.ACCEL_CTRL, ord('D'), importTaskOption.GetId())
+        entries[1].Set(wx.ACCEL_CTRL, ord('a'), fileAsSaveMenu.GetId())
+        entries[2].Set(wx.ACCEL_CTRL, ord('s'), fileSaveMenu.GetId())
+
+        accel = wx.AcceleratorTable(entries)
+        self.SetAcceleratorTable(accel)
 
         menubar.Append(fileMenu, '&File') 
         menubar.Append(dataMenu,"&Data")
@@ -868,7 +891,9 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showAnalysisOptions)
         self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showDataOptions)
         self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showPreprocessOptions)
-       
+        self.Bind(wx.EVT_MENU,self.OnShowGeneralSettings,generalSettings)
+
+        
         self.SetMenuBar(menubar)  
 
 

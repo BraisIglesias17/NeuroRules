@@ -17,8 +17,21 @@ class IOManage():
 
             # save the current contents in the file
             pathname = fileDialog.GetPath()
+            return Response(data=pathname,status=Status.OK)
+
+    @staticmethod 
+    def GetPathFolder(window,message):
+        
+        with wx.DirDialog(window, message,
+                        style=wx.DD_DIR_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  Response(data="",status=Status.CANCEL)# the user changed their mind
+
+            # save the current contents in the file
+            pathname = fileDialog.GetPath()
             return Response(data=pathname,status=Status.OK) 
-    
+        
     @staticmethod
     def GetPathImport(window,message,wildcard,defaultname=""):
         with wx.FileDialog(window, message, wildcard=wildcard,defaultFile=defaultname,

@@ -2,7 +2,7 @@
 from .ML.model import ModelImplementation
 from sklearn.model_selection import train_test_split
 import pickle
-import time
+import datetime
 import numpy as np
 
 class Task():
@@ -20,7 +20,11 @@ class Task():
 
 
         self.rules=rules
+
+        ##metadata
         self.taskName=name
+        self.date=datetime.date.today()
+
         self.contextData=data
         self.outputs=outputs
         self.validation=validation
@@ -68,9 +72,9 @@ class Task():
         
     def execute(self,callable,*args,**kwargs):
         
-        i=0
-        inc=100
         
+        inc=100
+        i=inc
         #i+=inc
 
         #callable(self._update_progressbar,args[0][0],int(i))  
@@ -82,14 +86,13 @@ class Task():
 
             print(f"\tstarting "+variable+"...")
             for model in self.models[variable]:
-                #grid search?
-                #test train split ?
-                #cv ?
             
                 model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'],names_input=self.input_names,name_output=self.output_name,types=self.types)
                 
                 #time.sleep(0.1)
-                callable(int(i))           
+                if callable!=None:
+                    callable(int(i))       
+                    
                 i+=inc
             print(f"\tfinishing "+variable+"...")
 

@@ -18,6 +18,7 @@ import re
 from wx.lib.stattext import GenStaticText
 from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE
 from .functions import get_task_name
+import sys
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
@@ -297,6 +298,7 @@ class CleanDataDialog(wx.Dialog):
         # begin wxGlade: CleanDataDialog.__init__
         super(CleanDataDialog, self).__init__(parent)
         self.SetTitle("Clean data")
+        self.SetFont(parent.GetFont())
         self.parent=parent
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -575,7 +577,7 @@ class GraphDialog(wx.Dialog):
 
         super(GraphDialog, self).__init__(parent)
         self.SetTitle("Graph")
-
+        self.SetFont(parent.GetFont())
         self.controller=parent.controller
 
         resp=self.controller.get_names().getResponse()
@@ -803,6 +805,7 @@ class SummaryDialog(wx.Dialog):
         
         super(SummaryDialog, self).__init__(parent)
         self.SetSize((810, 481))
+        self.SetFont(parent.GetFont())
         self.SetTitle("Summary")
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -966,7 +969,7 @@ class AboutUsDialog(wx.Dialog):
         
         super(AboutUsDialog, self).__init__(parent)
         self.SetTitle("About us")
-
+        self.SetFont(parent.GetFont())
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
@@ -1005,6 +1008,7 @@ class ShowHiddenDialog(wx.Dialog):
         # begin wxGlade: ShowHiddenDialog.__init__
         super(ShowHiddenDialog, self).__init__(parent)
         self.SetTitle("Show Hidden Columns")
+        self.SetFont(parent.GetFont())
         self.parent=parent
         self.names=parent.names[parent.hidden_columns]
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -1049,6 +1053,7 @@ class ShowIdentifierColsDialog(wx.Dialog):
     def __init__(self,parent):
         
         super(ShowIdentifierColsDialog, self).__init__(parent)
+        self.SetFont(parent.GetFont())
         self.SetTitle("Show identifier Columns")
         self.parent=parent
         self.names=copy.deepcopy(parent.identifier_cols)
@@ -1098,6 +1103,7 @@ class StatisticDialog(wx.Dialog):
     def __init__(self,parent, *args, **kwds):
         # begin wxGlade: StatisticDialog.__init__
         super(StatisticDialog, self).__init__(parent)
+        self.SetFont(parent.GetFont())
         self.SetTitle("Statistics")
         self.identifier_cols=parent.identifier_cols
         self.controller=parent.controller
@@ -1175,7 +1181,7 @@ class StatisticDialog(wx.Dialog):
 
         self.Center()
         self.Layout()
-        # end wxGlade        
+                
 
     def EnableComponents(self,val):
         self.combo_box_A.Enable(val)
@@ -1355,6 +1361,7 @@ class TestResultDialog(wx.Dialog):
         
         super(TestResultDialog, self).__init__(parent)
         self.SetTitle(name)
+        self.SetFont(parent.GetFont())
         self.result=result
 
         self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/x.png"
@@ -1416,7 +1423,7 @@ class TestResultDialog(wx.Dialog):
         sizer_5.Add(sizer_7, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
         label_3 = wx.StaticText(self, wx.ID_ANY, explanation)
-        sizer_7.Add(label_3, 0, wx.EXPAND, 10)
+        sizer_7.Add(label_3, 1, wx.EXPAND, 20)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 7)
@@ -1441,6 +1448,7 @@ class SummaryPickDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Summary pick")
+        self.SetFont(parent.GetFont())
         self.parent=parent
         names=parent.names
         self.nominal_variables=parent.string_variable_names
@@ -1543,7 +1551,7 @@ class SingleSummaryDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Summary")
-        
+        self.SetFont(parent.GetFont())
         self.parent=parent
         self.variable=variable
         self.group=group
@@ -1707,7 +1715,8 @@ class CreateTaskDialog(wx.Dialog):
     
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Create task")
-
+        self.SetFont(parent.GetFont())
+        
         
         ##variables
         self.inputs=[]
@@ -1752,7 +1761,6 @@ class CreateTaskDialog(wx.Dialog):
         sizer_5.Add(self.change_inputsOuputs, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
         """
         
-
         sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
         sizer_3.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 10)
 
@@ -1886,7 +1894,7 @@ class RulesOptionsDialog(wx.Dialog):
     def __init__(self,parent,options):
         
         super(RulesOptionsDialog, self).__init__(parent)
-
+        self.SetFont(parent.GetFont())
         self.SetTitle("Rules generating options")
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -1951,7 +1959,7 @@ class AutomaticTest(wx.Dialog):
     def __init__(self,parent):
         
         super(AutomaticTest, self).__init__(parent)
-        
+        self.SetFont(parent.GetFont())
         self.SetTitle("Automatic test result")
         
         #LLAMADA A TEST AUTOMATICO 
@@ -2064,6 +2072,8 @@ class PickDialog(wx.Dialog):
         super(PickDialog, self).__init__(parent)
         self.SetTitle("New task")
 
+        self.SetFont(parent.GetFont())
+
         self.names=parent.names
 
         self.controller=parent.controller
@@ -2153,7 +2163,7 @@ class PickDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnRemoveInput,self.button_remove_input)
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
 
-        self.SetSize(500,400)
+        self.SetSize(550,450)
         
         self.Center()
         self.Layout()
@@ -2237,6 +2247,7 @@ class PreprocessDialog(wx.Dialog):
     def __init__(self,parent):
         
         super(PreprocessDialog, self).__init__(parent)
+        self.SetFont(parent.GetFont())
         self.SetTitle("Preprocess")
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -2326,7 +2337,7 @@ class TransformDialog(wx.Dialog):
         
         super(TransformDialog, self).__init__(parent)
         self.SetTitle("Transform")
-
+        self.SetFont(parent.GetFont())
         self.names=["All"]
         self.controller=parent.controller
         for name in parent.names:
@@ -2367,7 +2378,7 @@ class TransformDialog(wx.Dialog):
         sizer_5 = wx.BoxSizer(wx.VERTICAL)
         sizer_11.Add(sizer_5, 1, wx.EXPAND | wx.ALL, 10)
 
-        self.radio_box_numerical = wx.RadioBox(self.notebook_numerical, wx.ID_ANY, "Transformation", choices=["None","Normalization (MinMax)", "Quantile Scaler", "Robust Scaler", "Discretize"], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+        self.radio_box_numerical = wx.RadioBox(self.notebook_numerical, wx.ID_ANY, "Transformation", choices=["None","Normalization (MinMax)", "Quantile Scaler", "Robust Scaler", "Discretize"], majorDimension=2, style=wx.RA_SPECIFY_COLS)
         self.radio_box_numerical.SetSelection(0)
         sizer_5.Add(self.radio_box_numerical, 1, wx.EXPAND|wx.ALL, 5)
 
@@ -2382,7 +2393,7 @@ class TransformDialog(wx.Dialog):
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
         sizer_14.Add(sizer_6, 0, wx.EXPAND | wx.ALL, 10)
 
-        self.radio_box_categorical = wx.RadioBox(self.notebook_categorical, wx.ID_ANY, "Transformation", choices=["None","One hot encoding", "Label encoding", "Custom mapping"], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+        self.radio_box_categorical = wx.RadioBox(self.notebook_categorical, wx.ID_ANY, "Transformation", choices=["None","One hot encoding", "Label encoding", "Custom mapping"], majorDimension=2, style=wx.RA_SPECIFY_COLS)
         self.radio_box_categorical.SetSelection(0)
         sizer_6.Add(self.radio_box_categorical, 1, wx.EXPAND | wx.ALL, 5)
 
@@ -2427,7 +2438,7 @@ class TransformDialog(wx.Dialog):
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
-        self.SetSize(300,440)
+        #self.SetSize(300,440)
 
         self.SetAffirmativeId(self.button_SAVE.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
@@ -2561,7 +2572,7 @@ class PredictionModelDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Prediction model")
-
+        self.SetFont(parent.GetFont())
         #TO DO: LOAD ON CHANGE VARIABLE CURRENT SELECTIONS
         #TO DO: LOAD CONFIGURATION IF EXISTS
         #TO DO: VALIDATIONS (NSETS!=0 TEST SIZE!=0 AND !=1)
@@ -2883,7 +2894,7 @@ class TaskReportDialog(wx.Dialog):
 
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Task report")
-
+        self.SetFont(parent.GetFont())
         self.parent=parent
         self.task_report=""
         self.controller=parent.controller
@@ -2902,9 +2913,18 @@ class TaskReportDialog(wx.Dialog):
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
-        self.button_train = wx.Button(self, wx.ID_OK, "begin training")
+
+        tooltip_bg=wx.ToolTip("You can see the progress of the training and the results inmediatly after.")
+        self.button_train = wx.Button(self, wx.ID_OK, "Begin training")
+        self.button_train.SetToolTip(tooltip_bg)
         self.button_train.SetDefault()
         sizer_2.AddButton(self.button_train)
+
+        tooltip_bg=wx.ToolTip("The training is hidden and the results are stored in the file previously indicated.")
+        self.button_train_background = wx.Button(self, wx.ID_APPLY, "Train in background")
+        self.button_train_background.SetToolTip(tooltip_bg)
+
+        sizer_2.AddButton(self.button_train_background)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
@@ -2916,6 +2936,7 @@ class TaskReportDialog(wx.Dialog):
 
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_train)
+        self.Bind(wx.EVT_BUTTON,self.OnApplyBg,self.button_train_background)
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
@@ -2925,12 +2946,25 @@ class TaskReportDialog(wx.Dialog):
         targets=self.controller.get_target_indexes().getResponse()['data']
         maximum=len(targets)*100
         
-        self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_REMAINING_TIME|wx.PD_ESTIMATED_TIME)
+        self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_AUTO_HIDE)
         #self.progressbar.Update(10,"Training in progress...")
-        self.execute_thread()
-        #thread = threading.Thread(target=self.execute_thread)
-        #thread.start()
-            
+        #self.execute_thread()
+        thread = threading.Thread(target=self.execute_thread)
+        thread.start()
+    
+    def OnApplyBg(self,evt):
+        pathname=IOManage.GetPath(self,"Select a path for the task",WILCARD_TASK).getResponse()
+        if pathname['status']==Status.OK:
+            self.Hide()
+            self.Parent.Hide()
+            self.execute_thread_bg(pathname['data'])
+            sys.exit(0)
+    
+    def execute_thread_bg(self,pathname):
+        response=self.controller.execute_task(None).getResponse()
+        if response['status']==Status.OK:
+            self.controller.save_task(pathname)
+
     def execute_thread(self):
         
         response=self.controller.execute_task(self.update_progress).getResponse()
@@ -2951,7 +2985,7 @@ class TaskReportDialog(wx.Dialog):
             self.EndModal(wx.ID_APPLY)
             
     def update_progress(self, value):
-        print(value)
+        print(f"updating to ... {value}")
         self.progressBar.Update(value,"Training in progress...")
 
 
@@ -2966,7 +3000,7 @@ class ResultsDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Results dialog")
-
+        self.SetFont(parent.GetFont())
         self.controller=parent.controller
 
         self.outputs=[]
@@ -3273,7 +3307,7 @@ class DisplayInfo(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Information")
-
+        self.SetFont(parent.GetFont())
         sizer_1=wx.BoxSizer(wx.VERTICAL)
 
         sizer_2=wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, label), wx.HORIZONTAL)
@@ -3305,8 +3339,8 @@ class RulePredictinglDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Rule generation model")
-
-        #TO DO: LOAD ON CHANGE VARIABLE CURRENT SELECTIONS
+        self.SetFont(parent.GetFont())
+        #T O DO: LOAD ON CHANGE VARIABLE CURRENT SELECTIONS
         #TO DO: LOAD CONFIGURATION IF EXISTS
         #TO DO: VALIDATIONS (NSETS!=0 TEST SIZE!=0 AND !=1)
 
@@ -3335,9 +3369,11 @@ class RulePredictinglDialog(wx.Dialog):
             for variable in response['data']:
                 self.names.append(variable)
                 self.display_list.append(variable+" - "+response['data'][variable])
+                model="DecisionTree"
                 if response['data'][variable]=="regression":
                     self.regression_vars.append(variable)
-                self.model_selection[variable]={'model':['Neurofuzzy'],'params':''}
+                    model="Neurofuzzy"
+                self.model_selection[variable]={'model':[model],'params':''}
                 
         else:
             wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -3364,8 +3400,6 @@ class RulePredictinglDialog(wx.Dialog):
         self.notebook_type.AddPage(self.notebook_regression, "Regression")
 
         
-
-
         self.notebook_classification = wx.Panel(self.notebook_type, wx.ID_ANY)
         self.notebook_type.AddPage(self.notebook_classification, "Classification")
 
@@ -3429,7 +3463,7 @@ class PredictDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Predictions on "+variable)
-
+        self.SetFont(parent.GetFont())
         self.controller=parent.controller
         self.nominals=parent.string_variable_names
         self.inputs=inputs
@@ -3521,10 +3555,11 @@ class RulesResultsDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Neurofuzzy result")
-
+        self.SetFont(parent.GetFont())
         self.controller=parent.controller
 
         self.outputs=[]
+        self.types=[]
         response=self.controller.get_target_process_type().getResponse()
         
         self.currentMetrics={}
@@ -3534,9 +3569,12 @@ class RulesResultsDialog(wx.Dialog):
         
         if response['status']==Status.OK:
             self.outputs=list(response['data'].keys())
+            self.types=list(response['data'].values())
         else:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
+
+        
 
         self.models=self.controller.get_variable_models().getResponse()['data']
         self.submodels={}
@@ -3544,9 +3582,10 @@ class RulesResultsDialog(wx.Dialog):
         for output in self.outputs:
             self.submodels[output]=self.models[output][0].submodels
 
-        
+        outputs=self._custom_outputs()
+        #self.outputs=outputs
         self.cb_selections=[]
-
+        
         self.saved=False
         self.path=""
 
@@ -3565,7 +3604,7 @@ class RulesResultsDialog(wx.Dialog):
         sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Outputs"), wx.VERTICAL)
         sizer_4.Add(sizer_5, 0, wx.ALL | wx.EXPAND, 10)
 
-        self.lb_outputs = wx.ListBox(self, wx.ID_ANY, choices=self.outputs)
+        self.lb_outputs = wx.ListBox(self, wx.ID_ANY, choices=outputs)
         sizer_5.Add(self.lb_outputs, 1, 0, 0)
 
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
@@ -3578,11 +3617,11 @@ class RulesResultsDialog(wx.Dialog):
         self.cb_submodel.Enable(False)
         sizer_9.Add(self.cb_submodel, 1, wx.ALL, 5)
 
-        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Rules"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 10)
+        self.sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Rules"), wx.HORIZONTAL)
+        sizer_6.Add(self.sizer_7, 1, wx.ALL | wx.EXPAND, 10)
 
         self.label_rules = wx.StaticText(self, wx.ID_ANY, "Select an output")
-        sizer_7.Add(self.label_rules, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_7.Add(self.label_rules, 1, wx.ALL | wx.EXPAND, 5)
 
         sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model Information"), wx.HORIZONTAL)
         sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 10)
@@ -3591,22 +3630,25 @@ class RulesResultsDialog(wx.Dialog):
         sizer_8.Add(self.label_model_info, 1, wx.ALL | wx.EXPAND, 5)
 
         sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Actions"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_10, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        sizer_6.Add(sizer_10, 0,wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
-        grid_sizer_1 = wx.GridSizer(2, 2, 1, 1)
-        sizer_10.Add(grid_sizer_1, 1, 0, 0)
+        grid_sizer_1 = wx.GridSizer(2, 2, 2, 2)
+        sizer_10.Add(grid_sizer_1, 0, 0, 0)
 
-        self.button_preciwise = wx.Button(self, wx.ID_ANY, "R2 evolution")
-        grid_sizer_1.Add(self.button_preciwise, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.button_preciwise = wx.Button(self, wx.ID_ANY,  "      Evolution     ")
+        grid_sizer_1.Add(self.button_preciwise, 1,wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 2)
 
-        self.button_mf = wx.Button(self, wx.ID_ANY, "Membership functions")
-        grid_sizer_1.Add(self.button_mf, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.button_mf = wx.Button(self, wx.ID_ANY,         "Membership functions")
+        grid_sizer_1.Add(self.button_mf, 1, wx.ALIGN_CENTER_HORIZONTAL |wx.ALL, 2) 
 
-        self.button_save_alone = wx.Button(self, wx.ID_ANY, "Save alone")
-        grid_sizer_1.Add(self.button_save_alone, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.button_save_alone = wx.Button(self, wx.ID_ANY, "      Predict       ")
+        grid_sizer_1.Add(self.button_save_alone, 1,wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 2)
 
-        self.button_details = wx.Button(self, wx.ID_ANY, "Details")
-        grid_sizer_1.Add(self.button_details, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.button_save_alone = wx.Button(self, wx.ID_ANY, "    Export to file  ")
+        grid_sizer_1.Add(self.button_save_alone, 1,wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 2)
+
+        self.button_details = wx.Button(self, wx.ID_CONTEXT_HELP, "Details")
+        #grid_sizer_1.Add(self.button_details, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -3614,6 +3656,8 @@ class RulesResultsDialog(wx.Dialog):
         self.button_SAVE = wx.Button(self, wx.ID_SAVE, "Save*")
         self.button_SAVE.SetDefault()
         sizer_2.AddButton(self.button_SAVE)
+
+        sizer_2.AddButton(self.button_details)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
@@ -3629,12 +3673,25 @@ class RulesResultsDialog(wx.Dialog):
         
         self._enable_buttons(False)
         sizer_1.Fit(self)
-
         
         self.SetEscapeId(self.button_CANCEL.GetId())
-        self.SetSize(700,600)
+        self.SetSize(900,700)
         self.Center()
         self.Layout()
+
+    def _custom_outputs(self):
+        toret=[]
+        i=0
+        for output in self.outputs:
+            tmp=output
+            if self.types[i]=="regression":
+                r2=self.models[output][0].get_enssemble_metrics()
+                tmp=tmp+" - ("+str(np.round(r2*100,1))+"%)"
+            toret.append(tmp)
+            i+=1
+        
+        return toret
+        
 
     def _enable_buttons(self,val):
         self.button_details.Enable(val)
@@ -3661,7 +3718,7 @@ class RulesResultsDialog(wx.Dialog):
         self._enable_buttons(False)
         self.label_rules.SetLabelText("Select a submodel")
         self.label_model_info.SetLabelText("Select a submodel")
-        model=evt.GetString()
+        model=evt.GetString().split(" - ")[0]
         self.cb_submodel.Enable(True)
 
         submodels=self.submodels[model]
@@ -3685,26 +3742,17 @@ class RulesResultsDialog(wx.Dialog):
 
         self.cb_submodel.Clear()
         self.cb_submodel.AppendItems(formated_submodels)
-    
-    def OnSelectSubmodel(self,evt):
-        self._enable_buttons(True)
-        submodel=evt.GetString().split(" - ")[0]
-        
-        submodel=self.currentSubmodels[submodel]
-        
+
+    def _display(self,submodel,rules,metric_value):
         metrics=""
         for metric in submodel['training_score']:
             value=np.round(submodel['training_score'][metric],3)
             metrics=metrics+metric+": "+str(value)+"\n"
 
-        r2=submodel['training_score']['r2']
-        model=submodel['model']
-
-        rules=model.get_rules()
-
-        if r2>0.7:
+        
+        if metric_value>0.7:
             self.label_model_info.SetForegroundColour(wx.Colour(77,150,66))
-        elif r2>0.6:
+        elif metric_value>0.6:
             self.label_model_info.SetForegroundColour(wx.Colour(160,180,50))
         else:
             self.label_model_info.SetForegroundColour(wx.Colour(138,39,28))
@@ -3713,10 +3761,41 @@ class RulesResultsDialog(wx.Dialog):
 
         rules_formatted=""
         for rule in rules:
-            rules_formatted=rules_formatted+rule+"\n"
+            rules_formatted=rules_formatted+rule+"\n\n"
         
         self.label_rules.SetLabelText(rules_formatted)
+        #self.sizer_7.Layout()
+    
 
+    def _display_classification(self,submodel):
+        submodel=self.currentSubmodels[submodel]
+        
+        accuracy=submodel['training_score']['accuracy']
+        model=submodel['model']
+        rules=model.get_rules()
+       
+        self._display(submodel,rules,accuracy)
+
+    def _display_regression(self,submodel):
+        submodel=self.currentSubmodels[submodel]
+        
+        r2=submodel['training_score']['r2']
+        model=submodel['model']
+        rules=model.get_rules()
+
+        
+        self._display(submodel,rules,r2)
+        
+
+    def OnSelectSubmodel(self,evt):
+        self._enable_buttons(True)
+        submodel=evt.GetString().split(" - ")[0]
+        
+        if submodel!="all":
+            self._display_regression(submodel)
+        else:
+            self._display_classification(submodel)
+        
     def OnSaveTask(self,evt):
         print("SAVING ")
         cancel=False
@@ -3752,3 +3831,144 @@ class RulesResultsDialog(wx.Dialog):
 
 
 
+class SettingsDialog(wx.Dialog):
+    def __init__(self,parent):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Settings")
+        self.SetFont(parent.GetFont())
+        self.currentSettings=parent.setting
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_options = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Options"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_options, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+        sizer_options.Add(sizer_4, 1, wx.EXPAND, 0)
+
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_5, 1, wx.EXPAND, 0)
+
+        label_font_size = wx.StaticText(self, wx.ID_ANY, "Font size")
+        sizer_5.Add(label_font_size, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+
+        self.original_font_size=self.currentSettings.font_size
+        self.restart=False
+
+        self.font_size_ctrl = wx.SpinCtrl(self, wx.ID_ANY,initial=self.original_font_size, min=9, max=20)
+        sizer_5.Add(self.font_size_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        label_font_size_copy = wx.StaticText(self, wx.ID_ANY, "Default path")
+        sizer_6.Add(label_font_size_copy, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+
+        self.default_path_ctrl = wx.TextCtrl(self, wx.ID_ANY,self.currentSettings.defaultPath,style=wx.TE_READONLY,size=(300,-1))
+        sizer_6.Add(self.default_path_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("C:/Users/USUARIO/Desktop/NeuroRule/front/resources/guardar.png", wx.BITMAP_TYPE_ANY))
+        sizer_6.Add(self.icon_folder_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_colors = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Colors"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_colors, 1, wx.ALL | wx.EXPAND, 10)
+
+        grid_sizer_1 = wx.GridSizer(2, 2, 2, 2)
+        sizer_colors.Add(grid_sizer_1, 1, wx.EXPAND, 0)
+
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        grid_sizer_1.Add(sizer_7, 1, wx.EXPAND, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Inputs")
+        sizer_7.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.input_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,self.currentSettings.independentColor)
+        
+        sizer_7.Add(self.input_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        grid_sizer_1.Add(sizer_8, 1, wx.EXPAND, 0)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, "Outputs")
+        sizer_8.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.output_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,self.currentSettings.targetColor)
+        
+        sizer_8.Add(self.output_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        grid_sizer_1.Add(sizer_9, 1, wx.EXPAND, 0)
+
+        label_3 = wx.StaticText(self, wx.ID_ANY, "Missing values")
+        sizer_9.Add(label_3, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.nan_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,colour=self.currentSettings.NanColor)
+        
+        sizer_9.Add(self.nan_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
+        grid_sizer_1.Add(sizer_10, 1, wx.EXPAND, 0)
+
+        label_4 = wx.StaticText(self, wx.ID_ANY, "Outliers")
+        sizer_10.Add(label_4, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.outliers_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,colour=self.currentSettings.outlierColor)
+        
+        sizer_10.Add(self.outliers_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+        self.Bind(wx.EVT_BUTTON,self.OnChooseFolder,self.icon_folder_bitmap)
+        self.Bind(wx.EVT_SPINCTRL,self.OnChangeFont,self.font_size_ctrl)
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Layout()
+        self.Center()
+    
+    def OnChangeFont(self,evt):
+        
+        if self.original_font_size!=evt.GetPosition():
+            self.restart=True
+    
+    def OnChooseFolder(self,evt):
+        response=IOManage.GetPathFolder(self,"Select a new path").getResponse()
+        if response['status']==Status.OK:
+            self.default_path_ctrl.SetLabelText(response['data'])
+
+    def OnApply(self,evt):
+        font_size=self.font_size_ctrl.GetValue()
+
+        if font_size<9 or font_size>20:
+            wx.MessageBox("Invalid value for font size","Error",wx.ICON_ERROR)
+        else:
+            self.currentSettings.font_size=font_size
+            self.currentSettings.defaultPath=self.default_path_ctrl.GetValue()
+            self.currentSettings.independentColor=self.input_color_ctrl.GetColour()
+            self.currentSettings.targetColor=self.output_color_ctrl.GetColour()
+            self.currentSettings.NanColor=self.nan_color_ctrl.GetColour()
+            self.currentSettings.outlierColor=self.outliers_color_ctrl.GetColour()
+
+            message="Configuration saved!"
+            if self.restart:
+                message=message+" You need to restart the program to see the changes."
+            wx.MessageBox(message,"Info",wx.OK)
+            self.currentSettings.update_conf()
+            self.EndModal(wx.ID_REFRESH)

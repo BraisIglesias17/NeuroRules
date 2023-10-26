@@ -5,9 +5,14 @@ from sklearn.ensemble import RandomForestRegressor,RandomForestClassifier
 from sklearn.model_selection import cross_val_score,GridSearchCV,KFold
 from sklearn.neural_network import MLPRegressor,MLPClassifier
 from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,precision_recall_curve,auc
+from sklearn import tree
 import numpy as np
 from .neurofuzzy import NeuroFuzzy
+from .neuroclassifier import NeuroClassifier
 from itertools import combinations
+from scipy.stats import pearsonr
+
+
 
 class Model(ABC):
     
@@ -93,22 +98,59 @@ class ModelImplementation(Model):
             self.estimator_type="regressor"
             self.rule_generator=True
             self.submodels={}
+        
+        elif model=="DecisionTree":
+            self.estimator_type="classifier"
+            self.rule_generator=True
+            self.submodels={}
 
         else:
             raise ValueError("Not supported model")
-        
         
         if(not filename == None):
              self.model=pickle.load(open(filename, 'rb'))
              
     def train(self,input,target,cv=False,subsets=10,gridSearch=False,names_input=None,name_output=None,types=None):
-        if self.rule_generator:
-            self._fit_rule_generating(input,target,names_input=names_input,name_output=name_output,types=types)
+        if self.rule_generator and self.estimator_type=="regressor":
+            self._fit_rule_generating_regression(input,target,names_input=names_input,name_output=name_output,types=types)
+        elif self.rule_generator and self.estimator_type=="classifier":
+            self._fit_rule_generating_classifier(input,target,names_input,np.unique(target))
         else:
             self._fit_prediction_model(input,target,cv=cv,subsets=subsets,gridSearch=gridSearch)
 
-    def _fit_rule_generating(self,input,target,names_input,name_output,types):
+
+
+    def _fit_rule_generating_classifier(self,input,target,input_names,class_names):
+        
+        self.model=NeuroClassifier(input_names,class_names)
+        self.model.fit(X=input,y=target)
+        
+        scores=self.get_score(X=input,y_true=target)
+    
+        self.submodels['all']={'model':self.model,'training_score':scores,'best':self.model,'inputs':input_names}
+        
+
+
+    def _fit_rule_generating_regression(self,input,target,names_input,name_output,types):
         print("Fitting neurofuzzy system")
+        #print(f'BEFORE:{input},{names_input}')
+        #filtrar por correlacion
+        toDel=[]
+        for i in range(input.shape[1]):
+            col=input[:,i]
+            pvalue=pearsonr(col,target).pvalue
+            print(pvalue)
+            if pvalue>0.5:
+                toDel.append(i)
+        
+        #eliminar columnas y nombres
+        tmp = [names_input[i] for i in range(len(names_input)) if i not in toDel]
+        names_input=tmp
+
+        tmp= np.delete(input, toDel, axis=1)
+        input=tmp
+
+        #print(f'AFTER:{input},{names_input}')
         r2=-100
         combs=names_input+list(combinations(names_input,2))
         
@@ -145,10 +187,40 @@ class ModelImplementation(Model):
             if scores['r2']>r2:
                 bestmodel=True
 
-            self.submodels[name_]={'model':self.model,'trainig_score':self.get_score(X=X,y_true=target),'best':bestmodel,'inputs':names}
-            
-            i+=1
-            
+            if scores['r2']>0.5:
+                self.submodels[name_]={'model':self.model,'training_score':scores,'best':bestmodel,'inputs':names}
+                i+=1
+
+        
+        self._generate_ensemble_model(input.shape[0],target)
+
+    def _submodels_pruning(self):
+        print("delete worsts models")
+
+
+    def _generate_ensemble_model(self,input_size,y):
+        n=len(self.submodels)
+        if n!=0:
+            inputs=np.zeros((input_size,n))
+            i=0
+
+            for submodel in self.submodels:  
+                inputs[:,i]=(self.submodels[submodel]['model'].get_predictions_on_train().flatten())
+                i+=1
+
+            ensemble=LinearRegression()
+            ensemble.fit(inputs,y)
+
+            self.ensembled_model=ensemble
+            self.ensembled_model_metrics=ensemble.score(inputs,y)
+        else:
+            self.ensembled_model=None
+            self.ensembled_model_metrics=0.0
+
+    def get_enssemble_metrics(self):
+
+        ##CAMBIAR ESTO
+        return self.ensembled_model_metrics
 
     def _fit_prediction_model(self,input,target,cv=False,subsets=10,gridSearch=False):
         if gridSearch:
@@ -166,6 +238,7 @@ class ModelImplementation(Model):
 
             self.training_scores={scorer:crf.best_score_}
             self.model=crf.best_estimator_
+            
         elif cv:
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
@@ -208,7 +281,9 @@ class ModelImplementation(Model):
         if self.estimator_type=="regressor": 
             tmp['r2']=r2_score(y_pred=y_pred,y_true=y_true)
             
-            tmp['mse']=mean_squared_error(y_pred=y_pred,y_true=y_true)
+            min=np.min(y_true)
+            max=np.max(y_true)
+            tmp['mse']=mean_squared_error(y_pred=y_pred,y_true=y_true)/(max-min)
             
             tmp['rmse']=np.sqrt(tmp['mse'])
             

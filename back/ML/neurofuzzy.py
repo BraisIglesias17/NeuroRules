@@ -39,7 +39,6 @@ class NeuroFuzzy():
 
     def __init__(self,input,input_names,output,output_name,n_membership_input,n_membership_output,types,memebership_function="default"):
         
-        
         """
         Constructor
         
@@ -771,12 +770,12 @@ class NeuroFuzzy():
             for j in range(self.n_membership_output):
                 
                 
-                conf=fuzz.interp_membership(x=self.consecuence.universe,xmf=self.consecuence[self.NAMES(self.n_membership_output)[j]].mf,xx=weight)
+                conf=fuzz.interp_membership(x=np.array(self.consecuence.universe,dtype=np.float64),xmf=self.consecuence[self.NAMES(self.n_membership_output)[j]].mf,xx=weight)
 
                 if (self.NAMES(self.n_membership_output)[j]=="Low" and weight < np.min(self.consecuence.universe)) or (self.NAMES(self.n_membership_output)[j]=="High" and weight > np.max(self.consecuence.universe)) :
                     conf=1.0
 
-                #print(f'EVALUATING {weight} in {self.NAMES(self.n_membership_output)[j]} is {conf}')
+                
 
                 confs.append(conf)
             
