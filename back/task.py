@@ -81,13 +81,14 @@ class Task():
         
         print("Performing model training ...")
         for variable in self.models:
-            y=self.contextData.get_values_output(variable)
-            y_train=y[self.train_index]
+            
 
             print(f"\tstarting "+variable+"...")
             for model in self.models[variable]:
-            
-                model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'],names_input=self.input_names,name_output=self.output_name,types=self.types)
+                y=self.contextData.get_values_output(variable)
+                y_train=y[self.train_index]
+                y_test=y[self.test_index]
+                model.train(self.X_train,y_train,self.validation['method']=="Cross Validation",self.validation['params']['subsets'],self.outputs[variable]['params'],names_input=self.input_names,name_output=self.output_name,types=self.types,X_test=self.X_test,y_test=y_test)
                 
                 #time.sleep(0.1)
                 if callable!=None:
@@ -111,15 +112,26 @@ class Task():
         toret={}
         models=self.models[variable]
 
+        
         for model in models:
 
             tmp={}
-            y=self.contextData.get_values_output(variable)
-            y_test=y[self.test_index]
-            tmp=model.report(self.X_test,y_test)
+            #y=self.contextData.get_values_output(variable)
+            #y_test=y[self.test_index]
+            tmp=model.report()
+            
             toret[model.modelname]={'validation':self.validation['method'],'metrics':tmp,'options':model.get_params()}
             #toret[model.modelname]['params']=model.get_params()
 
+        
+        return toret
+
+    def get_text_reports(self,variable):
+        toret={}
+        models=self.models[variable]
+
+        for model in models:
+            toret[model.modelname]=model.get_text_report()
         
         return toret
 
