@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 class FileSaver(ABC):
-    @abstractmethod
+   
     def save(self, filename, content):
+        self._save(filename,content)
+    
+    @abstractmethod
+    def _save(self,filename,content):
         pass
 
 class DataSetSaver(FileSaver):
@@ -25,7 +29,7 @@ class XLSFileSaver(DataSetSaver):
         content.to_excel(filename,index=False)
         
 class TextFileSaver(FileSaver):
-    def save(self, filename, content):
+    def _save(self, filename, content):
         with open(filename, 'w') as file:
                 file.write(content) 
 
@@ -42,6 +46,8 @@ class Saver():
             self.saver=CSVFileSaver()
         elif str(pathname).endswith(".txt"):
             self.saver=TextFileSaver()
+        else:
+            raise ValueError("Invalid file type")
     
     def save(self):
         self.saver.save(self.path,self.content)
