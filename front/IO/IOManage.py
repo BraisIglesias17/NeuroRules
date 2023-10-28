@@ -8,7 +8,7 @@ class IOManage():
 
     @staticmethod
     def GetPath(window,message,wildcard,defaultname=""):
-        defaultname=defaultname+".nrl"
+        #defaultname=defaultname
         with wx.FileDialog(window, message, wildcard=wildcard,defaultFile=defaultname,
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 

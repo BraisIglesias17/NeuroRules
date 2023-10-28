@@ -144,7 +144,11 @@ def plot_general_group(data,group):
         g =sns.pairplot(data,height=2.5)
     plt.show()
 
-def plot_barplot(dict,title,xtitle,ytitle):
+def plot_barplot(dict,xtitle,ytitle,title=""):
+    
+    plot_barplot_object(dict,xtitle,ytitle,title="").show()
+
+def plot_barplot_object(dict,xtitle,ytitle,title=""):
     plt.figure(title)
     
     labels = list(dict.keys())
@@ -158,4 +162,5 @@ def plot_barplot(dict,title,xtitle,ytitle):
     plt.title(title)
     for i in range(len(labels)):
         plt.text(labels[i], values[i], str(np.round(values[i],4)), ha='center', va='bottom')
-    plt.show()
+    
+    return plt

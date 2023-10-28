@@ -202,7 +202,7 @@ class NeuroFuzzy():
         r2=r2_score(y,y_pred)
         max=np.max(y)
         min=np.min(y)
-        print(mse)
+        
         #normalize mean squared error
         mse=mean_squared_error(y,y_pred)/(max-min)
 

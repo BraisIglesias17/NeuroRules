@@ -9,6 +9,7 @@ from ..statistic.statistic import StatisticTest
 from ..ML.model import Model
 from ..task import Task
 import traceback
+from ..saver import Saver
 
 class Controller():
 
@@ -161,52 +162,13 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
-
-    def create_models(self,model,params):
-        
-        names=self.contextData.get_names()
-        i=0
-
-        toret=[]
-        for index in self.contextData.targets_index:
-            y=self.contextData.get_column(index)
-            X=self.contextData.get_variables()
-
-            index_var=self.contextData.variables_index
-            
-            #Par X,y de entrenamiento 
-            #PCA
-            print(f" TRAINING {names[index]}....")
-            if all(isinstance(value, str) for value in y):
-                #CLASIFICION
-                
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-                model=SVMModel()
-                model.train(X_train,y_train)
-                
-                predictions = model.predict(X_test)
-                report = classification_report(y_test, predictions)
-                print(report)
-                
-
-            else:
-                #Regresión
-                
-                y=np.array(y,dtype="float64")
-                X=np.array(X,dtype="float64")
-                model=NeuroFuzzy(input=X,input_names=names[index_var],output=y,output_name=names[index],n_membership_input=2,n_membership_output=2)
-                model.fit(learning_rate=0.001,epochs=50)
-                
-                toret.append(model.get_rules())
-                name="model_"+str(i)
-                self.models[name]=model
-                
-            print("TRAINED")
-            i+=1
-            #toret={'R2':,'rules':}
-            
-        return toret
-    
+    def clear_task(self):
+        try:
+            del self.currentTask
+            self.currentTask=None
+            return Response(data="",status=Status.OK)
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)    
 
     def save_data(self,pathname):
         try:
@@ -416,13 +378,22 @@ class Controller():
             print(exc)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
+    def get_text_reports(self,variable):
+        try:
+            
+            return Response(data=self.currentTask.get_text_reports(variable),status=Status.OK)
+            
+        except Exception as exc:
+            traceback.print_exc()
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+
     def get_task_name(self):
         try:
             
             return Response(data=self.currentTask.taskName,status=Status.OK)
             
         except Exception as exc:
-            print(exc)
+           
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def task_state(self):
@@ -487,4 +458,19 @@ class Controller():
         except Exception as exc:
             print(exc)
             #traceback.print_exc()
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+
+    def save_file(self,content,path):
+        try:
+            
+            saver=Saver(path=path,content=content)
+            
+            saver.save()
+            
+            return Response(data={},status=Status.OK)
+        
+        except Exception as exc:
+            
+            traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
