@@ -1,14 +1,10 @@
 import wx
-import wx.html2
 import wx.grid as gridlib
-import pandas as pd
 from front.settings.settings import Settings 
 from front.IO.IOManage import IOManage
-#from dialogs import CreateSetDialog
-from back.data.contextData import ContextData
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -43,6 +39,8 @@ class MainWindow(wx.Frame):
         self.highlighted_outliers_cells=[]
         self.start=True
         self.names=[]
+        self.new_set={}
+
 
         self.float_variable_names=[]
         self.int_variable_names=[]
@@ -208,7 +206,7 @@ class MainWindow(wx.Frame):
         status=response['status']
         
 
-        if status==Status.OK or status==Status.EXISTING_TASK:
+        if status==Status.UNEXISTING_TASK or status==Status.EXISTING_TASK:
             dialog=PickDialog(self)
             code=dialog.ShowModal()
             return code
@@ -259,12 +257,12 @@ class MainWindow(wx.Frame):
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
             
     def OnNeurofuzzyModel(self,evt):
-        #dialog=PickDialog(self)#VariableTypeDialog(self)
-        #code=dialog.ShowModal()    
+        
+          
         code=self.OnManageCurrentTask()
 
         if code == wx.ID_APPLY:
-            #self.train_button.Enable(True)
+            
             self.updateColors()
 
             dialog_prediction=RulePredictinglDialog(self)
@@ -796,6 +794,45 @@ class MainWindow(wx.Frame):
         if code==wx.ID_REFRESH:
             self.Refresh()
 
+    def OnSaveTask(self,evt):
+        response=self.controller.task_state().getResponse()
+
+        if response['status']!=Status.UNEXISTING_TASK:
+            
+            path=IOManage.GetPath(self,"Path to save",WILCARD_TASK,defaultname=response['data']['name']).getResponse()
+            
+            if path['status']==Status.OK:
+
+                path=path['data']
+                response=self.controller.save_task(path).getResponse()
+
+                if response['status']==Status.OK:
+                    wx.MessageBox("Succesfully saved in"+path)
+                else:
+                    wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+
+        else:
+            wx.MessageBox(response['data'],"Info")
+
+
+    def OnCreateSet(self,evt):
+        data={}
+        dialog=CreateSetDialog(self,data)
+        code=dialog.ShowModal()
+
+        if code==wx.ID_APPLY:
+            
+            response=self.controller.create_empty_set(self.new_set).getResponse()
+            
+            if response['status']!=Status.OK:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+            else:
+                self.ClearGrid()
+                
+                self.updateGrid(response['data'])
+                self.enableButtons(True)
+            
+
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         menubar.SetFont(self.setting.font)
@@ -855,7 +892,7 @@ class MainWindow(wx.Frame):
         taskMenu = wx.Menu()  
         importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task\tCtrl+D')
         saveTaskOption=taskMenu.Append(wx.ID_ANY, '&Save as')
-        closeTaskOption=taskMenu.Append(wx.ID_ANY, '&Close task')
+        #closeTaskOption=taskMenu.Append(wx.ID_ANY, '&Close task')
 
 
         #Key events
@@ -889,5 +926,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnShowHideOptions,self.showPreprocessOptions)
         self.Bind(wx.EVT_MENU,self.OnShowGeneralSettings,generalSettings)
         self.Bind(wx.EVT_MENU,self.OnClearGrid,clearDataOptiondata)
-        
+        self.Bind(wx.EVT_MENU,self.OnSaveTask,saveTaskOption)
+        self.Bind(wx.EVT_MENU,self.OnCreateSet,createSetOption)
+
         self.SetMenuBar(menubar)  

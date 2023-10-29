@@ -12,9 +12,7 @@ def get_task_name(window):
                 
         if code==wx.ID_OK:
             taskname=dialog.GetValue()
-
-            patron = r'^[a-zA-Z0-9_-]+$'
-            ok=bool(re.match(patron, taskname))
+            ok=validate_name(taskname)
         elif code==wx.ID_CANCEL:
             cancel=True
 
@@ -22,3 +20,8 @@ def get_task_name(window):
             wx.MessageBox("Invalid task name, it can only contain alphanumeric characters, '-' and '_'. ","Error",wx.OK|wx.ICON_ERROR)
     
     return taskname,cancel
+
+def validate_name(name):
+    patron = r'^[a-zA-Z0-9_-]+$'
+    ok=bool(re.match(patron, name))
+    return name

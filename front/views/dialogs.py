@@ -17,7 +17,7 @@ import time
 import re
 from wx.lib.stattext import GenStaticText
 from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE,WILDCARD_TEXT_FILE
-from .functions import get_task_name
+from .functions import get_task_name,validate_name
 import sys
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 
@@ -39,6 +39,7 @@ class VariableTypeDialog(wx.Dialog):
         self.independent_variables=[]
         self.targets=[]
         self.names=self.controller.get_names().getResponse()['data']
+        
 
         #contador de referencias para limpieza de memoria manual
         self.count=0
@@ -112,6 +113,7 @@ class VariableTypeDialog(wx.Dialog):
             
             self.ClearMemory()
             self.EndModal(wx.OK)
+            self.Destroy()
 
 
     def OnUpdateType(self,event):
@@ -517,7 +519,7 @@ class CleanDataDialog(wx.Dialog):
             wx.CallAfter(wx.MessageBox,str(str(deleted)+" deleted and "+str(modified)+" modified rows."),"Info")
             
             wx.CallAfter(self.EndModal,wx.ID_APPLY)
-            
+            wx.CallAfter(self.Destroy)
 
         else:
             wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -873,7 +875,8 @@ class SummaryDialog(wx.Dialog):
         
         if result['status'] == Status.OK:
             path=result['data']
-            saver=Saver(path,self.summary).save()
+            
+            Saver(path,self.summary,True).save()
             cadena=str("File saved succesfully in "+path)
             wx.MessageBox(cadena,"Info")
         elif result['status'] != Status.CANCEL:
@@ -1004,6 +1007,7 @@ class ShowHiddenDialog(wx.Dialog):
             self.parent.names_to_show=self.names[choices]
             
             self.EndModal(wx.OK)
+            self.Destroy()
 
 class ShowIdentifierColsDialog(wx.Dialog):
     def __init__(self,parent):
@@ -1051,6 +1055,7 @@ class ShowIdentifierColsDialog(wx.Dialog):
                 self.parent.identifier_cols.remove(self.names[var])
             
             self.EndModal(wx.OK)
+            self.Destroy()
         
             
 
@@ -2143,6 +2148,7 @@ class PickDialog(wx.Dialog):
             del toAdd
             
             self.EndModal(wx.ID_APPLY)
+            self.Destroy()
 
     def OnAddInput(self,evt):
         self.OnAdd(self.list_box_inputs,self.independent_variables)
@@ -2172,14 +2178,7 @@ class PickDialog(wx.Dialog):
         
         del tmp_all
         #update listbox
-        """listbox.Clear()
-        if len(variables)!=0:
-            listbox.InsertItems(variables,0)
-        self.list_box_all_variables.Clear()
-
-        if len(self.all_variables)!=0:
-            self.list_box_all_variables.InsertItems(self.all_variables,0)"""
-
+        
         self._update_listbox(listbox,variables)
 
     def OnRemove(self,listbox,variables):
@@ -2193,15 +2192,7 @@ class PickDialog(wx.Dialog):
 
         del tmp
         #update listbox
-        """
-        listbox.Clear()
-        if len(variables)!=0:
-            listbox.InsertItems(variables,0)
-
-        self.list_box_all_variables.Clear()
-        if len(self.all_variables)!=0:
-            self.list_box_all_variables.InsertItems(self.all_variables,0)
-        """
+        
         self._update_listbox(listbox,variables)
         
     def _update_listbox(self,listbox,variables):
@@ -2363,12 +2354,12 @@ class TransformDialog(wx.Dialog):
         sizer_6 = wx.BoxSizer(wx.VERTICAL)
         sizer_14.Add(sizer_6, 0, wx.EXPAND | wx.ALL, 10)
 
-        self.radio_box_categorical = wx.RadioBox(self.notebook_categorical, wx.ID_ANY, "Transformation", choices=["None","One hot encoding", "Label encoding", "Custom mapping"], majorDimension=2, style=wx.RA_SPECIFY_COLS)
+        self.radio_box_categorical = wx.RadioBox(self.notebook_categorical, wx.ID_ANY, "Transformation", choices=["None","One hot encoding", "Label encoding",], majorDimension=2, style=wx.RA_SPECIFY_COLS)
         self.radio_box_categorical.SetSelection(0)
         sizer_6.Add(self.radio_box_categorical, 1, wx.EXPAND | wx.ALL, 5)
 
-        self.button_mapping_options = wx.Button(self.notebook_categorical, wx.ID_ANY, "Mapping")
-        sizer_6.Add(self.button_mapping_options, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        #self.button_mapping_options = wx.Button(self.notebook_categorical, wx.ID_ANY, "Mapping")
+        #sizer_6.Add(self.button_mapping_options, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
         self._enable_mapping(False)
 
@@ -2403,6 +2394,7 @@ class TransformDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
         self.Bind(wx.EVT_CHECKBOX,self.OnChangeCheck,self.checkbox_keep)
+        
         #self.Bind(wx.EVT_BUTTON,self.OnClose,self.button_CANCEL)
         #self.Bind(wx.EVT_CLOSE,self.OnClose)
         self.SetSizer(sizer_1)
@@ -2487,6 +2479,7 @@ class TransformDialog(wx.Dialog):
             wx.CallAfter(wx.MessageBox,"Transformations succesfully applied","Info",wx.OK|wx.ICON_INFORMATION)
             self.changes=True
             wx.CallAfter(self.EndModal,wx.OK)
+            wx.CallAfter(self.Destroy)
                     
     def OnSave(self,evt):
         
@@ -2849,6 +2842,7 @@ class PredictionModelDialog(wx.Dialog):
                         self.Show()
                     else:
                         self.EndModal(wx.ID_OK)
+                        self.Destroy()
 
                 elif response['status']==Status.EXISTING_TASK:
                     wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
@@ -2943,14 +2937,15 @@ class TaskReportDialog(wx.Dialog):
         
         if response['status']!=Status.OK:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
-            #wx.CallAfter(wx.MessageBox,response['data'],"Error",wx.ICON_ERROR)
-            #wx.CallAfter(self.EndModal,wx.ID_ABORT)
+            
             self.EndModal(wx.ID_ABORT)
+            self.Destroy()
         else:        
-            #wx.CallAfter(wx.MessageBox,"Training completed!","Info")
+            
             wx.MessageBox("Training completed!","Info")
-            #wx.CallAfter(self.EndModal,wx.ID_APPLY)
+            
             self.EndModal(wx.ID_APPLY)
+            self.Destroy()
             
     def update_progress(self, value):
         
@@ -3496,6 +3491,7 @@ class RulePredictinglDialog(wx.Dialog):
                     self.Show()
                 else:
                     self.EndModal(wx.ID_OK)
+                    self.Destroy()
 
             elif response['status']==Status.EXISTING_TASK:
                 wx.MessageBox("A task already exists","Warning",wx.ICON_WARNING)
@@ -4039,3 +4035,149 @@ class SettingsDialog(wx.Dialog):
             wx.MessageBox(message,"Info",wx.OK)
             self.currentSettings.update_conf()
             self.EndModal(wx.ID_REFRESH)
+            self.Destroy()
+
+class CreateSetDialog(wx.Dialog):
+    def __init__(self,parent,data):
+        
+        self.data=data
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Create set")
+
+        self.new_set=parent.new_set
+        self.controller=parent.controller
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Create set")
+        label_1.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4.Add(sizer_6, 1, wx.EXPAND, 0)
+
+        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "New variable"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 0, wx.ALL | wx.EXPAND, 15)
+
+        sizer_8 = wx.BoxSizer(wx.VERTICAL)
+        sizer_7.Add(sizer_8, 1, wx.EXPAND, 0)
+
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_8.Add(sizer_9, 1, wx.EXPAND, 0)
+
+        label_name = wx.StaticText(self, wx.ID_ANY, "Name")
+        sizer_9.Add(label_name, 0, wx.ALL, 4)
+
+        self.variable_name_ctrl = wx.TextCtrl(self, wx.ID_ANY, "")
+        sizer_9.Add(self.variable_name_ctrl, 1, wx.ALIGN_CENTER_VERTICAL, 0)
+
+        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_8.Add(sizer_10, 1, wx.EXPAND | wx.TOP, 0)
+
+        label_type = wx.StaticText(self, wx.ID_ANY, "Type")
+        sizer_10.Add(label_type, 0, wx.ALL, 7)
+
+        self.type_choice = wx.Choice(self, wx.ID_ANY, choices=["Numeric","Nominal"])
+        self.type_choice.SetSelection(0)
+        sizer_10.Add(self.type_choice, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+
+        sizer_11 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Actions"), wx.HORIZONTAL)
+        sizer_6.Add(sizer_11, 1, wx.ALL | wx.EXPAND, 15)
+
+        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_11.Add(sizer_12, 1, wx.EXPAND, 0)
+
+        self.button_add_variable = wx.Button(self, wx.ID_ANY, "Add")
+        sizer_12.Add(self.button_add_variable, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+
+        self.button_remove_variable = wx.Button(self, wx.ID_ANY, "Remove")
+        sizer_12.Add(self.button_remove_variable, 0, wx.ALIGN_CENTER_VERTICAL, 10)
+        self.button_add_variable.SetDefault()
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Set"), wx.VERTICAL)
+        sizer_4.Add(sizer_5, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.list_box_new_set = wx.ListBox(self, wx.ID_ANY, choices=[],style=wx.LB_MULTIPLE)
+        sizer_5.Add(self.list_box_new_set, 1, wx.EXPAND, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "Create")
+        
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Bind(wx.EVT_BUTTON,self.OnAddVariable,self.button_add_variable)
+        self.Bind(wx.EVT_BUTTON,self.OnRemoveVariable,self.button_remove_variable)
+        self.Bind(wx.EVT_BUTTON,self.OnCreate,self.button_OK)
+        self.Center()
+        self.Layout()
+
+    def OnCreate(self,evt): 
+
+        if len(self.new_set)==0:
+            wx.MessageBox("You can not create a set without variables.","Warning",wx.ICON_WARNING)
+        else:    
+            self.EndModal(wx.ID_APPLY)
+            self.Destroy()
+
+
+    def OnAddVariable(self,evt):
+
+        name=self.variable_name_ctrl.GetValue()
+        ok=validate_name(name)
+
+        if not ok:
+            wx.MessageBox("Not valid name for variable","Error",wx.ICON_ERROR)
+        else:
+            
+            current_names=list(self.new_set.keys())
+            if name in current_names:
+                wx.MessageBox("There is already a variable with this name.","Warning",wx.ICON_WARNING)
+            else:
+
+                var_type=self.type_choice.GetStringSelection()
+
+                if var_type=="Nominal":
+                    self.new_set[name]=str
+                elif var_type=="Numeric":
+                    self.new_set[name]=float
+
+                self.list_box_new_set.AppendItems([str(name+" ("+var_type+") ")])
+        
+    
+    def OnRemoveVariable(self,evt):
+        selections=self.list_box_new_set.GetSelections()
+        strings=self.list_box_new_set.GetStrings()
+        toDel=[]
+    
+        for selection in selections:
+            full=strings[selection]
+            name=full.split(" ")[0]
+            del self.new_set[name]
+
+            toDel.append(full)
+
+        for elem in toDel:    
+            strings.remove(elem)
+        
+        self.list_box_new_set.Clear()
+        if len(strings)!=0:
+            self.list_box_new_set.AppendItems(strings)

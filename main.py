@@ -7,6 +7,9 @@ if __name__ == '__main__':
     print("---------------------------------- ")
     
     print("------- Starting NEURORULE ------- ")
+
+    print("The launch may take a few minutes ...")
+    
     app = wx.App()
     
     frame = MainWindow(None, wx.ID_ANY, "")

@@ -9,6 +9,7 @@ class Status():
     EXISTING_TASK_UNSAVED=7
     CANCEL=5
     EXISTING_TASK_NO_EXECUTED=8
+    UNEXISTING_TASK=9
 
 class Response():
 

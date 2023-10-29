@@ -11,34 +11,36 @@ class FileSaver(ABC):
 
 class DataSetSaver(FileSaver):
 
-    def save(self,filename,content):
+    def save(self,filename,content,index):
          if not isinstance(content,pd.DataFrame):
             raise ValueError("Must be an pandas dataframe") 
          else:
-             self._save(filename,content)
+             self._save(filename,content,index)
     @abstractmethod
-    def _save(self,filename,content):
+    def _save(self,filename,content,index):
         pass
 
 class CSVFileSaver(DataSetSaver):
-    def _save(self, filename, content):
-        content.to_csv(filename,index=False)
+    def _save(self, filename, content,index):
+        content.to_csv(filename,index=index)
 
 class XLSFileSaver(DataSetSaver):
-    def _save(self, filename, content):
-        content.to_excel(filename,index=False)
+    def _save(self, filename, content,index):
+        content.to_excel(filename,index=index)
         
 class TextFileSaver(FileSaver):
-    def _save(self, filename, content):
+    def _save(self, filename, content,index):
         with open(filename, 'w') as file:
                 file.write(content) 
 
 
 class Saver():
-    def __init__(self,path,content):
+    def __init__(self,path,content,index=False):
         self.saver=None
         self.path=path
         self.content=content
+        self.index=index
+
         pathname=str(path).replace("\\","/")
         if str(pathname).endswith(".xlsx"):
             self.saver=XLSFileSaver()
@@ -50,5 +52,5 @@ class Saver():
             raise ValueError("Invalid file type")
     
     def save(self):
-        self.saver.save(self.path,self.content)
+        self.saver.save(self.path,self.content,self.index)
             

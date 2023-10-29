@@ -40,7 +40,16 @@ class Controller():
             return Response(data=message,status=Status.GENERAL_ERROR)
 
 
+    def create_empty_set(self,dict):
+        try:
+            
+            self.contextData=ContextData(dict=dict)
 
+            return Response(data=self.contextData.data,status=Status.OK)
+
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
     def update_data_position(self,row,col,value):
 
         try:
@@ -409,7 +418,7 @@ class Controller():
                 #se pregunta al usuario si quiere mantener las variables o si quiere cambiar
                 return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_NO_EXECUTED)            
             else:
-                return Response(data='',status=Status.OK)
+                return Response(data='There is no task',status=Status.UNEXISTING_TASK)
         except Exception as exc:
             print(exc)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)

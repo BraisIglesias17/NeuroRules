@@ -18,13 +18,18 @@ class ContextData():
     pahtname: string
     """
 
-    def __init__(self, dataFrame=pd.DataFrame()):    
+    def __init__(self, dataFrame=pd.DataFrame(),dict=None):    
         
 
         ## ADD ASSERTIONS
 
         self.pathname=""
-        self.data=dataFrame
+        
+        if dict!=None:
+            self.data=pd.DataFrame(columns=dict.keys())
+            self.data = self.data.astype(dict)
+        else:
+            self.data=dataFrame
             
         self.state=True
         self.floatValues=[]
@@ -131,7 +136,6 @@ class ContextData():
                 raise ValueError("Tipo de dato no valido")
             
         elif i == self.data.shape[0]:
-            print("nueva fila")
             # Nueva Fila
             values={}
             names=self.get_names()
@@ -161,7 +165,7 @@ class ContextData():
 
         elif j == self.data.shape[1]:
             # Nueva columna
-            print("NUEVA COLUMNA TO DO")
+            print(" -- Crear nueva columna en proceso (no funciona aún) ...")
 
 
         return True
