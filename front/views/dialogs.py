@@ -17,7 +17,7 @@ import time
 import re
 from wx.lib.stattext import GenStaticText
 from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE,WILDCARD_TEXT_FILE
-from .functions import get_task_name,validate_name
+from .functions import get_task_name,validate_name,validate_range
 import sys
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 
@@ -539,6 +539,8 @@ class GraphDialog(wx.Dialog):
         self.controller=parent.controller
 
         resp=self.controller.get_names().getResponse()
+        self.string_variable=parent.string_variable_names
+
         if resp['status'] == Status.OK:
             names=resp['data']
             names=list(names)
@@ -737,6 +739,8 @@ class GraphDialog(wx.Dialog):
                 
                 if y==z or y==x or z==x:
                     wx.MessageBox("The same variable can not be selected for various axis","Error",wx.OK|wx.ICON_ERROR)
+                elif x in self.string_variable or y in self.string_variable or z in self.string_variable:
+                    wx.MessageBox("A nomial variable can not be selected for 3D graph","Error",wx.OK|wx.ICON_ERROR)
                 else:
                     if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
                         options={}
@@ -754,7 +758,10 @@ class GraphDialog(wx.Dialog):
 
             if self.radio_btn_box_plot.GetValue():
                 options={}
-                plot_boxplot({'x':{'name':x,'data':data[x]}},options)
+                if x in self.string_variable:
+                    wx.MessageBox("Could not generate box plot for a nominal variable","Warning",wx.ICON_WARNING)
+                else:   
+                    plot_boxplot({'x':{'name':x,'data':data[x]}},options)
 
 
 
@@ -2311,9 +2318,10 @@ class TransformDialog(wx.Dialog):
         self.data_preprocess['All']={'apply':True,'numerical':'None','categorical':'None'}   
         self.progressbar=None
 
+        self.bins={}
 
         for variable in parent.names:
-            self.data_preprocess[variable]={'transformation':'None','keep_original':True} 
+            self.data_preprocess[variable]={'transformation':'None','keep_original':True,'params':None} 
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -2345,6 +2353,7 @@ class TransformDialog(wx.Dialog):
 
         self.button_select_bins = wx.Button(self.notebook_numerical, wx.ID_ANY, "Select bins")
         sizer_5.Add(self.button_select_bins, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.button_select_bins.Enable(False)
 
         self.notebook_categorical = wx.Panel(self.notebook_1, wx.ID_ANY)
         self.notebook_1.AddPage(self.notebook_categorical, "Categorical")
@@ -2394,7 +2403,7 @@ class TransformDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
         self.Bind(wx.EVT_CHECKBOX,self.OnChangeCheck,self.checkbox_keep)
-        
+        self.Bind(wx.EVT_BUTTON,self.OnSelectBins,self.button_select_bins)
         #self.Bind(wx.EVT_BUTTON,self.OnClose,self.button_CANCEL)
         #self.Bind(wx.EVT_CLOSE,self.OnClose)
         self.SetSizer(sizer_1)
@@ -2409,7 +2418,17 @@ class TransformDialog(wx.Dialog):
         self.Layout()
 
 
+    def OnSelectBins(self,evt):
+        variable=self.combo_box_variable.GetValue()
+        dialog=MappingDialog(self,self.bins,variable)
+        
+        code=dialog.ShowModal()
+
+        if code==wx.ID_APPLY:
+            self.data_preprocess[variable]['params']=self.bins[variable]
+
     def OnChangeCheck(self,evt):
+        
         variable=self.names[self.combo_box_variable.GetSelection()]
 
         if variable!="All":
@@ -2426,7 +2445,9 @@ class TransformDialog(wx.Dialog):
         if variable=="All":
             self.data_preprocess['All']['apply']=True
             if numerical:
-                self.data_preprocess[variable]['numerical']=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+                selection=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+                
+                self.data_preprocess[variable]['numerical']=selection
             else:
                 self.data_preprocess[variable]['categorical']=self.radio_box_categorical.GetStrings()[self.radio_box_categorical.GetSelection()]
 
@@ -2435,10 +2456,21 @@ class TransformDialog(wx.Dialog):
                     if var in self.string_variables:
                         self.data_preprocess[var]['transformation']=self.radio_box_categorical.GetStrings()[self.radio_box_categorical.GetSelection()]
                     else:
-                        self.data_preprocess[var]['transformation']=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+                        
+                        selection=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+                        
+                        self.data_preprocess[var]['transformation']=selection
                     
                     self.data_preprocess[var]['keep_original']=self.checkbox_keep.GetValue()
         else:
+
+            selection=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
+            if selection=="Discretize":
+                self.button_select_bins.Enable(True)
+                self.data_preprocess[variable]['params']={'custom':False,'n_bins':None,'names_bins':[],'ranges':[]}
+            else:
+                self.button_select_bins.Enable(False)
+
             self.data_preprocess['All']['apply']=False
             self.data_preprocess[variable]['transformation']=evt.GetString()
             self.data_preprocess[variable]['keep_original']=self.checkbox_keep.GetValue()
@@ -2513,21 +2545,24 @@ class TransformDialog(wx.Dialog):
     
     def _enable_numerical(self,val):
         self.notebook_numerical.Enable(val)
-        self.button_select_bins.Enable(val)
+        #self.button_select_bins.Enable(val)
         self.radio_box_numerical.Enable(val)
         self.radio_box_numerical.EnableItem(self.radio_box_numerical.GetCount()-1,val)
 
     def _enable_categorical(self,val):
         self.notebook_categorical.Enable(val)
-        self.button_mapping_options.Enable(val)
+        #self.button_mapping_options.Enable(val)
         self.radio_box_categorical.Enable(val)
         self.radio_box_categorical.EnableItem(self.radio_box_categorical.GetCount()-1,val)
     
     def _enable_mapping(self,val):
-        self.radio_box_categorical.EnableItem(self.radio_box_categorical.GetCount()-1,val)
+        #self.radio_box_categorical.EnableItem(self.radio_box_categorical.GetCount()-1,val)
+        #self.button_mapping_options.Enable(val)
+
         self.radio_box_numerical.EnableItem(self.radio_box_numerical.GetCount()-1,val)
-        self.button_mapping_options.Enable(val)
         self.button_select_bins.Enable(val)
+    
+    
 
 
 class PredictionModelDialog(wx.Dialog):
@@ -4181,3 +4216,317 @@ class CreateSetDialog(wx.Dialog):
         self.list_box_new_set.Clear()
         if len(strings)!=0:
             self.list_box_new_set.AppendItems(strings)
+
+
+class MappingDialog(wx.Dialog):
+    def __init__(self,parent, bins,variable):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Mapping dialog - BETA")
+
+        self.bins=bins
+        self.variable=variable
+        self.bins[self.variable]={'auto':True,'custom':False,'n_bins':None,'names_bins':[],'ranges':[]}
+        self.names=[]
+        self.ranges=[]
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        self.notebook_1 = wx.Notebook(self, wx.ID_ANY)
+        sizer_3.Add(self.notebook_1, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.notebook_1.SetBackgroundColour(wx.Colour(240,240,240,255))
+
+        self.ntb_automatic = wx.Panel(self.notebook_1, wx.ID_ANY)
+        self.notebook_1.AddPage(self.ntb_automatic, "Auto")
+
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_5, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.cb_automatic = wx.CheckBox(self.ntb_automatic, wx.ID_ANY, "Automatic number of bins")
+        sizer_5.Add(self.cb_automatic, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+        
+
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.ntb_automatic, wx.ID_ANY, "Custom bins"), wx.HORIZONTAL)
+        sizer_4.Add(sizer_6, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 1, wx.EXPAND, 0)
+
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_7.Add(sizer_8, 1, wx.EXPAND, 0)
+
+        label_2 = wx.StaticText(self.ntb_automatic, wx.ID_ANY, "Number of bins")
+        sizer_8.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.ctrl_number_bins = wx.SpinCtrl(self.ntb_automatic, wx.ID_ANY, "0", min=0, max=100)
+        sizer_8.Add(self.ctrl_number_bins, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_9 = wx.BoxSizer(wx.VERTICAL)
+        sizer_7.Add(sizer_9, 1, wx.EXPAND, 0)
+
+        label_3 = wx.StaticText(self.ntb_automatic, wx.ID_ANY, "Names for the bins")
+        sizer_9.Add(label_3, 0, wx.ALL, 5)
+
+        self.list_box_names = wx.ListBox(self.ntb_automatic, wx.ID_ANY, choices=[],style=wx.LB_MULTIPLE)
+        sizer_9.Add(self.list_box_names, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9.Add(sizer_10, 0, wx.EXPAND, 0)
+
+        self.button_add_name = wx.Button(self.ntb_automatic, wx.ID_ANY, "Add")
+        sizer_10.Add(self.button_add_name, 0, wx.ALL, 5)
+
+        self.button_remove_name = wx.Button(self.ntb_automatic, wx.ID_ANY, "Remove")
+        sizer_10.Add(self.button_remove_name, 0, wx.ALL, 5)
+
+        self.ntb_custom = wx.Panel(self.notebook_1, wx.ID_ANY)
+        self.notebook_1.AddPage(self.ntb_custom, "Custom")
+
+        sizer_11 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_12 = wx.StaticBoxSizer(wx.StaticBox(self.ntb_custom, wx.ID_ANY, "New map"), wx.HORIZONTAL)
+        sizer_11.Add(sizer_12, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_14 = wx.BoxSizer(wx.VERTICAL)
+        sizer_12.Add(sizer_14, 1, wx.EXPAND, 0)
+
+        sizer_15 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_14.Add(sizer_15, 0, wx.EXPAND, 0)
+
+        label_range = wx.StaticText(self.ntb_custom, wx.ID_ANY, "Range")
+        sizer_15.Add(label_range, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.ctrl_range = wx.TextCtrl(self.ntb_custom, wx.ID_ANY, "")
+        sizer_15.Add(self.ctrl_range, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_16 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_14.Add(sizer_16, 0, wx.EXPAND, 0)
+
+        label_new_value = wx.StaticText(self.ntb_custom, wx.ID_ANY, "Value")
+        sizer_16.Add(label_new_value, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 6)
+
+        self.ctrl_new_value = wx.TextCtrl(self.ntb_custom, wx.ID_ANY, "")
+        sizer_16.Add(self.ctrl_new_value, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 7)
+
+        sizer_13 = wx.StaticBoxSizer(wx.StaticBox(self.ntb_custom, wx.ID_ANY, "Mapping Rules"), wx.HORIZONTAL)
+        sizer_11.Add(sizer_13, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_17 = wx.BoxSizer(wx.VERTICAL)
+        sizer_13.Add(sizer_17, 1, wx.EXPAND, 0)
+
+        self.lb_rules = wx.ListBox(self.ntb_custom, wx.ID_ANY, choices=[],style=wx.LB_MULTIPLE)
+        sizer_17.Add(self.lb_rules, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer_18 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_17.Add(sizer_18, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.button_add_custom_rule = wx.Button(self.ntb_custom, wx.ID_ANY, "Add")
+        sizer_18.Add(self.button_add_custom_rule, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        self.button_remove_custom_rule = wx.Button(self.ntb_custom, wx.ID_ANY, "Remove")
+        sizer_18.Add(self.button_remove_custom_rule, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        self.button_APPLY = wx.Button(self, wx.ID_APPLY, "")
+        sizer_2.AddButton(self.button_APPLY)
+
+        sizer_2.Realize()
+
+        self.ntb_custom.SetSizer(sizer_11)
+
+        self.ntb_automatic.SetSizer(sizer_4)
+
+        self.cb_automatic.SetValue(True)
+        self._enable_custom_bins(False)
+
+        self.Bind(wx.EVT_CHECKBOX,self.OnSelectAutomatic,self.cb_automatic)
+        self.Bind(wx.EVT_BUTTON,self.OnAddVarName,self.button_add_name)
+        self.Bind(wx.EVT_BUTTON,self.OnDeleteVarName,self.button_remove_name)
+        self.Bind(wx.EVT_BUTTON,self.OnAddRule,self.button_add_custom_rule)
+        self.Bind(wx.EVT_BUTTON,self.OnDeleteRule,self.button_remove_custom_rule)
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_APPLY)
+        self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED,self.OnChangePage,self.notebook_1)
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Layout()
+    
+    def OnChangePage(self,evt):
+        if self.ntb_automatic.IsShown():
+            self.button_add_name.SetDefault()
+        else:
+            self.button_add_custom_rule.SetDefault()
+            
+    def OnApply(self,evt):
+        if self.ntb_automatic.IsShown():
+            names=self.list_box_names.GetStrings()        
+            bins=self.ctrl_number_bins.GetValue()
+
+            if not self.cb_automatic.IsChecked() and bins <= 0:
+                wx.MessageBox("Invalid number of bins","Error",wx.ICON_ERROR)
+            else:
+
+                if not self.cb_automatic.IsChecked() and len(names)!=bins:
+                    wx.MessageBox("Inconsistent number of bins and names","Error",wx.ICON_ERROR)
+                else:
+                    self.bins[self.variable]['n_bins']=bins
+                    self.bins[self.variable]['names_bins']=names
+                    self.EndModal(wx.ID_APPLY)
+        else:
+            self.bins[self.variable]['auto']=False
+            self.bins[self.variable]['custom']=True
+            self.bins[self.variable]['names_bins']=self.names
+            self.bins[self.variable]['ranges']=self._sort_intervals(self.ranges)
+            self.EndModal(wx.ID_APPLY)
+            #wx.MessageBox("This function is not implementend yet.","Info")
+
+    def _sort_intervals(self,intervals):
+        def interval_to_tuple(interval):
+            
+            pattern_left_bound=r"^[\(\[]"
+            pattern_right_bound=r"[\)\]]$"
+            pattern = r"[-+]?\d+(\.\d+)?"
+            numbers = [float(match.group()) for match in re.finditer(pattern, interval)]
+            left_bound=re.search(pattern_left_bound, interval).group(0)
+            
+            right_bound=re.search(pattern_right_bound,interval).group(0)
+            
+            left=numbers[0]
+            right=numbers[1]
+            return (left,right),left_bound,right_bound
+
+        interval_tuples={}
+        for interval in intervals:
+            result=interval_to_tuple(interval)
+            interval_tuples[result[0]]={'left':result[1],'right':result[2]}
+
+        sorted_tuples = sorted(list(interval_tuples.keys()))
+
+        def tuple_to_interval(t,left,right): 
+            return f"{left}{t[0]},{t[1]}{right}"
+
+        sorted_intervals={}
+        for i in range(len(sorted_tuples)):
+            t=sorted_tuples[i]
+            sorted_intervals[i]={'left_bound':interval_tuples[t]['left'],'left_value':t[0],'right_value':t[1],'right_bound':interval_tuples[t]['right']}
+        #sorted_intervals = [tuple_to_interval(t,interval_tuples[t]['left'],interval_tuples[t]['right']) for t in sorted_tuples]
+
+        return sorted_intervals
+    
+    def _sort_ranges(self):
+
+        sorted=["pos" for i in range(len(self.ranges))]
+        min_val=-np.inf
+        max_val=np.inf
+
+        for ran in self.ranges:
+            pattern = r"[-+]?\d+(\.\d+)?"
+            numbers = [float(match.group()) for match in re.finditer(pattern, ran)]
+            left=numbers[0]
+            right=numbers[1]
+
+            if right<min_val:
+                sorted
+
+            
+            
+
+    def _enable_custom_bins(self,value):
+        self.ctrl_number_bins.Enable(value)
+        self.button_add_name.Enable(value)
+        self.button_remove_name.Enable(value) 
+
+    def OnSelectAutomatic(self,evt):
+        
+        value=evt.IsChecked()
+
+        if value:
+            self._enable_custom_bins(False)
+            self.bins[self.variable]={'auto':True,'custom':False,'n_bins':None,'names_bins':[],'ranges':[]}
+        else:
+            self._enable_custom_bins(True)
+            self.bins[self.variable]={'auto':False,'custom':False,'n_bins':self.ctrl_number_bins.GetValue(),'names_bins':self.list_box_names.GetStrings(),'ranges':[]}
+    
+    def OnAddVarName(self,evt):
+
+        dialog=wx.TextEntryDialog(self,"New name","Enter new name for bin")
+        code=dialog.ShowModal()
+
+        if code==wx.ID_OK:
+            name=dialog.GetValue()
+            names=self.list_box_names.GetStrings()
+            if validate_name(name) and not name in names:
+                self.list_box_names.Append([name])
+            else:
+                wx.MessageBox("Not a valid name","Error",wx.ICON_ERROR)
+    
+    def OnDeleteVarName(self,evt):
+        selections=self.list_box_names.GetSelections()
+        toDel=[]
+        names=self.list_box_names.GetStrings()
+
+        for sel in selections:
+            toDel.append(names[sel])
+        
+        for element in toDel:
+            names.remove(element)
+        
+        self.list_box_names.Clear()
+        if len(names)!=0:
+            self.list_box_names.Append(names)
+            
+    def OnAddRule(self,evt):
+        name=self.ctrl_new_value.GetValue()
+        range=self.ctrl_range.GetValue()
+
+        if validate_name(name) and validate_range(range):
+            rule=" range("+range+") -> new value("+name+")"
+            
+            self.names.append(name)
+            self.ranges.append(range)
+
+            self.lb_rules.Append(rule)
+
+        else:
+            wx.MessageBox("Either name or value do not have the corret format","Error",wx.ICON_WARNING)
+        
+    def OnDeleteRule(self,evt):
+        selections=self.lb_rules.GetSelections()
+        toDel=[]
+        
+        rules=self.lb_rules.GetStrings()
+
+        for sel in selections:
+            toDel.append(rules[sel])
+            
+        pattern = r"range\((.*?)\) -> new value\((.*?)\)"
+
+
+        for element in toDel:
+
+            match=re.search(pattern, element)
+            self.names.remove(match.group(2))
+            self.ranges.remove(match.group(1))
+            
+            rules.remove(element)
+
+        self.lb_rules.Clear()
+        if len(rules)!=0:
+            self.lb_rules.Append(rules)
+    
+    def OnChangeNumberBins(self,evt):
+        if not self.cb_automatic.IsChecked():
+            self.bins[self.variable]['auto']=True
