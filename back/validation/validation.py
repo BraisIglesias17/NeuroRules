@@ -5,12 +5,13 @@ class Validator():
 
     @staticmethod
     def check_integer(val):
-        
-        if type(val) is int or (type(val) is np.int32) or (type(val) is np.int16) and isinstance(val,int):
-            return True
-        else:
-            return False  
-            
+        try:
+            cast=int(val)
+            if isinstance(cast,(int,np.int32,np.int16)):
+                return True
+            return False
+        except Exception as exc:
+            return False        
     
                     
     @staticmethod
