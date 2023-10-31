@@ -67,7 +67,7 @@ class ContextData():
         self.data_preprocess['All']={'apply':True,'numerical':'None','categorical':'None'}   
 
         for variable in self.data.columns:
-            self.data_preprocess[variable]={'transformation':'None','keep_original':True}
+            self.data_preprocess[variable]={'transformation':'None','keep_original':True,'params':None}
             self.transformers[variable]=None
 
 
@@ -414,7 +414,7 @@ class ContextData():
             transformation=settings['transformation']
             keep_original=settings['keep_original']
             
-            if transformation!="None":
+            if transformation!="None" and transformation!="Discretize":
                 index=list(self.data.columns).index(variable)
                 original=self.values[:,index]
 
@@ -455,10 +455,92 @@ class ContextData():
                         self.data_preprocess[col_name]={'transformation':'None','keep_original':True} 
                 
                 self.values=self.data.values
+            elif transformation=="Discretize":
+                params=settings['params']
+                custom=params['custom']
+                auto=params['auto']
+
+                index=list(self.data.columns).index(variable)
+                original=self.values[:,index]
+
+                if auto:
+                    print("Auto bin create")
+                
+                    # Calcular el ancho de bin según la regla de Freedman-Diaconis
+                    IQR = np.percentile(original, 75) - np.percentile(original, 25)
+                    h_fd = (2 * IQR) / (original.shape[0] ** (1/3))
+
+                    n_bins = int((np.max(original) - np.min(original)) / h_fd)
+                    
+                    bins = np.histogram_bin_edges(original, bins=n_bins)
+                    self._create_bins(bins,variable)
+                    
+                                              
+                elif not custom:
+                    n_bins=params['n_bins']
+                    names=params['names_bins']
+                    if n_bins!=len(names):
+                        raise ValueError("Inconsistent values for number of bins and names")
+                    bins = np.histogram_bin_edges(original, bins=n_bins)
+                    self._create_bins(bins,variable,names) 
+                else:
+                    ranges=params['ranges']
+                    names=params['names_bins']   
+
+                    new_varible=self._map_variable(ranges,names,original)
+
+                    self.data[variable+"_binned"] = new_varible
+                    self.characterValues.append(variable+"_binned")
+                    self.values=self.data.values  
+
             else:
                 self.transformers[variable]=None
                             
+    def _map_variable(self,ranges,names,variable):
+        mapped_variable=np.empty(shape=(variable.shape[0],1),dtype=object)
+
+        for i in range(mapped_variable.shape[0]):
+            for j in range(len(ranges)):
+                
+                if self._check_range(variable[i],ranges[j]):
+                    mapped_variable[i]=names[j]
+                    break
+                
+                mapped_variable[i]=np.NaN
+
+        return mapped_variable
+    
+    def _check_range(self,value,range):
+        first_equal=(range['left_bound']=='[')
+        second_equal=(range['right_bound']==']')
+        right=range['right_value']
+        left=range['left_value']
+
+        if (not first_equal and not second_equal) and (value>left and value<right):
+            return True
+        elif (first_equal and not second_equal) and (value>=left and value<right):
+            return True
+        elif (not first_equal and second_equal) and (value>left and value<=right):
+            return True
+        elif value>=left and value<=right:
+            return True
         
+        return False
+    
+            
+    def _create_bins(self,bins,variable,names=None):
+        
+        var_name=variable+'_binned'
+        
+        if names!=None:
+            
+            self.data[var_name] = pd.cut(self.data[variable], bins,labels=names,include_lowest=True)
+        else:
+            self.data[var_name] = pd.cut(self.data[variable], bins,include_lowest=True)
+        self.characterValues.append(var_name)
+        self.values=self.data.values
+        
+
     def apply_transform(self,variable,input):
         
         numeric=self.get_numeric_variables()
@@ -468,9 +550,9 @@ class ContextData():
         if variable in numeric and Validator.check_parse_float(value):
             value=np.float64(input)
             
-        trasnformer=self.transformers[variable]
-        if trasnformer!=None:
-            value=trasnformer.transform(value)
+        transformer=self.transformers[variable]
+        if transformer!=None and transformer!="Discretize":
+            value=transformer.transform(value)
         
         return value
     
