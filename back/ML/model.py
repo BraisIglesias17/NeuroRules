@@ -197,9 +197,7 @@ class ModelImplementation(Model):
             scores=self.get_score(X=X,y=target)
 
             test_scores=self.get_score(X,target)
-            
-            
-            
+             
             bestmodel=False
             if scores['r2']>r2:
                 bestmodel=True
@@ -221,17 +219,23 @@ class ModelImplementation(Model):
         n=len(self.submodels)
         if n!=0:
             inputs=np.zeros((input_size,n))
+            X_test=np.zeros((self.X_test.shape[0],n))
             i=0
 
             for submodel in self.submodels:  
                 inputs[:,i]=(self.submodels[submodel]['model'].get_predictions_on_train().flatten())
+                names=self.submodels[submodel]['inputs']
+                indexes=[ self.names_input.index(elem) for elem in names]
+                X_test[:,i]=(self.submodels[submodel]['model'].predict(self.X_test[:,indexes]))
                 i+=1
 
             ensemble=LinearRegression()
             ensemble.fit(inputs,y)
-
+            
+            #X_test=inputs
+            
             self.ensembled_model=ensemble
-            self.ensembled_model_metrics=ensemble.score(inputs,y)
+            self.ensembled_model_metrics=ensemble.score(X_test,self.y_test)
         else:
             self.ensembled_model=None
             self.ensembled_model_metrics=0.0
