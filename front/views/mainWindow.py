@@ -490,6 +490,7 @@ class MainWindow(wx.Frame):
         i=0
         self.names=[]
         self.names=df.columns.values
+        
         for column in list(df.columns.values):
             if self.start:
                 self.initial_col_names.append(self.grid.GetColLabelValue(i))
@@ -498,11 +499,11 @@ class MainWindow(wx.Frame):
             
             
             if str(type).find("int") != -1:
-                
+               
                 self.grid.SetColFormatNumber(i)
             elif str(type).find("float") != -1:
                 self.grid.SetColFormatFloat(i,-1,2)
-
+            
             self.grid.SetColLabelValue(i,column)
             #Verifico el tipo 
             self.types=df[column].dtypes
@@ -521,17 +522,21 @@ class MainWindow(wx.Frame):
             for j in range(len(df.axes[0])):
                 if(i<self.COL_BOUND and j<self.ROW_BOUND):
                     value=str(df.loc[j][i])
-                    
+                    align=True
                     
                     if value=="" or value=="nan":
                         self.grid.SetCellBackgroundColour(j, i, self.setting.NanColor)
                         self.highlighted_cells.append([i,j])
                     
                     elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
-                        
+                        align=False
                         value=str(np.round(df.loc[j][i],3))
+                    elif Validator.check_integer(df.loc[j][i]):
+                        align=False
 
-                    
+                    if align:
+                        
+                        self.grid.SetCellAlignment(j,i,wx.ALIGN_CENTER,wx.ALIGN_CENTER)
             
                     self.grid.SetCellValue(j,i,value)
                    
