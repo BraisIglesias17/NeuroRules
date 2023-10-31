@@ -24,4 +24,9 @@ def get_task_name(window):
 def validate_name(name):
     patron = r'^[a-zA-Z0-9_-]+$'
     ok=bool(re.match(patron, name))
-    return name
+    return ok
+
+def validate_range(range):
+    patron = r'^[\(\]]-?\d+(\.\d+)?,-?\d+(\.\d+)?[\)\]]+$'
+    ok=bool(re.match(patron, range))
+    return ok
