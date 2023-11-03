@@ -20,6 +20,8 @@ from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE,WILDCARD_TEXT_FILE
 from .functions import get_task_name,validate_name,validate_range
 import sys
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+import wx.html2 as wxhtml2
+import json
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
@@ -941,7 +943,7 @@ class AboutUsDialog(wx.Dialog):
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 50)
 
-        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("C:\\Users\\USUARIO\\Desktop\\NeuroRule\\front\\resources\\logo_128x128.png", wx.BITMAP_TYPE_ANY))
+        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("./front/resources/logo_128x128.png", wx.BITMAP_TYPE_ANY))
         sizer_3.Add(bitmap_1, 0, wx.ALL | wx.EXPAND, 30)
 
         label_1 = wx.StaticText(self, wx.ID_ANY, "NeuroRule")
@@ -2728,6 +2730,7 @@ class PredictionModelDialog(wx.Dialog):
         self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeValidation,self.spin_ctrl_test_size)
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
         self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_classification)
+        self.Bind(wx.EVT_BUTTON,self.OnHelp,self.button_HELP)
         #self.Bind(wx.EVT_COMBOBOX,self.OnChangeVariable,self.combo_box_targets)
         self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_regression)
         #self.SetAffirmativeId(self.button_OK.GetId())
@@ -2737,6 +2740,10 @@ class PredictionModelDialog(wx.Dialog):
         self.Center()
         self.Layout()
 
+
+    def OnHelp(self,evt):
+        dialog=HelpDialog(self,file="./front/resources/help/prediction_dialog_help.json",title="Prediction Model")
+        dialog.ShowModal()
 
     def _validation_params(self):
         ok=True
@@ -4530,3 +4537,105 @@ class MappingDialog(wx.Dialog):
     def OnChangeNumberBins(self,evt):
         if not self.cb_automatic.IsChecked():
             self.bins[self.variable]['auto']=True
+
+
+class HelpDialog(wx.Dialog):
+    def __init__(self,parent,file,title):
+    
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Help dialog")
+        self.title=title
+        f = open(file)
+        self.content=json.load(f)
+        f.close()
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3.Add(sizer_4, 0, wx.EXPAND, 0)
+
+        self.text_ctrl_1 = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.text_ctrl_1.ShowCancelButton(True)
+        sizer_4.Add(self.text_ctrl_1, 0, wx.ALL, 10)
+
+        self.tree = wx.TreeCtrl(self, wx.ID_ANY, style=wx.BORDER_SUNKEN | wx.TR_HAS_BUTTONS | wx.TR_NO_BUTTONS | wx.TR_SINGLE)
+        sizer_4.Add(self.tree, 1, wx.ALL | wx.EXPAND, 10)
+
+        self._build_tree(self.content)
+        sizer_webview = wx.BoxSizer(wx.VERTICAL)
+        sizer_3.Add(sizer_webview, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.browser = wxhtml2.WebView.New(self)
+
+        # HTML content to render
+        html_content = """
+        <html>
+        <body>
+            <h1>Welcome the help menu!</h1>
+            <p>Select the topic in order to get more information.</p>
+        </body>
+        </html>
+        """
+
+        self.browser.SetPage(html_content, "")
+
+        sizer_webview.Add(self.browser, 1, wx.EXPAND, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.Bind(wx.EVT_TREE_SEL_CHANGED,self.OnChangeTreeSelection,self.tree)
+        self.SetAffirmativeId(self.button_OK.GetId())
+        self.SetSize(900,800)
+        self.Center()
+        self.Layout()
+    
+    def OnChangeTreeSelection(self,evt):
+        try:
+            itemId=self.tree.GetSelection()
+            if self.root!=itemId:
+                selection=self.tree.GetItemText(itemId)
+                parent=self.tree.GetItemText(self.tree.GetItemParent(self.tree.GetSelection()))
+
+                path=self.content[parent]['child'][selection]['content']['file']
+                
+                with open(path, 'r') as file:
+                    content = file.read()
+
+                #self.browser.LoadURL("file:///"+file)
+                self.browser.SetPage(content, "")
+
+        except Exception as exc:
+            print(exc)
+        
+
+    def _build_tree(self,content):
+        
+
+        self.root = self.tree.AddRoot(self.title)
+
+        self._create_layers(content,self.root)
+
+        self.tree.Expand(self.root)
+    
+    def _create_layers(self,layer,parent):
+        keys=list(layer.keys())
+        for key in keys:
+            
+            new_parent=self.tree.AppendItem(parent,key)
+            
+            if layer[key]['content']==False:
+                self._create_layers(layer[key]['child'],new_parent)
+

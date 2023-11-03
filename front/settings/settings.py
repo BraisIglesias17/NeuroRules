@@ -5,6 +5,8 @@ import os.path as path
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import xml.etree.cElementTree as ET
+import platform
+
 
 class Settings():
     """
@@ -18,9 +20,16 @@ class Settings():
 
         if path.exists(file):
             self._parse_content(file=file)
+
         else:
-            
-            dict={'height_cell_size':19,'width_cell_size':80,'font_size':10,'initial_rows':20,'pvalue_threshold':0.05,'defaultPath':os.getcwd(),'targetColor':wx.Colour("#ad9e72"),'independentColor':wx.Colour("#5a8f68"),'defaultColor':wx.Colour("#ffffff"),'outlierColor':wx.Colour("#c9be83"),'NanColor':wx.Colour("#c76d6f")}
+            user_path=str(os.path.expanduser("~"))
+            sistema = platform.system()
+
+            if sistema=="Windows":
+                neurorule_path=user_path+"\\NeuroRule"
+            else:
+                neurorule_path=user_path+"/NeuroRule"
+            dict={'height_cell_size':19,'width_cell_size':80,'font_size':10,'initial_rows':20,'pvalue_threshold':0.05,'defaultPath':neurorule_path,'targetColor':wx.Colour("#ad9e72"),'independentColor':wx.Colour("#5a8f68"),'defaultColor':wx.Colour("#ffffff"),'outlierColor':wx.Colour("#c9be83"),'NanColor':wx.Colour("#c76d6f")}
             self._initialize(dict)
         
         self.font = wx.Font(int(self.font_size), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)

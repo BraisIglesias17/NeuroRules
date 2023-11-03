@@ -4,12 +4,12 @@ from front.settings.settings import Settings
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
 from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
-
+import wx.adv
 
 
 
@@ -739,9 +739,19 @@ class MainWindow(wx.Frame):
             #if code==wx.OK:
                 
     def OnAboutUs(self,event):
-        
-        dialog=AboutUsDialog(self)
-        dialog.ShowModal()
+        aboutInfo = wx.adv.AboutDialogInfo()
+        aboutInfo.SetName("NeuroRule ")
+        aboutInfo.SetVersion("1.0")
+        aboutInfo.SetIcon(wx.Icon("./front/resources/logo_128x128.png"))
+        aboutInfo.SetDescription("Data mining program")
+        aboutInfo.SetCopyright("(C) Brais Iglesias-2023")
+        #aboutInfo.SetLicense("https://www.gnu.org/licenses/gpl-2.0.html")
+        aboutInfo.AddDeveloper("Brais Iglesias Otero")
+        #aboutInfo.AddDocWriter("Brais Iglesias Otero")
+        aboutInfo.SetWebSite('https://es.linkedin.com/in/brais-iglesias-otero-475897214')
+        wx.adv.AboutBox(aboutInfo)
+        #dialog=AboutUsDialog(self)
+        #dialog.ShowModal()
 
 
     def OnImportTask(self,event):
@@ -836,7 +846,6 @@ class MainWindow(wx.Frame):
                 
                 self.updateGrid(response['data'])
                 self.enableButtons(True)
-            
 
     def createMenuBar(self):
         menubar = wx.MenuBar()  
@@ -893,6 +902,7 @@ class MainWindow(wx.Frame):
 
         helpMenu = wx.Menu()  
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
+        
 
         taskMenu = wx.Menu()  
         importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task\tCtrl+D')
@@ -933,5 +943,5 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnClearGrid,clearDataOptiondata)
         self.Bind(wx.EVT_MENU,self.OnSaveTask,saveTaskOption)
         self.Bind(wx.EVT_MENU,self.OnCreateSet,createSetOption)
-
+        
         self.SetMenuBar(menubar)  
