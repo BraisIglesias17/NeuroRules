@@ -25,7 +25,7 @@ class MainWindow(wx.Frame):
         self.setting=Settings()
         self.SetFont(self.setting.font)
 
-        self.SetIcon(wx.Icon('./front/resources/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon('./front/resources/img/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
         self.SetTitle("NeuroRule 1.0.0")
         self.createMenuBar()
         self.panel = wx.Panel(self, wx.ID_ANY)
@@ -40,7 +40,6 @@ class MainWindow(wx.Frame):
         self.start=True
         self.names=[]
         self.new_set={}
-
 
         self.float_variable_names=[]
         self.int_variable_names=[]
@@ -242,7 +241,8 @@ class MainWindow(wx.Frame):
         taskname=self.controller.get_task_name().getResponse()
         if taskname['status']==Status.OK:
             taskname=taskname['data']
-            pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname).getResponse()
+            
+            pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=taskname).getResponse()
             
             if pathname['status']==Status.OK:
                 pathname=pathname['data']
@@ -742,7 +742,7 @@ class MainWindow(wx.Frame):
         aboutInfo = wx.adv.AboutDialogInfo()
         aboutInfo.SetName("NeuroRule ")
         aboutInfo.SetVersion("1.0")
-        aboutInfo.SetIcon(wx.Icon("./front/resources/logo_128x128.png"))
+        aboutInfo.SetIcon(wx.Icon("./front/resources/img/logo_128x128.png"))
         aboutInfo.SetDescription("Data mining program")
         aboutInfo.SetCopyright("(C) Brais Iglesias-2023")
         #aboutInfo.SetLicense("https://www.gnu.org/licenses/gpl-2.0.html")
@@ -814,7 +814,7 @@ class MainWindow(wx.Frame):
 
         if response['status']!=Status.UNEXISTING_TASK:
             
-            path=IOManage.GetPath(self,"Path to save",WILCARD_TASK,defaultname=response['data']['name']).getResponse()
+            path=IOManage.GetPath(self,"Path to save",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=response['data']['name']).getResponse()
             
             if path['status']==Status.OK:
 
@@ -847,6 +847,16 @@ class MainWindow(wx.Frame):
                 self.updateGrid(response['data'])
                 self.enableButtons(True)
 
+    def OnHelpTask(self,evt):
+        
+        dialog=HelpDialog(self,file="./front/resources/help/task_help.json",title="Task help")
+        dialog.ShowModal()
+    
+    def OnHelpData(self,evt):
+        
+        dialog=HelpDialog(self,file="./front/resources/help/data_help.json",title="Data help")
+        dialog.ShowModal()
+
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         menubar.SetFont(self.setting.font)
@@ -855,7 +865,7 @@ class MainWindow(wx.Frame):
         importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
 
         fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save\tCtrl+s')
-        #image = wx.Image('./front/resources/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        #image = wx.Image('./front/resources/img/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
         #wx.Bitmap.Rescale(image,wx.Size(16,16))
         #fileSaveMenu.SetBitmap(image)
 
@@ -884,7 +894,7 @@ class MainWindow(wx.Frame):
         showIdentifier=dataMenu.Append(item)
         createSetOption=dataMenu.Append(wx.ID_ANY,"&Create set")
         clearDataOptiondata=dataMenu.Append(wx.ID_ANY,"&Clear data")
-        
+        helpDataOption=dataMenu.Append(wx.ID_ANY,"&Help")
         #dataMenu.AppendSubMenu(preprocessSubmenu,"Data processing")
         #dataMenu.AppendSubMenu(analyzeSubmenu,"Data analysis")
 
@@ -907,7 +917,7 @@ class MainWindow(wx.Frame):
         taskMenu = wx.Menu()  
         importTaskOption=taskMenu.Append(wx.ID_ANY, '&Import task\tCtrl+D')
         saveTaskOption=taskMenu.Append(wx.ID_ANY, '&Save as')
-        #closeTaskOption=taskMenu.Append(wx.ID_ANY, '&Close task')
+        helpTaskOption=taskMenu.Append(wx.ID_ANY, '&Help')
 
 
         #Key events
@@ -943,5 +953,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnClearGrid,clearDataOptiondata)
         self.Bind(wx.EVT_MENU,self.OnSaveTask,saveTaskOption)
         self.Bind(wx.EVT_MENU,self.OnCreateSet,createSetOption)
-        
+        self.Bind(wx.EVT_MENU,self.OnHelpTask,helpTaskOption)
+        self.Bind(wx.EVT_MENU,self.OnHelpData,helpDataOption)
         self.SetMenuBar(menubar)  
