@@ -943,7 +943,7 @@ class AboutUsDialog(wx.Dialog):
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 50)
 
-        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("./front/resources/logo_128x128.png", wx.BITMAP_TYPE_ANY))
+        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("./front/resources/img/logo_128x128.png", wx.BITMAP_TYPE_ANY))
         sizer_3.Add(bitmap_1, 0, wx.ALL | wx.EXPAND, 30)
 
         label_1 = wx.StaticText(self, wx.ID_ANY, "NeuroRule")
@@ -1334,7 +1334,7 @@ class TestResultDialog(wx.Dialog):
         self.SetFont(parent.GetFont())
         self.result=result
 
-        self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/x.png"
+        self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/x.png"
         self.header="Unsuccesful"
         pvalues=self.result['pvalue']
         self.single_result=len(pvalues)==1
@@ -1343,7 +1343,7 @@ class TestResultDialog(wx.Dialog):
             pvalue=np.round(self.result['pvalue'][0],5)
             
             if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
-                self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/ok.png"
+                self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/ok.png"
                 self.header="Succesful"
 
                 explanation="\nThere is significicant statistical evidence "+explanation
@@ -1353,7 +1353,7 @@ class TestResultDialog(wx.Dialog):
             
             for pvalue in pvalues:
                 if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
-                    self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/ok.png"
+                    self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/ok.png"
                     self.header="Succesful"                    
                     break
             
@@ -2957,12 +2957,22 @@ class TaskReportDialog(wx.Dialog):
         thread.start()
     
     def OnApplyBg(self,evt):
-        pathname=IOManage.GetPath(self,"Select a path for the task",WILCARD_TASK).getResponse()
-        if pathname['status']==Status.OK:
-            self.Hide()
-            self.Parent.Hide()
-            self.execute_thread_bg(pathname['data'])
-            sys.exit(0)
+        from plyer import notification
+        pathname=IOManage.GetPath(self,"Select a path for the task",WILCARD_TASK,defaultDir=self.parent.setting.GetPath()).getResponse()
+
+        notification.notify(title="Starting training",message="The training of the models is about to start.",timeout=1,app_name="NeuroRule",app_icon="./front/resources/img/logo_128x128.ico")
+        time.sleep(1)
+        try:
+
+            if pathname['status']==Status.OK:
+                self.Hide()
+                self.Parent.Hide()
+                self.execute_thread_bg(pathname['data'])
+                notification.notify(title="Training finished",message="The training has finished succesfully and saved in "+pathname['data'],timeout=10,app_name="NueroRule",app_icon="./front/resources/img/logo_128x128.ico")
+                sys.exit(0)
+        except Exception as exc:
+            notification.notify(title="Training stopped",message="There has been a mistake in the training",timeout=10,app_name="NueroRule",app_icon="./front/resources/img/logo_128x128.ico")
+
     
     def execute_thread_bg(self,pathname):
         response=self.controller.execute_task(None).getResponse()
@@ -3059,7 +3069,7 @@ class ResultsDialog(wx.Dialog):
         self.SetTitle("Results dialog")
         self.SetFont(parent.GetFont())
         self.controller=parent.controller
-
+        self.setting=parent.setting
         self.outputs=[]
         response=self.controller.get_target_process_type().getResponse()
         
@@ -3193,7 +3203,7 @@ class ResultsDialog(wx.Dialog):
         response=self.controller.get_text_reports(variable).getResponse()
 
         content=response['data'][model]
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultname=(model+"_"+variable)).getResponse()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.setting.GetPath(),defaultname=(model+"_"+variable)).getResponse()
 
         if path['status']==Status.OK:
             #save officialy
@@ -3228,7 +3238,7 @@ class ResultsDialog(wx.Dialog):
             taskname=taskname['data']
 
             if not self.saved:
-                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname).getResponse()
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=taskname).getResponse()
                 
                 if pathname['status']==Status.OK:
                     pathname=pathname['data']
@@ -3641,7 +3651,7 @@ class RulesResultsDialog(wx.Dialog):
         self.SetTitle("Neurofuzzy result")
         self.SetFont(parent.GetFont())
         self.controller=parent.controller
-
+        self.setting=parent.setting
         self.outputs=[]
         self.types=[]
         response=self.controller.get_target_process_type().getResponse()
@@ -3773,7 +3783,7 @@ class RulesResultsDialog(wx.Dialog):
         response=self.controller.get_text_reports(variable).getResponse()
         
         content=response['data']['Neurofuzzy']
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultname=(submodel+"_"+variable)).getResponse()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.setting.GetPath(),defaultname=(submodel+"_"+variable)).getResponse()
 
         if path['status']==Status.OK:
             #save officialy
@@ -3909,7 +3919,7 @@ class RulesResultsDialog(wx.Dialog):
             taskname=taskname['data']
 
             if not self.saved:
-                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultname=taskname).getResponse()
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=taskname).getResponse()
                 
                 if pathname['status']==Status.OK:
                     pathname=pathname['data']
@@ -3977,7 +3987,7 @@ class SettingsDialog(wx.Dialog):
         self.default_path_ctrl = wx.TextCtrl(self, wx.ID_ANY,self.currentSettings.defaultPath,style=wx.TE_READONLY,size=(300,-1))
         sizer_6.Add(self.default_path_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("C:/Users/USUARIO/Desktop/NeuroRule/front/resources/guardar.png", wx.BITMAP_TYPE_ANY))
+        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/guardar.png", wx.BITMAP_TYPE_ANY))
         sizer_6.Add(self.icon_folder_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         sizer_colors = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Colors"), wx.HORIZONTAL)
@@ -4607,9 +4617,12 @@ class HelpDialog(wx.Dialog):
             itemId=self.tree.GetSelection()
             if self.root!=itemId:
                 selection=self.tree.GetItemText(itemId)
-                parent=self.tree.GetItemText(self.tree.GetItemParent(self.tree.GetSelection()))
-
-                path=self.content[parent]['child'][selection]['content']['file']
+                parent_item=self.tree.GetItemParent(self.tree.GetSelection())
+                parent=self.tree.GetItemText(parent_item)
+                if parent_item==self.root:
+                    path=self.content[selection]['content']['file']
+                else:
+                    path=self.content[parent]['child'][selection]['content']['file']
                 
                 with open(path, 'r') as file:
                     content = file.read()

@@ -1,0 +1,32 @@
+
+{
+    "Data from file":{
+        "content":false,
+        "child":{
+            "File types":{
+                "content":{
+                            "file":"./front/resources/html/filetypes_help.html"
+                        },
+                "child":false
+            },
+            "Import":{
+                "content":{
+                    "file":"./front/resources/html/importdata_help.html"
+                },
+                "child":false
+            },
+            "Export":{
+                "content":{
+                    "file":"./front/resources/html/exportdata_help.html"
+                },
+                "child":false
+            }
+        }
+    },
+    "Create set":{
+        "content":{
+            "file":"./front/resources/html/createset_help.html"
+        },
+        "child":false
+    }
+}

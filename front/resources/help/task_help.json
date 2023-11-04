@@ -1,0 +1,42 @@
+
+{
+    "General aspects":{
+        "content":false,
+        "child":{
+            "general":{
+                "content":{
+                            "file":"./front/resources/html/regression_help.html"
+                        },
+                "child":false
+            },
+            "models":{
+                "content":{
+                    "file":"./front/resources/html/regression_models_help.html"
+                },
+                "child":false
+            }
+        }
+    },
+    "Predicting task":{
+        "content":false,
+        "child":{
+            "Aim":{
+                "content":{
+                    "file":"./front/resources/html/classification_help.html"
+                },
+                "child":false
+            }
+        }
+    },
+    "Rule generating task":{
+        "content":false,
+        "child":{
+            "Aim":{
+                "content":{
+                    "file":"./front/resources/html/classification_help.html"
+                },
+                "child":false
+            }
+        }
+    }
+}
