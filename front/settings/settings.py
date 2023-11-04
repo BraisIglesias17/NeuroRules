@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import xml.etree.cElementTree as ET
 import platform
-
+from pathlib import Path
 
 class Settings():
     """
@@ -81,6 +81,9 @@ class Settings():
 
     def GetCellSize(self):
         return self.height_cell_size,self.width_cell_size
+    
+    def GetPath(self):
+        return Path(self.defaultPath)
     
     def _build_xml(self):
         
