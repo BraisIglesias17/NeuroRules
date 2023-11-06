@@ -4,7 +4,7 @@ from front.settings.settings import Settings
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -391,8 +391,30 @@ class MainWindow(wx.Frame):
         self.transform_data_button.Enable(val)
 
     def OnOpenFile(self,event):
-        response=IOManage.LoadFile(self,event).getResponse()
-        if response['status']==Status.OK:
+        try:
+            response=IOManage.LoadFile(self,event).getResponse()
+            if response['status']==Status.OK:
+                pathname=response['data']
+                conf={'sep':',','dec':'.','pathname':pathname}
+                dialog=LoadFileDialog(self,conf)
+                code=dialog.ShowModal()
+
+                if code==wx.ID_OK:
+                    
+                    df,filename=IOManage.load_file(conf)
+                    response=self.controller.load_content(df,filename).getResponse()
+                    if response['status']==Status.OK:
+                        
+                        self.ClearGrid()
+                        self.updateGrid(response['data']['data'])
+                        self.filename=response['data']['file']
+                        
+                        self.SetStatusText(str(" Working on "+self.filename))
+        except Exception as exc:
+            wx.MessageBox("You probably have selected a wrong loading file configuration. Be careful with separator and decimal characters. Try again.","Error",wx.ICON_ERROR)
+            self.OnOpenFile(event)
+            """
+            
             file=response['data']['df']
             name=response['data']['filename']
             response=self.controller.load_content(file,name).getResponse()
@@ -403,6 +425,7 @@ class MainWindow(wx.Frame):
                 self.filename=response['data']['file']
                 
                 self.SetStatusText(str(" Working on "+self.filename))
+            """
 
            
  
@@ -510,13 +533,10 @@ class MainWindow(wx.Frame):
             i+=1
         self.start=False
 
-        
-        
+                
         for j in range(i,len(self.initial_col_names),1):   
             
             self.grid.SetColLabelValue(j,self.initial_col_names.pop(j))
-
-        
 
         for i in range(len(df.axes[1])):
             for j in range(len(df.axes[0])):
@@ -535,9 +555,10 @@ class MainWindow(wx.Frame):
                         align=False
 
                     if align:
-                        
                         self.grid.SetCellAlignment(j,i,wx.ALIGN_CENTER,wx.ALIGN_CENTER)
-            
+                    else:
+                        self.grid.SetCellAlignment(j,i,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT)
+
                     self.grid.SetCellValue(j,i,value)
                    
         if not df.empty:
@@ -748,7 +769,7 @@ class MainWindow(wx.Frame):
         #aboutInfo.SetLicense("https://www.gnu.org/licenses/gpl-2.0.html")
         aboutInfo.AddDeveloper("Brais Iglesias Otero")
         #aboutInfo.AddDocWriter("Brais Iglesias Otero")
-        aboutInfo.SetWebSite('https://es.linkedin.com/in/brais-iglesias-otero-475897214')
+        #aboutInfo.SetWebSite('https://es.linkedin.com/in/brais-iglesias-otero-475897214')
         wx.adv.AboutBox(aboutInfo)
         #dialog=AboutUsDialog(self)
         #dialog.ShowModal()
@@ -864,13 +885,13 @@ class MainWindow(wx.Frame):
         fileMenu = wx.Menu()  
         importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
 
-        fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save\tCtrl+s')
+        fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save\tCtrl+S')
         #image = wx.Image('./front/resources/img/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
         #wx.Bitmap.Rescale(image,wx.Size(16,16))
         #fileSaveMenu.SetBitmap(image)
 
         fileMenu.Append(fileSaveMenu)
-        fileAsSaveMenu=fileMenu.Append(wx.ID_ANY,'&Save as\tCtrl+a',"Save current file")
+        fileAsSaveMenu=fileMenu.Append(wx.ID_ANY,'&Save as\tCtrl+A',"Save current file")
 
         modelMenu= wx.Menu()
         modelMenu.Append(wx.ID_ANY, '&Options')
@@ -924,8 +945,8 @@ class MainWindow(wx.Frame):
         entries = [wx.AcceleratorEntry() for i in range(3)]
 
         entries[0].Set(wx.ACCEL_CTRL, ord('D'), importTaskOption.GetId())
-        entries[1].Set(wx.ACCEL_CTRL, ord('a'), fileAsSaveMenu.GetId())
-        entries[2].Set(wx.ACCEL_CTRL, ord('s'), fileSaveMenu.GetId())
+        entries[1].Set(wx.ACCEL_CTRL, ord('A'), fileAsSaveMenu.GetId())
+        entries[2].Set(wx.ACCEL_CTRL, ord('S'), fileSaveMenu.GetId())
 
         accel = wx.AcceleratorTable(entries)
         self.SetAcceleratorTable(accel)
@@ -955,4 +976,5 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnCreateSet,createSetOption)
         self.Bind(wx.EVT_MENU,self.OnHelpTask,helpTaskOption)
         self.Bind(wx.EVT_MENU,self.OnHelpData,helpDataOption)
+       
         self.SetMenuBar(menubar)  
