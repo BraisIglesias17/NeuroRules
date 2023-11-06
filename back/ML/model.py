@@ -136,8 +136,9 @@ class ModelImplementation(Model):
         
         scores=self.get_score(X=input,y=target)
         test_scores=self.get_score(self.X_test,self.y_test)
-        self.submodels['all']={'model':self.model,'training_score':scores,'test_scores':test_scores,'best':self.model,'inputs':input_names}
-        
+        self.submodels['all']={'model':self.model,'training_score':scores,'test_score':test_scores,'best':self.model,'inputs':input_names}
+        self.training_scores=scores
+        self.test_scores=test_scores
 
 
     def _fit_rule_generating_regression(self,input,target,names_input,name_output,types):
@@ -350,6 +351,7 @@ class ModelImplementation(Model):
         if self.modelname!="Neurofuzzy":
 
             report+="Training metrics:\n"
+            
             
             report+=self._dict_to_text(self.training_scores,"=",0)
 

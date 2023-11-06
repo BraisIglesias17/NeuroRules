@@ -1,7 +1,5 @@
 from sklearn.tree import DecisionTreeClassifier,plot_tree,export_text
 from sklearn.tree import _tree
-import graphviz
-import pydotplus
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,18 +10,18 @@ class NeuroClassifier():
         self.tree=DecisionTreeClassifier(max_depth=len(names))
         self.class_names=classes
         self.names=names
-        print(classes)
+        
     
     def fit(self,X,y):
         self.tree.fit(X,y)
 
     def get_rules(self):
-        
-        #self.plot_graph()
         return self._get_rules()
     
+    def get_params(self):
+        return self.tree.get_params()
 
-    def plot_graph(self):
+    def plot_tree(self):
         fig = plt.figure(figsize=(8,8))
         _ = plot_tree(self.tree, 
                         feature_names=self.names,  

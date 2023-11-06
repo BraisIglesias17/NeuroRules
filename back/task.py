@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 import pickle
 import datetime
 import numpy as np
+import os
 
 class Task():
 
@@ -24,6 +25,7 @@ class Task():
         ##metadata
         self.taskName=name
         self.date=datetime.date.today()
+        self.path=None
 
         self.contextData=data
         self.outputs=outputs
@@ -64,11 +66,17 @@ class Task():
             task = pickle.load(file)
         return task
 
+
+    def get_metadata(self):
+        return {'name':self.taskName,'date':self.date.strftime("%Y-%m-%d"),'path':self.path}
+    
     def save(self,pathname):
+        self.path=pathname
+        print(self.path)
+        self.saved=True
         with open(pathname, 'wb') as file:
             pickle.dump(self, file)
-            
-        self.saved=True
+        
         
     def execute(self,callable,*args,**kwargs):
         
