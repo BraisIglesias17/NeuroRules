@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>What is a Task?</h1>
+    
+    <p>A task is what we call to a procedure that allows you to obtain either a trained model from your data. This model can have different aims,
+        from only predicting new data and observing the metrics behaviour to obtain human readable rules to extract knowledge from the data. That 
+        difference is explained in the next sections as "Prediction model" and "Rule". You can save a task to load it and analyze it later.
+    </p>
+    <h2>Task Info</h2>
+    <p>Each task must have a name so that you can easily indentify it, the name must only contain alphanumeric characters and '_', other 
+        charcaters are not allowed. Apart from that, the task has a reference to the data it uses so it is never lost and once you load a task you 
+        also load the data attached to it, this allows to keep track of the tasks and help the analysis by allowing you to use the other functionalities of the program.
+        It is also stored some metadata of the task that you can check in the table.
+    </p>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Path</th>
+            <th>Size</th>
+            <th>Date</th>
+        </tr>
+        <tr>
+            <td>Name of the task</td>
+            <td>File where it is stored</td>
+            <td>Size of the file</td>
+            <td>Creation date</td>
+        </tr>
+        </tr>
+    </table>
+    <h2>Task Process</h2>
+    <p>When you start a task, the first step is to select the variables tha will be used as input and output of the models. Once this is 
+        accomplished you have to select the machine learning alogithms that you want to apply for each output and the validation method. After verifying
+        that you have selected what you wanted, you can start the training, where you have two options.
+        <ul>
+            <li>Foreground training: this is the default option and means that once you start the training process, a progress bar will be
+                displayed and will blocked the program use so you will have to wait until it finishes to continue. This is meant to small tasks
+                were the training time is not extremely large.
+            </li>
+            <li>Background training: in this case, the program will hide and perform the training in backgorund and will notify the user when it
+                has finished and where the file was stored. With this option when training is accomplished, the program automaticaly shuts down. It 
+                is meant to large tasks were the training time may be large.
+            </li>
+        </ul>
+    </p>
+    <p><strong>Key commands:</strong>Ctrl+D (import)</p>
+</body>
+</html>
