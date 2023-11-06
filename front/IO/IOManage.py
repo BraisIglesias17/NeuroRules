@@ -2,14 +2,16 @@ import wx
 import pandas as pd
 from back.respuestas import Response,Status
 from ..constants import WILCARD_TASK,WILDCARD_DATA_FILE
+import platform
 
 class IOManage():
     
 
     @staticmethod
-    def GetPath(window,message,wildcard,defaultname=""):
+    def GetPath(window,message,wildcard,defaultDir,defaultname=""):
+    
         #defaultname=defaultname
-        with wx.FileDialog(window, message, wildcard=wildcard,defaultFile=defaultname,
+        with wx.FileDialog(window, message, wildcard=wildcard,defaultFile=defaultname,defaultDir=str(defaultDir),
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -58,6 +60,9 @@ class IOManage():
 
             # Proceed loading the file chosen by the user
             pathname = fileDialog.GetPath()
+            return Response(data=pathname,status=Status.OK)
+            """
+            
             try:
                 with open(pathname, 'r') as file:
                     tmp=IOManage.load_file(file)
@@ -67,22 +72,26 @@ class IOManage():
                 
             except IOError:
                 wx.LogError("Cannot open file '%s'.")
+            """
     
     @staticmethod
-    def load_file(file):
-        
-        if str(file.name).endswith(".csv"):
-            
-            data = pd.read_csv(file)
-        elif str(file.name).endswith(".xlsx"):
-            
-            data = pd.read_excel(file.name)
+    def load_file(conf):
+        pathname=conf['pathname']
+        if str(pathname).endswith(".csv"):
+            with open(pathname, 'r') as file:
+                data = pd.read_csv(file,sep=conf['sep'],decimal=conf['dec'])
+                name=file.name
+
+        elif str(pathname).endswith(".xlsx"):
+            with open(pathname, 'r') as file:
+                data = pd.read_excel(file.name,decimal=conf['dec'])
+                name=file.name
             
         else:
             df=None
         
         df = pd.DataFrame(data)
-        return df,file.name
+        return df,name
         
     @staticmethod
     def OnSaveAs(window,message,wildcard,dir="",file=""):

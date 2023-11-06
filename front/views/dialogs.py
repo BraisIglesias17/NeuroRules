@@ -22,6 +22,7 @@ import sys
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 import wx.html2 as wxhtml2
 import json
+import os 
 
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
@@ -3664,6 +3665,7 @@ class RulesResultsDialog(wx.Dialog):
         if response['status']==Status.OK:
             self.outputs=list(response['data'].keys())
             self.types=list(response['data'].values())
+            
         else:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
@@ -3764,7 +3766,7 @@ class RulesResultsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnPlotPrecisewise,self.button_preciwise)
         self.Bind(wx.EVT_BUTTON,self.OnPotMembershipFunctions,self.button_mf)
         self.Bind(wx.EVT_BUTTON,self.OnExportToFile,self.button_save_alone)
-
+        self.Bind(wx.EVT_BUTTON,self.OnDetails,self.button_details)
         self.SetSizer(sizer_1)
         
         self._enable_buttons(False)
@@ -3775,14 +3777,21 @@ class RulesResultsDialog(wx.Dialog):
         self.Center()
         self.Layout()
 
+    def OnDetails(self,evt):
+        dialog=DetailsDialog(self,self.controller.get_task_metadata().getResponse()['data'])
+        dialog.ShowModal()
+
     def OnExportToFile(self,evt):
         index=self.lb_outputs.GetSelection()
         variable=self.lb_outputs.GetString(index).split(" - ")[0]
         submodel=self.cb_submodel.GetValue().split(" - ")[0]
         
         response=self.controller.get_text_reports(variable).getResponse()
-        
-        content=response['data']['Neurofuzzy']
+        try:
+            content=response['data']['Neurofuzzy']
+        except Exception as exc:
+            content=response['data']['DecisionTree']
+
         path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.setting.GetPath(),defaultname=(submodel+"_"+variable)).getResponse()
 
         if path['status']==Status.OK:
@@ -3827,18 +3836,32 @@ class RulesResultsDialog(wx.Dialog):
         
         model=self.currentSubmodels[submodel]['model']
 
-        model.plot_membership_functions()
+        if self.current_type=="classification":
+            model.plot_tree()
+        else:
+            model.plot_membership_functions()
+        
 
     def OnSelectOutput(self,evt):
         self._enable_buttons(False)
         self.label_rules.SetLabelText("Select a submodel")
         self.label_model_info.SetLabelText("Select a submodel")
+        model_type=self.types[evt.GetSelection()]
+
         model=evt.GetString().split(" - ")[0]
         self.cb_submodel.Enable(True)
+
+        if  model_type=="classification":
+            self.button_mf.SetLabelText("Plot tree")
+            self.current_type=model_type
+        else:
+            self.button_mf.SetLabelText("Membership functions")
+            self.current_type=model_type
 
         submodels=self.submodels[model]
         self.currentSubmodels=(submodels)
         self._format_selection(submodels)
+        
 
     def _format_selection(self,submodels):
 
@@ -3856,7 +3879,11 @@ class RulesResultsDialog(wx.Dialog):
             formated_submodels.append(chain)
 
         self.cb_submodel.Clear()
-        self.cb_submodel.AppendItems(formated_submodels)
+        if len(formated_submodels)==0:
+            self.cb_submodel.Enable(False)
+        else:
+            self.cb_submodel.Enable(True)
+            self.cb_submodel.AppendItems(formated_submodels)
 
     def _display(self,submodel,rules,metric_value):
         metrics=""
@@ -4652,3 +4679,187 @@ class HelpDialog(wx.Dialog):
             if layer[key]['content']==False:
                 self._create_layers(layer[key]['child'],new_parent)
 
+
+class DetailsDialog(wx.Dialog):
+    def __init__(self,parent,task):
+        
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Task details")
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+
+        label_task = wx.StaticText(self, wx.ID_ANY, "Task:")
+        label_task.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_4.Add(label_task, 0, wx.ALL, 10)
+
+        task_name = wx.StaticText(self, wx.ID_ANY, task['name'])
+        task_name.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_4.Add(task_name, 1, wx.ALIGN_CENTER_VERTICAL, 0)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Details"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_5, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_6 = wx.BoxSizer(wx.VERTICAL)
+        sizer_5.Add(sizer_6, 0, wx.ALL, 10)
+
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 5)
+
+        label_date = wx.StaticText(self, wx.ID_ANY, "Date: ")
+        sizer_7.Add(label_date, 0, 0, 0)
+
+        task_date = wx.StaticText(self, wx.ID_ANY, task['date'])
+        sizer_7.Add(task_date, 0, 0, 0)
+
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 5)
+
+        label_path= wx.StaticText(self, wx.ID_ANY, "Path: ")
+        sizer_8.Add(label_path, 0, 0, 0)
+
+        path=task['path']
+        if path==None:
+            path="Not saved yet!"
+        task_path = wx.StaticText(self, wx.ID_ANY,path)
+        sizer_8.Add(task_path, 1, 0, 0)
+
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_9, 1, wx.ALL | wx.EXPAND, 5)
+
+        label_size = wx.StaticText(self, wx.ID_ANY, "Size: ")
+        sizer_9.Add(label_size, 0, 0, 0)
+
+        if task['path']==None:
+            size_str="Not saved yet!"
+        else:
+            size=os.path.getsize(task['path'])
+            size=size/(1024*1024) #Convert to MB
+            size_str=str(np.round(size,4))+" MB"
+
+        task_size = wx.StaticText(self, wx.ID_ANY,size_str)
+        sizer_9.Add(task_size, 1, 0, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        #self.button_rename = wx.Button(self, wx.ID_APPLY, "Rename")
+        #sizer_2.AddButton(self.button_rename)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetAffirmativeId(self.button_OK.GetId())
+        self.Center()
+        self.Layout()
+
+
+class LoadFileDialog(wx.Dialog):
+    def __init__(self,parent,conf):
+        
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Load file")
+
+        self.conf=conf
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Path"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4.Add(sizer_5, 1, wx.EXPAND, 0)
+
+        self.path = wx.TextCtrl(self, wx.ID_ANY,value=self.conf['pathname'],style=wx.TE_READONLY)
+        sizer_5.Add(self.path, 1, wx.ALIGN_CENTER_VERTICAL, 0)
+
+        self.button_change_path = wx.Button(self, wx.ID_ANY, "Change")
+        sizer_5.Add(self.button_change_path, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Options"), wx.HORIZONTAL)
+        sizer_3.Add(sizer_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_7, 0, 0, 0)
+
+        sizer_8 = wx.BoxSizer(wx.VERTICAL)
+        sizer_7.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 10)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Separator")
+        sizer_8.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.separator = wx.TextCtrl(self, wx.ID_ANY, ",")
+
+        self._on_change_path(self.conf['pathname'])
+        self.separator.SetMinSize((50, 23))
+        sizer_8.Add(self.separator, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        sizer_9 = wx.BoxSizer(wx.VERTICAL)
+        sizer_7.Add(sizer_9, 0, wx.ALL | wx.EXPAND, 10)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, "Decimal")
+        sizer_9.Add(label_2, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.choice_decimal = wx.Choice(self, wx.ID_ANY, choices=[".", ","])
+        self.choice_decimal.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, 0, ""))
+        self.choice_decimal.SetSelection(0)
+        sizer_9.Add(self.choice_decimal, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_OK = wx.Button(self, wx.ID_OK, "")
+        self.button_OK.SetDefault()
+        sizer_2.AddButton(self.button_OK)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+        sizer_2.AddButton(self.button_CANCEL)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+
+        self.SetEscapeId(self.button_CANCEL.GetId())
+
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_OK)
+        self.Bind(wx.EVT_BUTTON,self.OnChangePath,self.button_change_path)
+
+        self.SetSize(400,275)
+        self.Center()
+        self.Layout()
+    
+    def _on_change_path(self,path):
+        if str(path).endswith(".xlsx"):
+            self.separator.Enable(False)
+        else:
+            self.separator.Enable(True)
+
+    def OnApply(self,evt):
+        self.conf['pathname']=self.path.GetValue()
+        self.conf['dec']=self.choice_decimal.GetStringSelection()
+        self.conf['sep']=self.separator.GetValue()
+        
+        self.EndModal(wx.ID_OK)
+
+    def OnChangePath(self,evt):
+        response=IOManage.LoadFile(self,evt).getResponse()
+        if response['status']==Status.OK:
+            self.path.SetLabelText(response['data'])
+            self._on_change_path(response['data'])
