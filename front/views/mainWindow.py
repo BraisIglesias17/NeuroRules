@@ -68,7 +68,7 @@ class MainWindow(wx.Frame):
         sizer_3.Add(self.sizer_data, 0, wx.ALL, 10)
 
         self.import_file_button = wx.Button(self.panel, wx.ID_ANY, "Import data\n")
-        self.sizer_data.Add(self.import_file_button, 1, wx.ALL | wx.EXPAND, 5)
+        self.sizer_data.Add(self.import_file_button, 0, wx.ALL | wx.EXPAND, 5)
 
         #self.create_set_button = wx.Button(self.panel, wx.ID_ANY, "Create set")
         #sizer_4.Add(self.create_set_button, 1, wx.ALL | wx.EXPAND, 5)
@@ -85,10 +85,10 @@ class MainWindow(wx.Frame):
         self.transform_data_button = wx.Button(self.panel, wx.ID_ANY, "Transform data\n")
         self.sizer_preprocess.Add(self.transform_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
-        self.preprocess_data_button = wx.Button(self.panel, wx.ID_ANY, "Preprocess data\n")
-        self.sizer_preprocess.Add(self.preprocess_data_button, 1, wx.ALL | wx.EXPAND, 5)
+        #self.preprocess_data_button = wx.Button(self.panel, wx.ID_ANY, "Preprocess data\n")
+        #self.sizer_preprocess.Add(self.preprocess_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
-        self.preprocess_data_button.Hide()
+        #self.preprocess_data_button.Hide()
 
         self.sizer_analysis = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Analysis"), wx.HORIZONTAL)
         sizer_3.Add(self.sizer_analysis, 0, wx.ALL, 10)
@@ -143,7 +143,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnPredictionModel,self.prediction_button)
         self.Bind(wx.EVT_BUTTON,self.OnShowResults,self.results_button)
         #self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
-        self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
+        #self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnCleanData,self.clean_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnTransformData,self.transform_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnGraph,self.plot_data_button)
@@ -383,7 +383,7 @@ class MainWindow(wx.Frame):
         self.statistics_button.Enable(val)
         self.summary_button.Enable(val)
         self.plot_data_button.Enable(val)
-        self.preprocess_data_button.Enable(val)
+        #self.preprocess_data_button.Enable(val)
         self.neurofuzzy_button.Enable(val)
         self.prediction_button.Enable(val)
         self.results_button.Enable(val)
@@ -402,16 +402,28 @@ class MainWindow(wx.Frame):
                 if code==wx.ID_OK:
                     
                     df,filename=IOManage.load_file(conf)
+                                     
                     response=self.controller.load_content(df,filename).getResponse()
                     if response['status']==Status.OK:
                         
                         self.ClearGrid()
-                        self.updateGrid(response['data']['data'])
+                        dlg=None
+                        if df.shape[0]>50:
+                            dlg = wx.ProgressDialog("Escribiendo en el Grid", "Progreso", maximum=df.shape[1], parent=self, style=wx.PD_APP_MODAL|wx.PD_AUTO_HIDE)
+                        
+                            self.updateGrid(response['data']['data'],dlg.Update)
+                            dlg.Update(df.shape[1],"Finished")
+                            dlg.Destroy()
+                            
+                        else:
+                            self.updateGrid(response['data']['data'])
+
                         self.filename=response['data']['file']
                         
                         self.SetStatusText(str(" Working on "+self.filename))
         except Exception as exc:
             wx.MessageBox("You probably have selected a wrong loading file configuration. Be careful with separator and decimal characters. Try again.","Error",wx.ICON_ERROR)
+            print(exc)
             self.OnOpenFile(event)
             """
             
@@ -449,15 +461,19 @@ class MainWindow(wx.Frame):
         if code==wx.OK:
             self.ClearGrid()
             self.controller.clear_data()
-            #self.controller.clear_task()
+
+            for coords in self.highlighted_outliers_cells:
+                self.grid.SetCellBackgroundColour(coords[0], coords[1], wx.WHITE)
+
+            self.hidden_columns=[]
+            self.identifier_cols=[]
+
+            
             self.enableButtons(False)
-            #self.train_button.Enable(False)
             self.restoreStatus()
             self.override_warning=True
     
     def ClearDataStructures(self):
-        self.hidden_columns=[]
-        self.identifier_cols=[]
         self.int_variable_names=[]
         self.float_variable_names=[]
         self.string_variable_names=[]
@@ -499,7 +515,7 @@ class MainWindow(wx.Frame):
         self.SetStatusText("None data",2)
 
 
-    def updateGrid(self,df):
+    def updateGrid(self,df,updater=None):
         
         i=0 
         rows,cols = df.shape
@@ -560,6 +576,9 @@ class MainWindow(wx.Frame):
                         self.grid.SetCellAlignment(j,i,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT)
 
                     self.grid.SetCellValue(j,i,value)
+
+            if updater!=None:
+                updater(i,f"Loading column {i}")
                    
         if not df.empty:
             self.enableButtons(True)
@@ -706,6 +725,24 @@ class MainWindow(wx.Frame):
                     self.ClearGrid()
                     self.updateGrid(response['data'])
 
+                new_highlighted=[]
+                for cell in self.highlighted_outliers_cells:
+                    self.grid.SetCellBackgroundColour(cell[0],cell[1],self.setting.defaultColor)
+                    shift=0
+                    itself=False
+                    for col in cols:
+                        if col < cell[1]:
+                            shift+=1
+                        elif col==cell[1]:
+                            itself=True
+
+                    shape=self.controller.get_data_shape().getResponse()['data']
+
+                    if not itself or shape[1]==1:
+                        self.grid.SetCellBackgroundColour(cell[0],cell[1]-shift,self.setting.outlierColor)
+                        new_highlighted.append((cell[0],cell[1]-shift))
+                self.highlighted_outliers_cells=new_highlighted
+
     def OnDeleteRow(self,event,row):
         message="Are you sure you want to delete this row ?"
         row=[row]
@@ -719,7 +756,7 @@ class MainWindow(wx.Frame):
             result=self.controller.delete_row(row).getResponse()
             if result['status']!=Status.OK:
                 wx.MessageBox(result['data'],"Error",wx.OK| wx.ICON_ERROR)
-            
+                
             else:
                 
                 response=self.controller.get_data().getResponse()
@@ -727,6 +764,27 @@ class MainWindow(wx.Frame):
                     
                     self.ClearGrid()
                     self.updateGrid(response['data'])
+                    #Si hay alguna resaltada, elimino el color
+                
+                new_highlighted=[]
+                for cell in self.highlighted_outliers_cells:
+                    self.grid.SetCellBackgroundColour(cell[0],cell[1],self.setting.defaultColor)
+                    shift=0
+                    itself=False
+                    for col in rows:
+                        if col < cell[0]:
+                            shift+=1
+                        elif col==cell[0]:
+                            itself=True
+
+                    shape=self.controller.get_data_shape().getResponse()['data']
+
+                    if not itself or shape[0]==1:
+                        self.grid.SetCellBackgroundColour(cell[0]-shift,cell[1],self.setting.outlierColor)
+                        new_highlighted.append((cell[0]-shift,cell[1]))
+                self.highlighted_outliers_cells=new_highlighted
+                    
+                
                 
 
     def OnHideColumn(self,event,col):

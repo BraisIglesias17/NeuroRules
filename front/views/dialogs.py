@@ -661,7 +661,7 @@ class GraphDialog(wx.Dialog):
         self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_frequency)
         self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_3d_graph)
         self.Bind(wx.EVT_RADIOBUTTON,self.OnChangeType,self.radio_btn_2d_graph)
-
+        self.Bind(wx.EVT_BUTTON,self.OnHelp,self.button_HELP)
         self.Bind(wx.EVT_BUTTON,self.generate_graph,self.button_OK)
         self.SetAffirmativeId(self.button_OK.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
@@ -670,6 +670,10 @@ class GraphDialog(wx.Dialog):
         self.Layout()
         # end wxGlade
 
+    def OnHelp(self,evt):
+        dialog=HelpDialog(self,"./front/resources/help/plot_help.json","Plot functions help")
+        dialog.ShowModal()
+        
     def OnChangeType(self,evt):
         
         if self.radio_btn_frequency.GetValue():
@@ -772,7 +776,7 @@ class SummaryDialog(wx.Dialog):
     def __init__(self,parent):
         
         super(SummaryDialog, self).__init__(parent)
-        self.SetSize((810, 481))
+        self.SetSize((900,530))
         self.SetFont(parent.GetFont())
         self.SetTitle("Summary")
 
@@ -1145,7 +1149,7 @@ class StatisticDialog(wx.Dialog):
         self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorrCov,self.checkbox_corr)
         self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorrCov,self.checkbox_covariance)
         self.Bind(wx.EVT_CHECKBOX,self.OnChangeCorrCov,self.checkbox_automatic_tests)
-        
+        self.Bind(wx.EVT_BUTTON,self.OnHelp,self.button_HELP)
 
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
@@ -1153,6 +1157,9 @@ class StatisticDialog(wx.Dialog):
         self.Center()
         self.Layout()
                 
+    def OnHelp(self,evt):
+        dialog=HelpDialog(self,file="./front/resources/help/statistics_help.json",title="Statisticts Help")
+        dialog.ShowModal()
 
     def EnableComponents(self,val):
         self.combo_box_A.Enable(val)
@@ -1177,8 +1184,27 @@ class StatisticDialog(wx.Dialog):
         other_option=False
         
         if self.checkbox_automatic_tests.GetValue():
-            dialog=AutomaticTest(self)
-            code=dialog.ShowModal()
+            shape=self.controller.get_data_shape().getResponse()['data']
+            code=wx.YES
+            classes=self.controller.get_nominal_classes().getResponse()['data']
+
+            warning=False
+            message="The following variables will be ignored because they have more than 5 groups: "
+           
+            for elem in classes:     
+                if len(classes[elem])>5:
+                    warning=True
+                    message=message+" "+elem+","
+                     
+
+            if shape[0]>5000 and not warning:
+                code=wx.MessageBox("The amount of data may be very high for the automatic tests, p-value may not be accurate for N > 5000. . You want to  continue anyway?","Warning",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
+            elif warning:
+                wx.MessageBox(message,"Warning",wx.ICON_WARNING)
+
+            if code==wx.YES:
+                dialog=AutomaticTest(self)
+                code=dialog.ShowModal()
 
         elif self.checkbox_corr.GetValue() or self.checkbox_covariance.GetValue():
             df=self.controller.get_data().getResponse()['data']
@@ -1215,19 +1241,75 @@ class StatisticDialog(wx.Dialog):
                     if 'Shapiro' in test:   
                         self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a],condition=True,msg="to determine that this variable has a normal distribution")
                     elif 'ANOVA' in test and complete:
-                        grouping_values=np.unique(y)
+                        """
                         
-                        dict_y={}
-                        for group in grouping_values:
-                            dict_y[group]=x[y==group]
+                        grouping_values=np.unique(y)
+                        if len(grouping_values)<5:
+                            dict_y={}
+                            for group in grouping_values:
+                                dict_y[group]=x[y==group]
 
-                        self.OnLaunchGroupingResultDialog(StatisticTest.ANOVA,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
+                            self.OnLaunchGroupingResultDialog(StatisticTest.ANOVA,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
+                        else:
+                            wx.MessageBox("There is too many groups to perform the test.","Warning",wx.ICON_WARNING)
+                        """
+                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.ANOVA)
+                    elif 'T Student' in test and complete:
+                        """
+                        grouping_values=np.unique(y)
+                        if len(grouping_values)<5:
+                            dict_y={}
+                            for group in grouping_values:
+                                dict_y[group]=x[y==group]
+
+                            self.OnLaunchGroupingResultDialog(StatisticTest.t_student,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
+                        else:
+                            wx.MessageBox("There is too many groups to perform the test.","Warning",wx.ICON_WARNING)
+                        """
+                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.t_student)
+                    elif 'Kruskal Wallis' in test and complete:
+                        """
+                        grouping_values=np.unique(y)
+                        if len(grouping_values)<5:
+                            dict_y={}
+                            for group in grouping_values:
+                                dict_y[group]=x[y==group]
+
+                            self.OnLaunchGroupingResultDialog(StatisticTest.kruskal_wallis,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
+                        else:
+                            wx.MessageBox("There is too many groups to perform the test.","Warning",wx.ICON_WARNING)
+                        """
+                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.kruskal_wallis)
+                    elif 'Wilcoxon' in test and complete:
+                        """
+                        
+                        grouping_values=np.unique(y)
+
+                        if len(grouping_values)<5:
+                            dict_y={}
+                            for group in grouping_values:
+                                dict_y[group]=x[y==group]
+
+                            self.OnLaunchGroupingResultDialog(StatisticTest.wilcoxon,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
+                        else:
+                            wx.MessageBox("There is too many groups to perform the test.","Warning",wx.ICON_WARNING)
+                        """
+                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.wilcoxon)
+                        
                     elif 'Pearson' in test and complete:
                         self.OnLaunchResulDialog(StatisticTest.pearson,test,variables=[x,y],names=[a,b],condition=False,msg="to determine that there is correlation between ")
                     
-                    #TO DO TESTS
-                    
-                    
+    def _differencesGroupTemplate(self,y,x,a,b,test,method):
+        grouping_values=np.unique(y)
+
+        if len(grouping_values)<5:
+            dict_y={}
+            for group in grouping_values:
+                dict_y[group]=x[y==group]
+
+            self.OnLaunchGroupingResultDialog(method,test,dict_y,grouping_values,names=[a,b],msg="to determine that there is significant differences between ")
+        else:
+            wx.MessageBox("There is too many groups to perform the test.","Warning",wx.ICON_WARNING)
 
     def OnLaunchGroupingResultDialog(self,test,test_name,dict_y,groups,names,msg=""):
         i=0
@@ -1324,9 +1406,6 @@ class StatisticDialog(wx.Dialog):
             self.combo_box_B.AppendItems(self.names)
 
         
-
-
-
 class TestResultDialog(wx.Dialog):
     def __init__(self,parent,name,result,explanation,lower=True):
         
@@ -1335,7 +1414,7 @@ class TestResultDialog(wx.Dialog):
         self.SetFont(parent.GetFont())
         self.result=result
 
-        self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/x.png"
+        self.image="./front/resources/img/x.png"
         self.header="Unsuccesful"
         pvalues=self.result['pvalue']
         self.single_result=len(pvalues)==1
@@ -1344,7 +1423,7 @@ class TestResultDialog(wx.Dialog):
             pvalue=np.round(self.result['pvalue'][0],5)
             
             if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
-                self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/ok.png"
+                self.image="./front/resources/img/ok.png"
                 self.header="Succesful"
 
                 explanation="\nThere is significicant statistical evidence "+explanation
@@ -1354,7 +1433,7 @@ class TestResultDialog(wx.Dialog):
             
             for pvalue in pvalues:
                 if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
-                    self.image="C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/ok.png"
+                    self.image="./front/resources/img/ok.png"
                     self.header="Succesful"                    
                     break
             
@@ -1609,7 +1688,7 @@ class SingleSummaryDialog(wx.Dialog):
 
     def plot_histogram(self,evt):
         
-        
+    
         response=self.parent.controller.get_column(list(self.parent.names).index(self.variable)).getResponse()
         if response['status']!=Status.OK:
             wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -1927,6 +2006,7 @@ class AutomaticTest(wx.Dialog):
         super(AutomaticTest, self).__init__(parent)
         self.SetFont(parent.GetFont())
         self.SetTitle("Automatic test result")
+        
         
         #LLAMADA A TEST AUTOMATICO 
         result=parent.controller.automatic_statistic_test().getResponse()
@@ -2470,7 +2550,7 @@ class TransformDialog(wx.Dialog):
             selection=self.radio_box_numerical.GetStrings()[self.radio_box_numerical.GetSelection()]
             if selection=="Discretize":
                 self.button_select_bins.Enable(True)
-                self.data_preprocess[variable]['params']={'custom':False,'n_bins':None,'names_bins':[],'ranges':[]}
+                self.data_preprocess[variable]['params']={'auto':True,'custom':False,'n_bins':None,'names_bins':[],'ranges':[]}
             else:
                 self.button_select_bins.Enable(False)
 
@@ -2688,6 +2768,8 @@ class PredictionModelDialog(wx.Dialog):
 
         label_2 = wx.StaticText(self, wx.ID_ANY, u"Nº of sets")
         sizer_9.Add(label_2, 0, wx.RIGHT, 5)
+        
+        self.shape=self.controller.get_data_shape().getResponse()['data']
 
         self.spin_ctrl_sets = wx.SpinCtrl(self, wx.ID_ANY, "3", min=1, max=100)
         sizer_9.Add(self.spin_ctrl_sets, 0, 0, 0)
@@ -2748,9 +2830,19 @@ class PredictionModelDialog(wx.Dialog):
 
     def _validation_params(self):
         ok=True
-
-        if self.spin_ctrl_test_size.GetValue()>=1.0 or self.spin_ctrl_sets.GetValue()>self.shape[0]:
+        #Validacion de sets y train test split
+        if self.spin_ctrl_test_size.GetValue()<=0.0 or self.spin_ctrl_test_size.GetValue()>=1.0:
             ok=False
+            wx.MessageBox("Test size can not be "+str(self.spin_ctrl_test_size.GetValue())+".","Error",wx.ICON_ERROR)
+        
+        if self.spin_ctrl_sets.GetValue()>=self.shape[0]:
+            ok=False
+            wx.MessageBox("The number of folders can not be higher than the number of rows.","Error",wx.ICON_ERROR)
+        elif self.spin_ctrl_sets.GetValue()>=self.shape[0]/2:
+            code=wx.MessageBox("The number of folders might be too high for the number of rows of the data. You want to continue anyway?","Warning",wx.ICON_WARNING|wx.NO|wx.NO_DEFAULT|wx.YES)
+            
+            if code==wx.NO:
+                ok=False
 
         return ok
     
@@ -2861,13 +2953,11 @@ class PredictionModelDialog(wx.Dialog):
             
             if variable!="All" and model['model']=="":
                 ok=False
-                wx.MessageBox("You must select at leas one model for each variable","Error")
+                wx.MessageBox("You must select at leas one model for each variable","Error",wx.ICON_ERROR)
                 break
-            
-        if not self._validation_params():
-            ok=False
-            wx.MessageBox("Incorrect value for test size or number of subsets","Error")
-            
+        if ok:
+            ok=self._validation_params()
+           
         if ok:
             ok=False
             name,cancel=get_task_name(self)
@@ -2912,8 +3002,8 @@ class TaskReportDialog(wx.Dialog):
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Task information"), wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
 
-        label_report = wx.StaticText(self, wx.ID_ANY,self.task_report)
-        sizer_3.Add(label_report, 1, wx.ALL | wx.EXPAND, 5)
+        self.label_report = wx.StaticText(self, wx.ID_ANY,self.task_report)
+        sizer_3.Add(self.label_report, 1, wx.ALL | wx.EXPAND, 5)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -2926,12 +3016,19 @@ class TaskReportDialog(wx.Dialog):
         sizer_2.AddButton(self.button_train)
 
         tooltip_bg=wx.ToolTip("The training is hidden and the results are stored in the file previously indicated.")
-        self.button_train_background = wx.Button(self, wx.ID_APPLY, "Train in background")
+        self.button_train_background = wx.Button(self, wx.ID_CANCEL, "Train in background")
         self.button_train_background.SetToolTip(tooltip_bg)
 
         sizer_2.AddButton(self.button_train_background)
 
-        self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
+
+        tooltip_save=wx.ToolTip("Export the report to a text file")
+        self.button_SAVE = wx.Button(self, wx.ID_APPLY, "Export to file")
+        self.button_SAVE.SetToolTip(tooltip_save)
+
+        sizer_2.AddButton(self.button_SAVE)
+
+        self.button_CANCEL = wx.Button(self, wx.ID_HELP, "")
         sizer_2.AddButton(self.button_CANCEL)
 
         sizer_2.Realize()
@@ -2942,10 +3039,20 @@ class TaskReportDialog(wx.Dialog):
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_train)
         self.Bind(wx.EVT_BUTTON,self.OnApplyBg,self.button_train_background)
+        self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
         self.Layout()
+
+    def OnSave(self,evt):
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.parent.setting.GetPath()).getResponse()
+
+        if path['status']==Status.OK:
+            
+            saver=Saver(path['data'],content=self.label_report.GetLabelText())
+            saver.save()
+            wx.MessageBox("File saved succesfully in "+path['data'],"Info")
 
     def OnApply(self,event):
         targets=self.controller.get_target_indexes().getResponse()['data']
@@ -3123,18 +3230,39 @@ class ResultsDialog(wx.Dialog):
         sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 10)
 
 
-        self.label_metrics = wx.StaticText(self, wx.ID_ANY,label="Select output")
-        sizer_7.Add(self.label_metrics, 1, wx.ALL | wx.EXPAND, 5)
+        #self.label_metrics = wx.StaticText(self, wx.ID_ANY,label="Select output")
+        #sizer_7.Add(self.label_metrics, 1, wx.ALL | wx.EXPAND, 5)
+
+        ##
+        # Grid
+        self.validation_grid=wx.grid.Grid(self, wx.ID_ANY)
+        self.validation_grid.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+        self.validation_grid.CreateGrid(4, 2)
+        self.validation_grid.SetRowLabelValue(0, "")
+        self.validation_grid.SetRowLabelValue(1, "")
+        self.validation_grid.SetRowLabelValue(2, "")
+        self.validation_grid.SetRowLabelValue(3, "")
+        self.validation_grid.SetColLabelValue(0, "Testing")
+        self.validation_grid.SetColLabelValue(1, "Training")
+        #self.validation_grid.HideColLabels()
+
+        sizer_7.Add(self.validation_grid, 0, wx.ALL, 10)
+        ##
+
 
         sizer_plot=wx.BoxSizer(wx.VERTICAL)
         sizer_7.Add(sizer_plot,0,wx.EXPAND,10)
 
         self.button_plot_metrics=wx.Button(self,id=wx.ID_ANY,label="Plot testing metrics")
-        sizer_plot.Add(self.button_plot_metrics,0,wx.ALL,5)
+        sizer_plot.Add(self.button_plot_metrics,0,wx.ALL | wx.EXPAND,5)
 
         self.button_plot_metrics_trainings=wx.Button(self,id=wx.ID_ANY,label="Plot training metrics")
-        sizer_plot.Add(self.button_plot_metrics_trainings,0,wx.ALL,5)
+        sizer_plot.Add(self.button_plot_metrics_trainings,0,wx.ALL | wx.EXPAND,5)
 
+        self.button_plot_precisewise=wx.Button(self,id=wx.ID_ANY,label="Plot output")
+        sizer_plot.Add(self.button_plot_precisewise,0,wx.ALL | wx.EXPAND,5)
+
+        self.button_plot_precisewise.Enable(False)
         self.button_plot_metrics.Enable(False)
         self.button_plot_metrics_trainings.Enable(False)
 
@@ -3185,6 +3313,7 @@ class ResultsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnSaveTask,self.button_SAVE)
         self.Bind(wx.EVT_BUTTON,self.OnExportToFile,self.button_save_alone)
         self.Bind(wx.EVT_BUTTON,self.OnPredict,self.button_predict)
+        self.Bind(wx.EVT_BUTTON,self.OnPlotPrecision,self.button_plot_precisewise)
         sizer_2.Realize()   
 
         self.SetSizer(sizer_1)
@@ -3193,10 +3322,23 @@ class ResultsDialog(wx.Dialog):
         
         self.SetAffirmativeId(self.button_SAVE.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
-        self.SetSize(600,500)
+        #self.SetSize(600,500)
         self.Center()
         self.Layout()
     
+    def OnPlotPrecision(self,evt):
+        model=self.cb_model.GetStringSelection()
+        output=self.lb_outputs.GetStringSelection()
+
+        response=self.controller.get_model_plot(output,model).getResponse()
+
+        if response['status']==Status.OK:
+            figure=response['data']
+            figure.show()
+        else:
+            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+        
+
     def OnExportToFile(self,evt):
         index=self.lb_outputs.GetSelection()
         variable=self.lb_outputs.GetString(index)
@@ -3310,9 +3452,11 @@ class ResultsDialog(wx.Dialog):
         self.button_show_params.Enable(val)
         self.button_save_alone.Enable(val)
         self.button_predict.Enable(val)
+        self.button_plot_precisewise.Enable(val)
         #self.button_plots.Enable(val)
 
     def OnSelectOutput(self,evt):
+        self.ClearGrid()
         self._enableButtons(False)
         output=evt.GetString()
         self.cb_selections=[]
@@ -3323,9 +3467,18 @@ class ResultsDialog(wx.Dialog):
         self.cb_model.Clear()
         self.cb_model.AppendItems(self.cb_selections)
 
-        self.label_metrics.SetLabelText("Select Model")
+        #self.label_metrics.SetLabelText("Select Model")
         self.label_model_info.SetLabelText("Select Model")
     
+
+    def ClearGrid(self):
+
+        for i in range(self.validation_grid.GetNumberCols()):
+            for j in range(self.validation_grid.GetNumberRows()):
+                self.validation_grid.SetCellValue(j,i,"")
+                self.validation_grid.SetCellBackgroundColour(j,i,self.validation_grid.GetDefaultCellBackgroundColour())
+                self.validation_grid.SetRowLabelValue(j,"")
+            
 
     def OnSelectModel(self,evt):
         model=evt.GetString()
@@ -3356,6 +3509,49 @@ class ResultsDialog(wx.Dialog):
             self.currentValidation=validation
             formated_metrics=""
             
+            j=0
+            for phase in metrics:
+                i=0
+                for metric in metrics[phase]:
+                    name='r2'
+                    metric_name=metric
+                    if validation=="Cross Validation" and phase=='training_validation' and metric=="average_r2":
+                        name='average_r2'
+                        metric_name="r2"
+                        self.button_plot_metrics_trainings.SetLabelText("View CV results")
+                    elif validation=="Cross Validation" and phase=='training_validation' and metric=="average_accuracy":
+                        metric_name="accuracy"
+                        self.button_plot_metrics_trainings.SetLabelText("View CV results")
+
+                    elif validation=="Cross Validation" and phase=='training_validation':
+                        self.button_plot_metrics_trainings.SetLabelText("View CV results")
+                        break
+                    else:
+                        
+                        self.button_plot_metrics_trainings.SetLabelText("Plot training metrics")
+
+                    self.validation_grid.SetRowLabelValue(i,metric_name)
+
+                    value=np.round(metrics[phase][metric],3)
+                    if metric==name:
+                        if value < 0.5:
+                            colour=wx.Colour('#e07453')
+                        elif value < 0.7:
+                            colour=wx.Colour('#c7a23e')
+                        elif value < 9:
+                            colour=wx.Colour('#6f9651')
+                        else:
+                            colour=wx.Colour('#19bf1c')
+                        self.validation_grid.SetCellBackgroundColour(i,j,colour)
+
+                    self.validation_grid.SetCellValue(i,j,str(value))
+                
+                    self.validation_grid.SetReadOnly(i,j,True)
+                    i+=1
+                j+=1
+
+            """
+            
             for moment in metrics:
                 if 'test_validation'==moment:
                     formated_metrics=formated_metrics+"Test validation: "
@@ -3369,25 +3565,16 @@ class ResultsDialog(wx.Dialog):
                     for metric in metrics[moment]:
                     
                         value=np.round(metrics[moment][metric],3)
-                        """
-                        color="black"
-                        if value<0.5:
-                            color="red"
-                        elif value<0.7:
-                            color="yellow"
-                        else:
-                            color="green"
-                        """
-                        
+                       
                         if "r2" in metric or "accuracy" in metric:
                             #formated_metrics=formated_metrics+metric+" : <font color='"+color+"'>"+str(value)+"</font>\n"
                             formated_metrics=formated_metrics+metric+" = "+str(value)+"\n"
-            
+            """
             if grid_search:
                 formated_model="Grid Search applied"
             else:
                 formated_model="Static parameters"
-            self.label_metrics.SetLabelText(formated_metrics)
+            #self.label_metrics.SetLabelText(formated_metrics)
             self.label_model_info.SetLabelText(formated_model)
 
         else:
@@ -3716,18 +3903,41 @@ class RulesResultsDialog(wx.Dialog):
         self.sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Rules"), wx.HORIZONTAL)
         sizer_6.Add(self.sizer_7, 1, wx.ALL | wx.EXPAND, 10)
 
-        self.label_rules = wx.StaticText(self, wx.ID_ANY, "Select an output")
-        self.sizer_7.Add(self.label_rules, 1, wx.ALL | wx.EXPAND, 5)
+        #self.label_rules = wx.StaticText(self, wx.ID_ANY, "Select an output")
+        #self.sizer_7.Add(self.label_rules, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.rules_text_ctrl=wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.HSCROLL | wx.TE_WORDWRAP | wx.TE_READONLY)
+        self.sizer_7.Add(self.rules_text_ctrl, 1, wx.ALL | wx.EXPAND, 5)
+        
 
         sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Model Information"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_8, 1, wx.ALL | wx.EXPAND, 10)
+        #sizer_6.Add(sizer_8, 0, wx.ALL , 10)
 
-        self.label_model_info = wx.StaticText(self, wx.ID_ANY, "Select an output")
-        sizer_8.Add(self.label_model_info, 1, wx.ALL | wx.EXPAND, 5)
+        #self.label_model_info = wx.StaticText(self, wx.ID_ANY, "Select an output")
+        #sizer_8.Add(self.label_model_info, 1, wx.ALL | wx.EXPAND, 5)
+
+        ###
+        # METRICS GRID
+        self.validation_grid=wx.grid.Grid(self, wx.ID_ANY)
+        self.validation_grid.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+        self.validation_grid.CreateGrid(3, 2)
+        self.validation_grid.SetRowLabelValue(0, "")
+        self.validation_grid.SetRowLabelValue(1, "")
+        self.validation_grid.SetRowLabelValue(2, "")
+        self.validation_grid.SetColLabelValue(0, "Training")
+        self.validation_grid.SetColLabelValue(1, "Testing")
+
+        sizer_8.Add(self.validation_grid,0, wx.ALIGN_CENTER_VERTICAL |wx.ALL, 10)
+        ##
+        sizer_custom=wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6.Add(sizer_custom,0,wx.EXPAND | wx.ALL, 10)
+
+        sizer_custom.Add(sizer_8, 0,wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
         sizer_10 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Actions"), wx.HORIZONTAL)
-        sizer_6.Add(sizer_10, 0,wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
-
+        #sizer_6.Add(sizer_10, 0,wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        sizer_custom.Add(sizer_10, 0,wx.ALIGN_CENTER_VERTICAL| wx.ALL, 10)
+        
         grid_sizer_1 = wx.GridSizer(2, 2, 2, 2)
         sizer_10.Add(grid_sizer_1, 0, 0, 0)
 
@@ -3780,6 +3990,13 @@ class RulesResultsDialog(wx.Dialog):
     def OnDetails(self,evt):
         dialog=DetailsDialog(self,self.controller.get_task_metadata().getResponse()['data'])
         dialog.ShowModal()
+
+    def ClearGrid(self):
+        for i in range(self.validation_grid.GetNumberCols()):
+            for j in range(self.validation_grid.GetNumberRows()):
+                self.validation_grid.SetCellValue(j,i,"")
+                self.validation_grid.SetCellBackgroundColour(j,i,self.validation_grid.GetDefaultCellBackgroundColour())
+                self.validation_grid.SetRowLabelValue(j,"")
 
     def OnExportToFile(self,evt):
         index=self.lb_outputs.GetSelection()
@@ -3843,9 +4060,11 @@ class RulesResultsDialog(wx.Dialog):
         
 
     def OnSelectOutput(self,evt):
+        self.ClearGrid()
         self._enable_buttons(False)
-        self.label_rules.SetLabelText("Select a submodel")
-        self.label_model_info.SetLabelText("Select a submodel")
+        self.rules_text_ctrl.SetValue("Select a submodel")
+        #self.label_rules.SetLabelText("Select a submodel")
+        #self.label_model_info.SetLabelText("Select a submodel")
         model_type=self.types[evt.GetSelection()]
 
         model=evt.GetString().split(" - ")[0]
@@ -3886,26 +4105,38 @@ class RulesResultsDialog(wx.Dialog):
             self.cb_submodel.AppendItems(formated_submodels)
 
     def _display(self,submodel,rules,metric_value):
-        metrics=""
-        for metric in submodel['training_score']:
-            value=np.round(submodel['training_score'][metric],3)
-            metrics=metrics+metric+": "+str(value)+"\n"
-
+        j=0
         
-        if metric_value>0.7:
-            self.label_model_info.SetForegroundColour(wx.Colour(77,150,66))
-        elif metric_value>0.6:
-            self.label_model_info.SetForegroundColour(wx.Colour(160,180,50))
-        else:
-            self.label_model_info.SetForegroundColour(wx.Colour(138,39,28))
+        for elements in submodel:
+            if elements!="model" and elements!="best" and elements!="inputs":
+                i=0
+                for metric in submodel[elements]:
+                    
+                    value=np.round(submodel[elements][metric],3)
+                    if metric=="r2":
+                        if value < 0.5:
+                            colour=wx.Colour('#e07453')
+                        elif value < 0.7:
+                            colour=wx.Colour('#c7a23e')
+                        elif value < 9:
+                            colour=wx.Colour('#6f9651')
+                        else:
+                            colour=wx.Colour('#19bf1c')
+                        self.validation_grid.SetCellBackgroundColour(i,j,colour)
 
-        self.label_model_info.SetLabelText(str(metrics))
-
+                    self.validation_grid.SetRowLabelValue(i,metric)
+                    self.validation_grid.SetCellValue(i,j,str(value))
+                
+                    self.validation_grid.SetReadOnly(i,j,True)
+                    i+=1
+                j+=1
+                
         rules_formatted=""
         for rule in rules:
             rules_formatted=rules_formatted+rule+"\n\n"
         
-        self.label_rules.SetLabelText(rules_formatted)
+        #self.label_rules.SetLabelText(rules_formatted)
+        self.rules_text_ctrl.SetValue(rules_formatted)
         #self.sizer_7.Layout()
     
 
@@ -4776,11 +5007,11 @@ class LoadFileDialog(wx.Dialog):
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
-        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
 
         sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Path"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, 10)
+        sizer_3.Add(sizer_4, 1, wx.ALL  | wx.ALIGN_CENTER_VERTICAL, 10)
 
         sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_4.Add(sizer_5, 1, wx.EXPAND, 0)
@@ -4792,7 +5023,7 @@ class LoadFileDialog(wx.Dialog):
         sizer_5.Add(self.button_change_path, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Options"), wx.HORIZONTAL)
-        sizer_3.Add(sizer_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        sizer_3.Add(sizer_6, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_6.Add(sizer_7, 0, 0, 0)
@@ -4824,7 +5055,7 @@ class LoadFileDialog(wx.Dialog):
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "")
-        self.button_OK.SetDefault()
+        
         sizer_2.AddButton(self.button_OK)
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
@@ -4837,11 +5068,11 @@ class LoadFileDialog(wx.Dialog):
 
 
         self.SetEscapeId(self.button_CANCEL.GetId())
-
-        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_OK)
         self.Bind(wx.EVT_BUTTON,self.OnChangePath,self.button_change_path)
+        self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_OK)
+        self.button_OK.SetDefault()
 
-        self.SetSize(400,275)
+        self.SetSize(800,200)
         self.Center()
         self.Layout()
     
