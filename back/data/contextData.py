@@ -84,6 +84,15 @@ class ContextData():
         index=list(self.data.columns).index(output)
         return self.values[:,index]
     
+    def get_nominals_classes(self):
+        tmp={}
+
+        for var in self.characterValues:
+            
+            tmp[var]=np.unique(self.data[var].astype(str))
+
+        return tmp
+        
     def _get_types(self):
         '''
         Check  the type of the variables saved on Dataframe: int, float or string
@@ -232,38 +241,38 @@ class ContextData():
         for nominal in group:
             if not nominal in self.identifier_cols:
                 values=group[nominal].unique()
-
-                i=0
-                j=0
-                for i in range(len(values)-1):
-                    for j in range(i+1,len(values)):
-                        groupA=values[i]
-                        groupB=values[j]
-                        
-                        for variable in X:
-                        
-                            data=self.data[variable]
-                            result=StatisticTest.shapiro_wilk(data)
-
-                            query=str("`"+nominal+"`=='"+groupA+"'")
-                            a=self.data.query(query)[variable]
-                            query=str("`"+nominal+"`=='"+groupB+"'")
-                            b=self.data.query(query)[variable]
-
-                            if a.shape[0]==1 or b.shape[0]==1:
-                                raise Exception("The test could not be perfomed because there is groups of "+nominal+" with one element only in "+variable)
+                if len(values) < 5:
+                    i=0
+                    j=0
+                    for i in range(len(values)-1):
+                        for j in range(i+1,len(values)):
+                            groupA=values[i]
+                            groupB=values[j]
                             
-                            if result.pvalue>self.NORMALITY_THRESHOLD:
-                                result=StatisticTest.ANOVA(a,b)
+                            for variable in X:
+                            
+                                data=self.data[variable]
+                                result=StatisticTest.shapiro_wilk(data)
+
+                                query=str("`"+nominal+"`=='"+groupA+"'")
+                                a=self.data.query(query)[variable]
+                                query=str("`"+nominal+"`=='"+groupB+"'")
+                                b=self.data.query(query)[variable]
+
+                                if a.shape[0]==1 or b.shape[0]==1:
+                                    raise Exception("The test could not be perfomed because there is groups of "+nominal+" with one element only in "+variable)
                                 
-                                if result.pvalue<self.DIFFERENCE_THRESHOLD:
-                                    toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
-                            else:
-                                result=StatisticTest.wilcoxon(a,b)
-                                
-                                if result.pvalue<self.DIFFERENCE_THRESHOLD:
-                                    toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
-       
+                                if result.pvalue>self.NORMALITY_THRESHOLD:
+                                    result=StatisticTest.ANOVA(a,b)
+                                    
+                                    if result.pvalue<self.DIFFERENCE_THRESHOLD:
+                                        toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
+                                else:
+                                    result=StatisticTest.wilcoxon(a,b)
+                                    
+                                    if result.pvalue<self.DIFFERENCE_THRESHOLD:
+                                        toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
+        
         return toret
 
 
@@ -489,8 +498,17 @@ class ContextData():
 
                     new_varible=self._map_variable(ranges,names,original)
 
-                    self.data[variable+"_binned"] = new_varible
-                    self.characterValues.append(variable+"_binned")
+                    var_name=variable+"_binned"                
+                    current_names=self.get_names()
+    
+                    if var_name in current_names:
+                        i=1
+                        while var_name in current_names:
+                            var_name=variable+"_"+str(i)
+                            i+=1
+
+                    self.data[var_name] = new_varible
+                    self.characterValues.append(var_name)
                     self.values=self.data.values  
 
             else:
@@ -532,11 +550,24 @@ class ContextData():
         
         var_name=variable+'_binned'
         
+        current_names=self.get_names()
+        
+        
+        if var_name in current_names:
+            i=1
+            while var_name in current_names:
+                var_name=variable+"_"+str(i)
+                i+=1
+        
         if names!=None:
             
             self.data[var_name] = pd.cut(self.data[variable], bins,labels=names,include_lowest=True)
         else:
             self.data[var_name] = pd.cut(self.data[variable], bins,include_lowest=True)
+        
+        
+        self.data_cleanse[var_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
+        self.data_preprocess[var_name]={'transformation':'None','keep_original':True,'params':None}
         self.characterValues.append(var_name)
         self.values=self.data.values
         
