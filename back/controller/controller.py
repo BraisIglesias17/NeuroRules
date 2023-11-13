@@ -252,6 +252,7 @@ class Controller():
             value=self.contextData.delete_column(col)
             return Response(data={},status=Status.OK)
         except Exception as exc:
+            traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def set_col_as_id(self,name,remove=False):
@@ -469,7 +470,16 @@ class Controller():
             #traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
+    def get_task_metadata(self):
+        try:
+            
+            if self.currentTask!=None:
+                result=self.currentTask.get_metadata()
 
+                return Response(data=result,status=Status.OK)
+            
+        except Exception as exc:
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     def save_file(self,content,path):
         try:
             
@@ -478,6 +488,27 @@ class Controller():
             saver.save()
             
             return Response(data={},status=Status.OK)
+        
+        except Exception as exc:
+            
+            traceback.print_exc()
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    def get_model_plot(self,variable,model):
+        try:
+            
+            figure=self.currentTask.get_model_plot(variable,model)
+            return Response(data=figure,status=Status.OK)
+        
+        except Exception as exc:
+            
+            traceback.print_exc()
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def get_nominal_classes(self):
+        try:
+            
+            return Response(data=self.contextData.get_nominals_classes(),status=Status.OK)
         
         except Exception as exc:
             
