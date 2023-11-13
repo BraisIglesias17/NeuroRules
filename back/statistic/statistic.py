@@ -1,5 +1,5 @@
-from scipy.stats import chi2,pearsonr,wilcoxon,shapiro,kruskal,kstest,t,f_oneway,mannwhitneyu
-
+from scipy.stats import chi2,pearsonr,wilcoxon,shapiro,kruskal,kstest,t,f_oneway,mannwhitneyu,ttest_ind
+import numpy as np
 
 class StatisticTest():
 
@@ -24,8 +24,9 @@ class StatisticTest():
         return ['T Student - (Difference between groups)','ANOVA - (Difference between groups)','Kruskal Wallis - (Difference between groups)','Wilcoxon - (Difference between groups)','Pearson - (Correlation)','Shapiro - (Normality)']
     
     @staticmethod
-    def t_student():
-        return 0.0
+    def t_student(x,y):
+        
+        return ttest_ind(np.array(x).astype(float),np.array(y).astype(float))
 
     @staticmethod
     def ANOVA(x,y):
@@ -37,7 +38,8 @@ class StatisticTest():
     
     @staticmethod
     def wilcoxon(x,y):
-        return mannwhitneyu(x,y)
+        
+        return mannwhitneyu(np.array(x).astype(float),np.array(y).astype(float))
     
     @staticmethod
     def kruskal_wallis(x,y):
