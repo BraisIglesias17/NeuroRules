@@ -11,13 +11,13 @@ class Task():
 
     def __init__(self,name,data,outputs,validation,rules=False):
 
-        assert name!="" and name!=None
+        assert name!="" and name!=None, "Taskname missing"
 
-        assert data!=None
+        assert data!=None, "Input data can not be None"
 
-        assert outputs!=None
+        assert outputs!=None, "Output data can not be None"
 
-        assert validation!=None
+        assert validation!=None, "Validation information can not be None"
 
 
         self.rules=rules
@@ -35,6 +35,7 @@ class Task():
         
         self.input_names=list(self.contextData.variables)
         self.output_name=self.contextData.targets[0]
+        
 
         for variable in outputs:
             self.models[variable]=[]
@@ -42,12 +43,14 @@ class Task():
             for model in self.outputs[variable]['model']:
                 
                 self.models[variable].append(ModelImplementation(model=model))
+                
 
 
         indexes = list(range(self.contextData.values.shape[0])) 
         tmp=self.contextData.get_values_inputs()
         X=tmp[0]
         self.types=tmp[1]
+        self.split_test=self.validation['params']['test_size']
         train_index, test_index= train_test_split(indexes, test_size=self.validation['params']['test_size'], random_state=42, shuffle=True)
 
         self.train_index=train_index
@@ -80,17 +83,13 @@ class Task():
         
     def execute(self,callable,*args,**kwargs):
         
-        
         inc=100
         i=inc
         #i+=inc
-
         #callable(self._update_progressbar,args[0][0],int(i))  
-        
         print("Performing model training ...")
         for variable in self.models:
             
-
             print(f"\tstarting "+variable+"...")
             for model in self.models[variable]:
                 y=self.contextData.get_values_output(variable)
@@ -120,18 +119,14 @@ class Task():
         toret={}
         models=self.models[variable]
 
-        
         for model in models:
 
             tmp={}
             #y=self.contextData.get_values_output(variable)
             #y_test=y[self.test_index]
             tmp=model.report()
-            
             toret[model.modelname]={'validation':self.validation['method'],'metrics':tmp,'options':model.get_params()}
             #toret[model.modelname]['params']=model.get_params()
-
-        
         return toret
 
     def get_text_reports(self,variable):
@@ -143,9 +138,18 @@ class Task():
         
         return toret
 
+    def get_model_plot(self,variable,model):
+
+        for model_obj in self.models[variable]:
+            if model_obj.modelname==model:
+                return model_obj.plot_model_results()
+                
+
     def get_info(self):
+        
         message="Name: "+self.taskName+"\n\n"
-        message=message+"Validation: "+self.validation['method']+"\n\n"
+        message=message+"Validation: "+self.validation['method']+"\n"
+        message=message+"Split: test("+str(self.split_test)+") train("+str((1-self.split_test))+")"+"\n\n"
         message=message+"Outputs:"+"\n"
         for variable in self.outputs:
             message=message+" - "+variable+": \n     Model: "
