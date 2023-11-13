@@ -11,6 +11,7 @@ def plot_2d(data,options):
     x=data['x']['data']
     y_left=data['y']['data']
     y_right=data['y_right']['data']
+
     fig, ax1 = plt.subplots()
 
     if data['y']['name']!="":
@@ -36,13 +37,13 @@ def plot_3d(data,options):
     y=data['y']['data']
     z=data['z']['data']
     #x, y = np.meshgrid(x, y)
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure("3D Graph",figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
     
     #ax.scatter(x, y, z, c='blue', marker='o', label='Datos')
 
     # Crear el gráfico de superficie
-    surf = ax.plot_trisurf(x, y, z, cmap='plasma')
+    surf = ax.plot_trisurf(x, y, z, cmap='RdYlGn')
 
     fig.colorbar(surf)
     ax.set_title('3D mesh graph')
@@ -65,7 +66,7 @@ def plot_countplot(nominal):
 
 def plot_hist(data,option):
     x=data['x']['data']
-    plt.figure(figsize=(8, 6))
+    plt.figure("Histogram",figsize=(8, 6))
     plt.hist(x, bins=option['bins'], color='blue', alpha=0.7,edgecolor="black")
     plt.title('Histogram')
     plt.xlabel(data['x']['name'])
@@ -80,6 +81,7 @@ def plot_boxplot(data,option):
     plt.boxplot(x)
     plt.title(str(data['x']['name']+" boxplot"))
     """
+    plt.figure("Boxplot")
     sns.boxplot(data=x, orient="v")
     plt.show()
 
@@ -91,7 +93,7 @@ def plot_regression(data,options):
     
     X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
     
-    plt.figure(figsize=(8, 6))
+    plt.figure("Fitted regression line",figsize=(8, 6))
     plt.scatter(x, y, label='Data points', color='blue')
     plt.title('Regression Fit Line')
     plt.xlabel(data['x']['name'])
@@ -104,7 +106,7 @@ def plot_regression(data,options):
 
     R2=r2_score(X_test,fit_line)
 
-    plt.annotate('R2 = (%.2f)'%(R2), xy=(sum(x)/len(x),max(y)-5),xytext =(0,20),textcoords ='offset points',fontsize=13,ha='center')
+    plt.annotate('R2 = (%.2f)'%(R2), xy=(sum(x)/len(x),max(y)-5),xytext =(2,2),textcoords ='offset points',fontsize=13,ha='center')
 
     plt.plot(X_test,fit_line, color='red')
     plt.legend()
@@ -131,6 +133,7 @@ def plot_covariance_matrix(dataFrame):
     plt.show()
 
 def plot_histogram_grouped(data,x,group):
+    
     g = sns.catplot(data=data, kind="bar",x=group, y=x,errorbar="sd", palette="dark", alpha=.6, height=6)
     g.set_axis_labels(group,x)
     g.despine(left=True)
@@ -138,6 +141,7 @@ def plot_histogram_grouped(data,x,group):
     #g.legend.set_title("")
 
 def plot_general_group(data,group):
+    
     if group!="":
         g =sns.pairplot(data, hue=group, height=2.5)
     else:
