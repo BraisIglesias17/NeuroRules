@@ -4,15 +4,19 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor,RandomForestClassifier
 from sklearn.model_selection import cross_val_score,GridSearchCV,KFold
 from sklearn.neural_network import MLPRegressor,MLPClassifier
-from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,precision_recall_curve,auc
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,precision_recall_curve,auc,recall_score,precision_score
 from sklearn import tree
 import numpy as np
 from .neurofuzzy import NeuroFuzzy
 from .neuroclassifier import NeuroClassifier
 from itertools import combinations
 from scipy.stats import pearsonr
-
-
+import copy
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+import pandas as pd
 
 class Model(ABC):
     
@@ -22,7 +26,7 @@ class Model(ABC):
     
     @staticmethod
     def GET_CLASSIFICATION_LIST():
-        return ["Support Vector Machine","Random Forest","Multiple Layer Perceptron","K-Nearest Neighbours"]
+        return ["Support Vector Machine","Random Forest","Multiple Layer Perceptron","K-Nearest Neighbours","Radial Basis Function"]
     
     @abstractmethod
     def train(self,input,target):
@@ -59,9 +63,7 @@ class ParamsMapper():
             
         }
     
-
         
-
 class ModelImplementation(Model):
     
     def __init__(self,model,filename=None,params=None):
@@ -84,9 +86,11 @@ class ModelImplementation(Model):
         if model=="Linear Regression":
             self.model=LinearRegression()
             self.estimator_type="regressor"
+            
         elif model=="Random Forest Regressor":
             self.model=RandomForestRegressor()
             self.estimator_type="regressor"
+
         elif model=="Multiple Layer Perceptron Regressor":
             self.model=MLPRegressor()
             self.estimator_type="regressor"
@@ -94,8 +98,13 @@ class ModelImplementation(Model):
         elif model=="Random Forest":
             self.model=RandomForestClassifier()
             self.estimator_type="classifier"
+
         elif model=="Multiple Layer Perceptron":
             self.model=MLPClassifier()
+            self.estimator_type="classifier"
+
+        elif model=="Radial Basis Function":
+            self.model=RBF()
             self.estimator_type="classifier"
 
         elif model=="Neurofuzzy":
@@ -143,7 +152,6 @@ class ModelImplementation(Model):
 
     def _fit_rule_generating_regression(self,input,target,names_input,name_output,types):
         
-        
         #filtrar por correlacion
         toDel=[]
         self.discarded={}
@@ -162,6 +170,8 @@ class ModelImplementation(Model):
         tmp= np.delete(input, toDel, axis=1)
         input=tmp
 
+        X_test=copy.deepcopy(self.X_test)
+        X_test=np.delete(X_test,toDel,axis=1)
        
         r2=-100
         combs=names_input+list(combinations(names_input,2))
@@ -175,7 +185,6 @@ class ModelImplementation(Model):
             indexes=[]
             names=[]
             
-            
             if isinstance(combination,str):
                 names.append(combination)
                 indexes=names_input.index(combination)
@@ -184,9 +193,9 @@ class ModelImplementation(Model):
                     indexes.append(names_input.index(element))
                     names.append(element)
             
-            
             X=input[:,indexes]    
-            
+            X_test_tmp=X_test[:,indexes]
+
             if len(names)==1:
                 X=X.reshape(-1,1)
 
@@ -194,20 +203,20 @@ class ModelImplementation(Model):
             
             self.model.fit()
 
-           
             scores=self.get_score(X=X,y=target)
+            
+            if len(X_test_tmp.shape)==1:
+                X_test_tmp=X_test_tmp.reshape(-1,1)
 
-            test_scores=self.get_score(X,target)
-             
+            test_scores=self.get_score(X=X_test_tmp,y=self.y_test)
+            
             bestmodel=False
             if scores['r2']>r2:
                 bestmodel=True
 
-            if scores['r2']>0.5:
-                self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}
-                i+=1
-
-        
+            self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}
+            
+            i+=1
         self._generate_ensemble_model(input.shape[0],target)
 
     def _submodels_pruning(self):
@@ -216,6 +225,30 @@ class ModelImplementation(Model):
     def get_enssemble_metrics(self):
         return self.ensembled_model_metrics
     
+    def plot_model_results(self):
+        if self.estimator_type=="classifier" and not self.rule_generator:
+            y_pred = self.model.predict(self.X_test)
+
+            cm = confusion_matrix(self.y_test, y_pred)
+
+            plt.figure(figsize=(8, 6))
+            sns.heatmap(cm, annot=True, fmt="d", cmap=sns.color_palette("vlag", as_cmap=True), cbar=False,
+                        xticklabels=self.classes, yticklabels=self.classes)
+            plt.xlabel('Predicted Labels')
+            plt.ylabel('True Labels')
+            plt.title('Confusion Matrix')
+            return plt
+
+        elif self.estimator_type=="regressor" and not self.rule_generator:
+            y_pred = self.model.predict(self.X_test)
+            
+            sns.scatterplot(data=pd.DataFrame({'Actual Values':self.y_test,'Predicted Values':y_pred}))
+            
+            plt.xlabel(self.name_output)
+            
+            plt.title("Model precision graph")
+            return plt
+        
     def _generate_ensemble_model(self,input_size,y):
         n=len(self.submodels)
         if n!=0:
@@ -233,28 +266,28 @@ class ModelImplementation(Model):
             ensemble=LinearRegression()
             ensemble.fit(inputs,y)
             
-            #X_test=inputs
-            
             self.ensembled_model=ensemble
+            #METRICAS CON VALIDACION TEST
             self.ensembled_model_metrics=ensemble.score(X_test,self.y_test)
+            #METRICAS CON VALIDACION TRAIN
+            #self.ensembled_model_metrics=ensemble.score(inputs,y)
         else:
             self.ensembled_model=None
             self.ensembled_model_metrics=0.0
 
     def _fit_prediction_model(self,input,target,cv=False,subsets=10,gridSearch=False):
+        scorer=""
+        if self.estimator_type=="regressor":
+            scorer="r2"
+        else:
+            self.classes=np.unique(target)
+            scorer="accuracy"
         if gridSearch:
             self.grid_search=gridSearch
             grid=ParamsMapper.model_params()
-            scorer=""
-            if self.estimator_type=="regressor":
-                scorer="r2"
-            else:
-                scorer="accuracy"
-                
-            crf=GridSearchCV(self.model,param_grid=grid[self.modelname],cv=subsets,scoring=scorer)
-            
-            crf.fit(input,target)
 
+            crf=GridSearchCV(self.model,param_grid=grid[self.modelname],cv=subsets,scoring=scorer)
+            crf.fit(input,target)
             self.training_scores={scorer:crf.best_score_}
             self.model=crf.best_estimator_
             
@@ -262,11 +295,7 @@ class ModelImplementation(Model):
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
-            scorer=""
-            if self.estimator_type=="regressor":
-                scorer="r2"
-            else:
-                scorer="accuracy"
+            
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
         
             self.model.fit(input,target)
@@ -301,6 +330,7 @@ class ModelImplementation(Model):
         y_pred=self.predict(X)
         
         if self.estimator_type=="regressor": 
+        
             tmp['r2']=r2_score(y_pred=y_pred,y_true=y)
             
             min=np.min(y)
@@ -314,13 +344,14 @@ class ModelImplementation(Model):
             labels=np.unique(y_pred)
             n_class=len(labels)
 
-            average="binary"
+            avg="binary"
             if n_class>2:
-                average="micro"
+                avg="weighted"
             tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y)
-            tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=labels,average=average,pos_label=labels[0])
-            #tmp['precision']=precision_recall_curve(y_test,y_pred)
-            #tmp['auc']=auc(y_pred,y_test)
+            tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=labels,average=avg,pos_label=labels[0])
+            tmp['precision']=precision_score(y,y_pred,pos_label=labels[0],average=avg)
+            tmp['recall']=recall_score(y_pred,y,pos_label=labels[0],average=avg)
+
         return tmp
 
     def report(self):
