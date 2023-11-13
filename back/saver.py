@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 import pandas as pd
 class FileSaver(ABC):
    
-    def save(self, filename, content):
-        self._save(filename,content)
+    def save(self, filename, content,index=False):
+        self._save(filename,content,index)
     
     @abstractmethod
-    def _save(self,filename,content):
+    def _save(self,filename,content,index):
         pass
 
 class DataSetSaver(FileSaver):
