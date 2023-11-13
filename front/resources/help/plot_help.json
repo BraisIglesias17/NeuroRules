@@ -1,0 +1,32 @@
+{
+    "2D Graphs":{
+        "content":{
+            "file":"./front/resources/html/2dgraph_help.html"
+        },
+        "child":false
+    },
+    "3D Graphs":{
+        "content":{
+            "file":"./front/resources/html/3dgraph_help.html"
+        },
+        "child":false
+    },
+    "Histogram":{
+        "content":{
+            "file":"./front/resources/html/histogram_help.html"
+        },
+        "child":false
+    },
+    "Box plot":{
+        "content":{
+            "file":"./front/resources/html/boxplot_help.html"
+        },
+        "child":false
+    },
+    "Fitted regression line":{
+        "content":{
+            "file":"./front/resources/html/fittedregression_help.html"
+        },
+        "child":false
+    }
+}

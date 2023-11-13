@@ -1,0 +1,55 @@
+{
+    "Tests":{
+        "content":false,
+        "child":{
+            "Shapiro (Normality)":{
+                "content":{
+                            "file":"./front/resources/html/shapiro_help.html"
+                        },
+                "child":false
+            },
+            "Pearson (Correlation)":{
+                "content":{
+                    "file":"./front/resources/html/pearson_help.html"
+                },
+                "child":false
+            },
+            "T Student":{
+                "content":{
+                    "file":"./front/resources/html/tstudent_help.html"
+                },
+                "child":false
+            },
+            "ANOVA":{
+                "content":{
+                    "file":"./front/resources/html/ANOVA_help.html"
+                },
+                "child":false
+            },
+            "Kruskal Wallis":{
+                "content":{
+                    "file":"./front/resources/html/kruskallWallis_help.html"
+                },
+                "child":false
+            }
+        }
+    },
+    "Correlation":{
+        "content":{
+            "file":"./front/resources/html/correlation_help.html"
+        },
+        "child":false
+    },
+    "Covariance":{
+        "content":{
+            "file":"./front/resources/html/covariance_help.html"
+        },
+        "child":false
+    },
+    "Automatic Test":{
+        "content":{
+            "file":"./front/resources/html/createset_help.html"
+        },
+        "child":false
+    }
+}
