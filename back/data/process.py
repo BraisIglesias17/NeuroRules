@@ -4,8 +4,7 @@ import statistics as stat
 from sklearn.preprocessing import LabelEncoder,OneHotEncoder,QuantileTransformer,StandardScaler,RobustScaler,Normalizer,MinMaxScaler
 
 def remove_outliers(dataframe,variable,upper_bound,lower_bound):
-
-    
+    indexes=[]
     if dataframe[variable].dtype != "object":
         q1 = dataframe[variable].quantile(lower_bound)
         q3 = dataframe[variable].quantile(upper_bound)
@@ -14,15 +13,12 @@ def remove_outliers(dataframe,variable,upper_bound,lower_bound):
         lower_bound = q1 - 1.5 * iqr
         upper_bound = q3 + 1.5 * iqr
         
-        #lower_bound=q1
-        #upper_bound=q3
-        
-        toret = dataframe[(dataframe[variable] >= lower_bound) & (dataframe[variable] <= upper_bound)]
+        #toret = dataframe[(dataframe[variable] >= lower_bound) & (dataframe[variable] <= upper_bound)]
+        indexes=dataframe.index[((dataframe[variable] < lower_bound) | (dataframe[variable] > upper_bound))].tolist()
     else:
         toret=dataframe
-    
 
-    return toret
+    return indexes
 
 
 def remove_missing(dataframe,variable):
@@ -50,9 +46,9 @@ def substitute_outliers(dataframe,variable,method,upper_bound,lower_bound):
         elif method=="Median":
             higher=np.median(dataframe[variable])
             lower=higher
-        elif method=="Closer":
-            higher=upper_bound
-            lower=lower_bound
+        elif method=="Adjust closer":
+            higher=q1
+            lower=q3
             
         count=np.sum(dataframe[variable].apply(count_outliers, args=(lower_bound, upper_bound)))
         dataframe[variable] = dataframe[variable].apply(replace_outliers, args=(lower_bound, upper_bound,higher,lower))
@@ -73,6 +69,7 @@ def replace_outliers(x, lower_bound, upper_bound, higher,lower):
     if x < lower_bound:
         return lower
     elif x > upper_bound:
+        
         return higher
     
     return x
@@ -83,7 +80,7 @@ def susbstitute_missing(dataframe,variable,method):
         if method == "Mean":
             value=np.mean(dataframe[variable])
         elif method=="Median":
-            value=np.median(dataframe[variable])    
+            value=np.median(dataframe[variable])   
     else:
         value=stat.mode(dataframe[variable])
     dataframe[variable] = dataframe[variable].fillna(value)

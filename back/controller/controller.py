@@ -215,13 +215,21 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
+    def confirm_delete(self):
+        try:
+            self.contextData.delete_marked()
+            return Response(data={},status=Status.OK)
+        except Exception as exc:
+            traceback.print_exc()
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
     def apply_cleanse(self,variable):
         try:
             result=self.contextData.apply_cleanse(variable)
             
             return Response(data={'deleted_rows':result[0],'modified_rows':result[1]},status=Status.OK)
         except Exception as exc:
-            
+            traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def apply_preprocess(self,variable):
@@ -298,7 +306,7 @@ class Controller():
             return Response(data=res,status=Status.OK)
         
         except Exception as exc:
-            print(exc)
+            traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_available_models(self):

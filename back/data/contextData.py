@@ -37,6 +37,8 @@ class ContextData():
         self.integerValues=[]
         self._get_types()
 
+
+        self.toDel=set()
         self.values=self.data.to_numpy()
 
         self.variables=[]
@@ -301,7 +303,7 @@ class ContextData():
         toret={}
         for variable in self.data:
             
-            if self.data_cleanse[variable]['highlight_outliers']==True:
+            if self.data_cleanse[variable]['highlight_outliers']==True and not variable in self.characterValues:
                 outliers=list()
                 
                 lower_bound=self.data_cleanse[variable]['lower_bound']
@@ -592,7 +594,8 @@ class ContextData():
 
         n_rows_begin=self.data.shape[0]
         modified_rows=0
-        
+        removed_row=0
+
         if settings['delete_missing']:
             self.data=remove_missing(self.data,variable)
         else:
@@ -600,10 +603,17 @@ class ContextData():
                 self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])
 
         if not variable in self.characterValues:
+            
             if settings['delete_outliers']:
             
                 result=remove_outliers(self.data,variable,settings['upper_bound'],settings['lower_bound'])
-                self.data=result
+
+                for index in result:
+                    if not index in self.toDel:
+                        removed_row+=1
+                    self.toDel.add(index)
+                    
+                #self.data=result
                 
             else:
                 if settings['substitute_outliers']!="None":
@@ -616,8 +626,14 @@ class ContextData():
         self.values=self.data.to_numpy()
         n_rows_end=self.data.shape[0]
 
-        return (n_rows_begin-n_rows_end),modified_rows
+        return (removed_row),modified_rows
 
+
+    def delete_marked(self):
+        
+        self.data.drop(list(self.toDel),axis=0,inplace=True)
+        self.data=self.data.reset_index(drop=True)
+        self.values=self.data.to_numpy()
 
     def delete_row(self,rows):
        
