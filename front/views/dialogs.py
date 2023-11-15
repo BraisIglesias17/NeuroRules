@@ -518,8 +518,9 @@ class CleanDataDialog(wx.Dialog):
 
             wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
         
-            
-            wx.CallAfter(wx.MessageBox,str(str(deleted)+" deleted and "+str(modified)+" modified rows."),"Info")
+            wx.CallAfter(self.parent.controller.confirm_delete)
+
+            wx.CallAfter(wx.MessageBox,str(str(deleted)+" rows deleted and "+str(modified)+" cells modified."),"Info")
             
             wx.CallAfter(self.EndModal,wx.ID_APPLY)
             wx.CallAfter(self.Destroy)
@@ -3920,10 +3921,11 @@ class RulesResultsDialog(wx.Dialog):
         # METRICS GRID
         self.validation_grid=wx.grid.Grid(self, wx.ID_ANY)
         self.validation_grid.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
-        self.validation_grid.CreateGrid(3, 2)
+        self.validation_grid.CreateGrid(4, 2)
         self.validation_grid.SetRowLabelValue(0, "")
         self.validation_grid.SetRowLabelValue(1, "")
         self.validation_grid.SetRowLabelValue(2, "")
+        self.validation_grid.SetRowLabelValue(3, "")
         self.validation_grid.SetColLabelValue(0, "Training")
         self.validation_grid.SetColLabelValue(1, "Testing")
 
@@ -4125,6 +4127,7 @@ class RulesResultsDialog(wx.Dialog):
                         self.validation_grid.SetCellBackgroundColour(i,j,colour)
 
                     self.validation_grid.SetRowLabelValue(i,metric)
+                    
                     self.validation_grid.SetCellValue(i,j,str(value))
                 
                     self.validation_grid.SetReadOnly(i,j,True)

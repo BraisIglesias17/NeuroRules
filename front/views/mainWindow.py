@@ -308,9 +308,11 @@ class MainWindow(wx.Frame):
         code=dialog.ShowModal()
 
         if code==wx.ID_APPLY:
+            
             response=self.controller.get_data().getResponse()
+            
             outliers=self.controller.get_outliers().getResponse()
-
+            
             if response['status']==Status.OK:
                 self.ClearGrid()
                 
@@ -400,20 +402,22 @@ class MainWindow(wx.Frame):
                 code=dialog.ShowModal()
 
                 if code==wx.ID_OK:
-                    
+                    self._OnClearGrid()
                     df,filename=IOManage.load_file(conf)
                                      
                     response=self.controller.load_content(df,filename).getResponse()
                     if response['status']==Status.OK:
                         
-                        self.ClearGrid()
+                        
                         dlg=None
                         if df.shape[0]>50:
+                            
                             dlg = wx.ProgressDialog("Escribiendo en el Grid", "Progreso", maximum=df.shape[1], parent=self, style=wx.PD_APP_MODAL|wx.PD_AUTO_HIDE)
                         
                             self.updateGrid(response['data']['data'],dlg.Update)
                             dlg.Update(df.shape[1],"Finished")
                             dlg.Destroy()
+                            self.grid.Raise()
                             
                         else:
                             self.updateGrid(response['data']['data'])
@@ -457,22 +461,24 @@ class MainWindow(wx.Frame):
     def OnClearGrid(self,event):
         
         code=wx.MessageBox("Are you sure you want to clear the grid ? ","Warning",wx.OK|wx.CANCEL|wx.CANCEL_DEFAULT|wx.ICON_WARNING)
-        
-        if code==wx.OK:
-            self.ClearGrid()
-            self.controller.clear_data()
-
-            for coords in self.highlighted_outliers_cells:
-                self.grid.SetCellBackgroundColour(coords[0], coords[1], wx.WHITE)
-
-            self.hidden_columns=[]
-            self.identifier_cols=[]
-
-            
-            self.enableButtons(False)
-            self.restoreStatus()
-            self.override_warning=True
     
+        if code==wx.OK:
+            self._OnClearGrid()
+    
+    def _OnClearGrid(self):
+        self.ClearGrid()
+        self.controller.clear_data()
+
+        for coords in self.highlighted_outliers_cells:
+            self.grid.SetCellBackgroundColour(coords[0], coords[1], wx.WHITE)
+
+        self.hidden_columns=[]
+        self.identifier_cols=[]
+
+        self.enableButtons(False)
+        self.restoreStatus()
+        self.override_warning=True
+
     def ClearDataStructures(self):
         self.int_variable_names=[]
         self.float_variable_names=[]
@@ -578,7 +584,7 @@ class MainWindow(wx.Frame):
                     self.grid.SetCellValue(j,i,value)
 
             if updater!=None:
-                updater(i,f"Loading column {i}")
+                updater(i,f"Loading data")
                    
         if not df.empty:
             self.enableButtons(True)
