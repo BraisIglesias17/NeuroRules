@@ -7,7 +7,7 @@ class Validator():
     def check_integer(val):
         try:
             cast=int(val)
-            if isinstance(cast,(int,np.int32,np.int16)):
+            if isinstance(cast,(int,np.int32,np.int16)) and val==cast:
                 return True
             return False
         except Exception as exc:
@@ -47,3 +47,5 @@ class Validator():
         else:
             return False
         
+
+
