@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestRegressor,RandomForestClassifier
 from sklearn.model_selection import cross_val_score,GridSearchCV,KFold
 from sklearn.neural_network import MLPRegressor,MLPClassifier
 from sklearn.gaussian_process.kernels import RBF
+from sklearn.svm import SVR,SVC
 from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,precision_recall_curve,auc,recall_score,precision_score
 from sklearn import tree
 import numpy as np
@@ -22,7 +23,7 @@ class Model(ABC):
     
     @staticmethod
     def GET_REGRESSION_LIST():
-        return ["Linear Regression","Support Vector Machine","Random Forest Regressor","Multiple Layer Perceptron Regressor"]
+        return ["Linear Regression","Support Vector Machine Regressor","Random Forest Regressor","Multiple Layer Perceptron Regressor"]
     
     @staticmethod
     def GET_CLASSIFICATION_LIST():
@@ -94,6 +95,14 @@ class ModelImplementation(Model):
         elif model=="Multiple Layer Perceptron Regressor":
             self.model=MLPRegressor()
             self.estimator_type="regressor"
+
+        elif model=="Support Vector Machine Regressor":
+            self.model=SVR()
+            self.estimator_type="regressor"
+
+        elif model=="Support Vector Machine":
+            self.model=SVC()
+            self.estimator_type="classifier"
 
         elif model=="Random Forest":
             self.model=RandomForestClassifier()
