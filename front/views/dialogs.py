@@ -8,6 +8,7 @@ from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
 from back.saver import Saver
 from back.validation.validation import Validator
+from back.tracer import Trace
 from ..plots import plot_barplot_object,plot_barplot,plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
@@ -5097,3 +5098,68 @@ class LoadFileDialog(wx.Dialog):
         if response['status']==Status.OK:
             self.path.SetLabelText(response['data'])
             self._on_change_path(response['data'])
+
+
+class TraceDialog(wx.Dialog):
+    def __init__(self,parent):
+       
+        wx.Dialog.__init__(self,parent)
+        self.SetTitle("Trace dialog")
+
+        
+
+        content=self._fill_text("all")
+        
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_filter = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Filter by level"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_filter, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.cb_level=wx.ComboBox(self,id=wx.ID_ANY,value="all",choices=["all","info","error","warning"], style=wx.CB_READONLY)
+
+        sizer_filter.Add(self.cb_level,0,wx.ALL,5)
+
+        sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Logs"), wx.HORIZONTAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.text_logs = wx.TextCtrl(self, wx.ID_ANY,content, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        sizer_3.Add(self.text_logs, 1, wx.ALL | wx.EXPAND, 10)
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_SAVE = wx.Button(self, wx.ID_SAVE, "")
+        self.button_SAVE.SetDefault()
+        sizer_2.AddButton(self.button_SAVE)
+
+        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
+        sizer_2.AddButton(self.button_CLOSE)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
+        
+        self.SetEscapeId(self.button_CLOSE.GetId())
+
+        self.SetSize((800,500))
+        self.Layout()
+    
+    def _fill_text(self,level):
+        logs=""
+        trace=Trace()
+        history=trace.get_log_history()
+        for log in history:
+            logs=logs+str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n"
+        
+        return logs
+
+    def OnSave(self,evt):
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE).getResponse()
+
+        if path['status']==Status.OK: 
+            saver=Saver(path['data'],content=self.text_logs.GetLabelText())
+            saver.save()
+            wx.MessageBox("File saved succesfully in "+path['data'],"Info")

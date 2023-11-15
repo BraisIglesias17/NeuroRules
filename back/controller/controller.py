@@ -10,6 +10,7 @@ from ..ML.model import Model
 from ..task import Task
 import traceback
 from ..saver import Saver
+from ..tracer import Trace
 
 class Controller():
 
@@ -27,8 +28,9 @@ class Controller():
         state=True
         message=""
         try:
-            #df,filename=IOManage.LoadFile(window,event)
+            
             self.contextData=ContextData(df)
+            Trace().log("Content loaded from file: "+filename)
         except Exception as exc:
             state=False
             message=str(exc)
@@ -56,6 +58,8 @@ class Controller():
 
             if self.contextData!=None:
                 self.contextData.update_position(row,col,value)
+
+            Trace().log(f"Position ({row},{col}) updated manually with new value {value}")
             return Response(data="",status=Status.OK)
         except Exception as exc:
             return Response(data=str(exc),status=Status.VALIDATION_ERROR)

@@ -4,7 +4,7 @@ from front.settings.settings import Settings
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+from front.views.dialogs import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -448,7 +448,7 @@ class MainWindow(wx.Frame):
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
     
-
+        
         response=self.controller.update_data_position(row,col,self.grid.GetCellValue(row,col)).getResponse()
 
         if not response['status'] == Status.OK:
@@ -522,7 +522,7 @@ class MainWindow(wx.Frame):
 
 
     def updateGrid(self,df,updater=None):
-        
+        print(df)
         i=0 
         rows,cols = df.shape
         if rows==0:
@@ -531,7 +531,6 @@ class MainWindow(wx.Frame):
         self.updateStatus(rows,cols)
 
         rows+=5
-           
         i=0
         self.names=[]
         self.names=df.columns.values
@@ -539,25 +538,21 @@ class MainWindow(wx.Frame):
         for column in list(df.columns.values):
             if self.start:
                 self.initial_col_names.append(self.grid.GetColLabelValue(i))
-            
             type=df.dtypes[i]
-            
-            
+        
             if str(type).find("int") != -1:
-               
                 self.grid.SetColFormatNumber(i)
             elif str(type).find("float") != -1:
                 self.grid.SetColFormatFloat(i,-1,2)
             
             self.grid.SetColLabelValue(i,column)
             #Verifico el tipo 
-            self.types=df[column].dtypes
+            #self.types=df[column].dtypes
+            #print(self.types)
             i+=1
         self.start=False
-
                 
-        for j in range(i,len(self.initial_col_names),1):   
-            
+        for j in range(i,len(self.initial_col_names),1):          
             self.grid.SetColLabelValue(j,self.initial_col_names.pop(j))
 
         for i in range(len(df.axes[1])):
@@ -569,13 +564,18 @@ class MainWindow(wx.Frame):
                     if value=="" or value=="nan":
                         self.grid.SetCellBackgroundColour(j, i, self.setting.NanColor)
                         self.highlighted_cells.append([i,j])
-                    
+
                     elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
                         align=False
-                        value=str(np.round(df.loc[j][i],3))
+                        value=str(np.round(df.loc[j][i],2))
+                        
                     elif Validator.check_integer(df.loc[j][i]):
+                        
                         align=False
-
+                        print(f'check integer {df.loc[j][i]} -->{Validator.check_integer(df.loc[j][i])}')
+                        print(df.loc[j][i])
+                    
+                    
                     if align:
                         self.grid.SetCellAlignment(j,i,wx.ALIGN_CENTER,wx.ALIGN_CENTER)
                     else:
@@ -942,6 +942,10 @@ class MainWindow(wx.Frame):
         dialog=HelpDialog(self,file="./front/resources/help/data_help.json",title="Data help")
         dialog.ShowModal()
 
+    def OnShowTrace(self,evt):
+        dialog=TraceDialog(self)
+        dialog.ShowModal()
+
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         menubar.SetFont(self.setting.font)
@@ -995,7 +999,8 @@ class MainWindow(wx.Frame):
         showHidden=viewMenu.Append(item)
         viewMenu.AppendSubMenu(viewOptionsMenu,"Display options")        
 
-        helpMenu = wx.Menu()  
+        helpMenu = wx.Menu() 
+        traceOption=helpMenu.Append(wx.ID_ANY, '&Trace logs')
         aboutUsOption=helpMenu.Append(wx.ID_ABOUT, '&About us')
         
 
@@ -1040,5 +1045,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnCreateSet,createSetOption)
         self.Bind(wx.EVT_MENU,self.OnHelpTask,helpTaskOption)
         self.Bind(wx.EVT_MENU,self.OnHelpData,helpDataOption)
+        self.Bind(wx.EVT_MENU,self.OnShowTrace,traceOption)
        
         self.SetMenuBar(menubar)  
