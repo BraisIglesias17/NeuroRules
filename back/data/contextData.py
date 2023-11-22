@@ -21,10 +21,7 @@ class ContextData():
     def __init__(self, dataFrame=pd.DataFrame(),dict=None):    
         
 
-        ## ADD ASSERTIONS
-
-        self.pathname=""
-        
+        ## ADD ASSERTIONS        
         if dict!=None:
             self.data=pd.DataFrame(columns=dict.keys())
             self.data = self.data.astype(dict)
@@ -36,7 +33,6 @@ class ContextData():
         self.characterValues=[]
         self.integerValues=[]
         self._get_types()
-
 
         self.toDel=set()
         self.values=self.data.to_numpy()
@@ -117,6 +113,21 @@ class ContextData():
                 self.characterValues.append(col)
 
     
+    def add_columns(self,dict):
+       
+        
+        new_cols=pd.DataFrame(columns=dict.keys())
+        new_cols = new_cols.astype(dict)
+        
+        self.data= pd.concat([self.data, new_cols], axis=1)
+        self.values=self.data.to_numpy()
+        self._get_types()
+        for var in dict:
+            self.data_cleanse[var]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
+            self.data_preprocess[var]={'transformation':'None','keep_original':True} 
+
+        
+        
     def get_types(self):
         return self.floatValues,self.integerValues,self.characterValues
     
@@ -294,10 +305,6 @@ class ContextData():
         
         return toret
     
-
-    def print(self):
-        print(f'filename: {self.pathname} \n Data: {self.data} \n State: {self.state}')
-
     def get_outliers(self):
         
         toret={}
@@ -580,7 +587,7 @@ class ContextData():
         value=input
        
         
-        if variable in numeric and Validator.check_parse_float(value):
+        if variable in numeric and Validator().check_parse_float(value):
             value=np.float64(input)
             
         transformer=self.transformers[variable]
@@ -740,15 +747,9 @@ class ContextData():
 
 
     def save(self,pathname):
-        
         saver=Saver(pathname,self.data)
         saver.save()
         
-    """
-    Añadir columna
-    """
-    """
-    Añadir fila
-    """
+
     
 
