@@ -33,6 +33,8 @@ class Settings():
             self._initialize(dict)
         
         self.font = wx.Font(int(self.font_size), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+    
+       
 
     def _parse_content(self,file):
         tree = ET.parse(file)
@@ -46,6 +48,7 @@ class Settings():
             val=child.text
             if val==None:
                 val=""
+        
             dict[child.tag]=val
         
         self._initialize(dict)
@@ -83,7 +86,8 @@ class Settings():
         return self.height_cell_size,self.width_cell_size
     
     def GetPath(self):
-        return Path(self.defaultPath)
+        
+        return Path(self.defaultPath).name
     
     def _build_xml(self):
         
