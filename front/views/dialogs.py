@@ -25,6 +25,7 @@ import wx.html2 as wxhtml2
 import json
 import os 
 
+
 class VariableTypeDialog(wx.Dialog):
     def __init__(self,parent):
         # begin wxGlade: VariableTypeDialog.__init__
@@ -2115,7 +2116,7 @@ class AutomaticTest(wx.Dialog):
         self.list_box_covariance.InsertItems(filtered,0)
 
 class PickDialog(wx.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent,check_strings=False):
         
         super(PickDialog, self).__init__(parent)
         self.SetTitle("New task")
@@ -2124,11 +2125,14 @@ class PickDialog(wx.Dialog):
 
         self.names=parent.names
 
+        self.string_variables=parent.string_variable_names
         self.controller=parent.controller
         self.all_variables=list(copy.deepcopy(self.names))
         
         self.independent_variables=[]
         self.targets=[]
+
+        self.not_check_strings=check_strings
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -2243,7 +2247,7 @@ class PickDialog(wx.Dialog):
             self.Destroy()
 
     def OnAddInput(self,evt):
-        self.OnAdd(self.list_box_inputs,self.independent_variables)
+        self.OnAdd(self.list_box_inputs,self.independent_variables,check_strings=self.not_check_strings)
 
     def OnAddOutput(self,evt):
         self.OnAdd(self.list_box_outputs,self.targets)
@@ -2254,14 +2258,21 @@ class PickDialog(wx.Dialog):
     def OnRemoveOutput(self,evt):
         self.OnRemove(self.list_box_outputs,self.targets)
 
-    def OnAdd(self,listbox,variables):
+    def OnAdd(self,listbox,variables,check_strings=False):
         selection=self.list_box_all_variables.GetSelections()
         
         
         tmp_all=copy.deepcopy(self.all_variables)
         
         for pos in selection:
-            if not tmp_all[pos] in self.independent_variables and not tmp_all[pos] in self.targets:
+            do=True
+
+            if check_strings:
+                if tmp_all[pos] in self.string_variables:
+                    wx.MessageBox(tmp_all[pos]+" is a nominal variable, it can not be used as input.","Warning",wx.ICON_WARNING)
+                    do=False
+        
+            if not tmp_all[pos] in self.independent_variables and not tmp_all[pos] in self.targets and do:
                 
                 variables.append(tmp_all[pos])
                 self.all_variables.remove(tmp_all[pos])
@@ -2968,7 +2979,7 @@ class PredictionModelDialog(wx.Dialog):
                 response=self.controller.create_task(name,self.model_selection,self.validation,False).getResponse()
 
                 if response['status']==Status.OK:
-                    self.Parent.updateStatusTask(taskname)
+                    #self.Parent.updateStatusTask(taskname)
                     self.Hide()
                     dialog=TaskReportDialog(self.parent)
                     code=dialog.ShowModal()
@@ -3845,7 +3856,7 @@ class RulesResultsDialog(wx.Dialog):
         self.outputs=[]
         self.types=[]
         response=self.controller.get_target_process_type().getResponse()
-        
+        self.string_variable_names=parent.string_variable_names
         self.currentMetrics={}
         self.currentModel={}
         self.currentValidation=None
@@ -3857,9 +3868,6 @@ class RulesResultsDialog(wx.Dialog):
             
         else:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
-
-
-        
 
         self.models=self.controller.get_variable_models().getResponse()['data']
         self.submodels={}
@@ -3980,7 +3988,9 @@ class RulesResultsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnPotMembershipFunctions,self.button_mf)
         self.Bind(wx.EVT_BUTTON,self.OnExportToFile,self.button_save_alone)
         self.Bind(wx.EVT_BUTTON,self.OnDetails,self.button_details)
+        self.Bind(wx.EVT_BUTTON,self.OnPredict,self.button_predict)
         self.SetSizer(sizer_1)
+        
         
         self._enable_buttons(False)
         sizer_1.Fit(self)
@@ -3989,6 +3999,12 @@ class RulesResultsDialog(wx.Dialog):
         self.SetSize(900,700)
         self.Center()
         self.Layout()
+
+    def OnPredict(self,evt):
+        variable=self.lb_outputs.GetStringSelection().split(' - ')[0]
+        inputs=self.controller.get_inputs_task().getResponse()['data']
+        dialog=PredictDialog(self,variable,"Neurofuzzy",inputs)
+        dialog.ShowModal()
 
     def OnDetails(self,evt):
         dialog=DetailsDialog(self,self.controller.get_task_metadata().getResponse()['data'])
@@ -4352,11 +4368,11 @@ class SettingsDialog(wx.Dialog):
             self.Destroy()
 
 class CreateSetDialog(wx.Dialog):
-    def __init__(self,parent,data):
+    def __init__(self,parent,title):
         
-        self.data=data
+        
         wx.Dialog.__init__(self,parent)
-        self.SetTitle("Create set")
+        self.SetTitle(title)
 
         self.new_set=parent.new_set
         self.controller=parent.controller
@@ -4366,7 +4382,7 @@ class CreateSetDialog(wx.Dialog):
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
 
-        label_1 = wx.StaticText(self, wx.ID_ANY, "Create set")
+        label_1 = wx.StaticText(self, wx.ID_ANY, title)
         label_1.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
         sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
 
@@ -4475,6 +4491,7 @@ class CreateSetDialog(wx.Dialog):
                     self.new_set[name]=float
 
                 self.list_box_new_set.AppendItems([str(name+" ("+var_type+") ")])
+                self.variable_name_ctrl.SetLabelText("")
         
     
     def OnRemoveVariable(self,evt):
@@ -4777,6 +4794,7 @@ class MappingDialog(wx.Dialog):
             self.names.append(name)
             self.ranges.append(range)
 
+            self.ctrl_new_value.SetLabelText("")
             self.lb_rules.Append(rule)
 
         else:
@@ -5107,7 +5125,7 @@ class TraceDialog(wx.Dialog):
         self.SetTitle("Trace dialog")
 
         
-
+        self.settings=parent.setting
         content=self._fill_text("all")
         
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -5115,7 +5133,7 @@ class TraceDialog(wx.Dialog):
         sizer_filter = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Filter by level"), wx.HORIZONTAL)
         sizer_1.Add(sizer_filter, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
-        self.cb_level=wx.ComboBox(self,id=wx.ID_ANY,value="all",choices=["all","info","error","warning"], style=wx.CB_READONLY)
+        self.cb_level=wx.ComboBox(self,id=wx.ID_ANY,value="all",choices=["all","INFO","ERROR","WARNING"], style=wx.CB_READONLY)
 
         sizer_filter.Add(self.cb_level,0,wx.ALL,5)
 
@@ -5141,23 +5159,33 @@ class TraceDialog(wx.Dialog):
         sizer_1.Fit(self)
 
         self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
-        
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeFilter,self.cb_level)
         self.SetEscapeId(self.button_CLOSE.GetId())
 
         self.SetSize((800,500))
         self.Layout()
     
+    def OnChangeFilter(self,evt):
+        level=self.cb_level.GetValue()
+        logs=self._fill_text(level)
+        self.text_logs.SetLabelText(logs)
+
     def _fill_text(self,level):
         logs=""
         trace=Trace()
         history=trace.get_log_history()
         for log in history:
-            logs=logs+str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n"
+            if level!="all":
+                if log['level']==level:
+                    logs=logs+str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n"
+            else:
+                logs=logs+str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n"
         
         return logs
 
     def OnSave(self,evt):
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE).getResponse()
+        
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.settings.GetPath()).getResponse()
 
         if path['status']==Status.OK: 
             saver=Saver(path['data'],content=self.text_logs.GetLabelText())
