@@ -21,7 +21,7 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 splash = Splash(
-    './front/resources/LOGO.png',
+    './front/resources/img/LOGO.png',
     binaries=a.binaries,
     datas=a.datas,
     text_pos=None,
