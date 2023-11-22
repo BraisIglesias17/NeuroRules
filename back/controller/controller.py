@@ -25,32 +25,44 @@ class Controller():
         self.currentTask=None
 
     def load_content(self,df,filename):
-        state=True
-        message=""
         try:
             
             self.contextData=ContextData(df)
-            Trace().log("Content loaded from file: "+filename)
-        except Exception as exc:
-            state=False
-            message=str(exc)
-
-        if state:
             info={'data':self.contextData.data,'file':filename}
+            Trace().log("Content loaded from file: "+filename)
             return Response(data=info,status=Status.OK)
-        else:
-            return Response(data=message,status=Status.GENERAL_ERROR)
-
+        except Exception as exc:
+            Trace().log("Loading content, "+str(exc))
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+           
 
     def create_empty_set(self,dict):
         try:
             
             self.contextData=ContextData(dict=dict)
+            Trace().log("Created empty set succesfully")
+            return Response(data=self.contextData.data,status=Status.OK)
+
+        except Exception as exc:
+            Trace().log("Creating set, "+str(exc))
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
+    
+    def add_columns(self,dict):
+        try:
+            
+            if self.contextData!=None:
+                self.contextData.add_columns(dict)
+                Trace().log("Columns added")
+            else:
+                self.contextData=ContextData(dict)
+                Trace().log("Created empty set succesfully")
 
             return Response(data=self.contextData.data,status=Status.OK)
 
         except Exception as exc:
+            Trace().log("Adding columns , "+str(exc))
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
     
     def update_data_position(self,row,col,value):
 
@@ -62,6 +74,7 @@ class Controller():
             Trace().log(f"Position ({row},{col}) updated manually with new value {value}")
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace().log(f"Updating position ({row},{col}) with new value {value}")
             return Response(data=str(exc),status=Status.VALIDATION_ERROR)
             
     
@@ -73,14 +86,22 @@ class Controller():
         
     def get_data(self):
         try:
-            return Response(data=self.contextData.get_data(),status=Status.OK)
+            if self.contextData==None:
+                toret=None
+            else:
+                toret=self.contextData.get_data()
+            return Response(data=toret,status=Status.OK)
         except Exception as exc:
                 return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     
     def get_data_shape(self):
         try:
-            return Response(data=self.contextData.get_shape(),status=Status.OK)
+
+            toret=None
+            if self.contextData!=None:
+                toret=self.contextData.get_shape()
+            return Response(data=toret,status=Status.OK)
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
@@ -157,6 +178,8 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
+
+    ##NOT USED
     def update_context_data(self,df):
         try:
             if self.contextData==None:
@@ -171,31 +194,39 @@ class Controller():
     def clear_data(self):
         try:
             self.contextData=ContextData()
+            Trace().log(f"Data cleared")
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace().log(f"Clearing data, "+str(exec))
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def clear_task(self):
         try:
             del self.currentTask
             self.currentTask=None
+            Trace().log(f"Task cleared")
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace().log(f"Clearing task")
             return Response(data=str(exc),status=Status.GENERAL_ERROR)    
 
     def save_data(self,pathname):
         try:
             if self.contextData!=None:
                 self.contextData.save(pathname)
+                Trace().log(f"Data saved on "+pathname)
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace().log(f"On saving data, "+pathname)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def set_cleanse_option(self,variable,options):
         try:
             self.contextData.set_cleanse(variable,options)
+            Trace().log(f"Cleanse applied to "+variable)
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace().log(f"On applying to "+variable)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def set_preprocess_option(self,variable,options):
