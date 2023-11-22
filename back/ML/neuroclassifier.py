@@ -77,7 +77,7 @@ class NeuroClassifier():
             else:
                 classes = path[-1][0][0]
                 l = np.argmax(classes)
-                rule += f"class: {self.class_names[l]} ({np.round(100.0*classes[l]/np.sum(classes),2)}%)"
+                rule += f" {self.class_names[l]} ({np.round(100.0*classes[l]/np.sum(classes),2)}%)"
             rules += [rule]
             
         return rules
