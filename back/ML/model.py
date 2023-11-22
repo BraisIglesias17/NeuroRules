@@ -167,7 +167,7 @@ class ModelImplementation(Model):
         for i in range(input.shape[1]):
             col=input[:,i]
             pvalue=pearsonr(col,target).pvalue
-            
+                
             if pvalue>0.5:
                 toDel.append(i)
                 self.discarded[names_input[i]]=pvalue
@@ -323,7 +323,33 @@ class ModelImplementation(Model):
         print("IMPLEMENTACION DE STRUCTURAL RISK MINIMIZATION")
         
     def predict(self,input):
-        return self.model.predict(input)
+        
+        if self.rule_generator and self.estimator_type=="regressor":
+            output_submodel=np.empty((len(self.submodels),1))
+
+            i=0
+            for submodel in self.submodels:
+                
+                tmp=np.empty((len(self.submodels[submodel]['inputs']),1))
+
+                i_name=0
+                indices=[]
+                for name in self.names_input:
+                    if name in self.submodels[submodel]['inputs']:
+                        indices.append(i_name)
+                    i_name+=1
+                
+               
+                output_submodel[i]=self.submodels[submodel]['model'].predict(input)
+                
+                i+=1
+
+            print(output_submodel)
+
+            return self.ensembled_model.predict(output_submodel)
+        else:
+        
+            return self.model.predict(input)
 
     def get_params(self):
         return {'params':self.model.get_params(),'grid_search':self.grid_search}
@@ -336,7 +362,7 @@ class ModelImplementation(Model):
 
     def get_score(self,X,y):
         tmp={}
-        y_pred=self.predict(X)
+        y_pred=self.model.predict(X)
         
         if self.estimator_type=="regressor": 
         
