@@ -39,6 +39,7 @@ class MainWindow(wx.Frame):
         self.highlighted_outliers_cells=[]
         self.start=True
         self.names=[]
+        self.col_types=[]
         self.new_set={}
 
         self.float_variable_names=[]
@@ -129,7 +130,7 @@ class MainWindow(wx.Frame):
         
         self.status_bar=self.CreateStatusBar(3)
         self.status_bar.SetStatusWidths([-1,300,300])
-        self.status_bar.SetStatusText("  Empty sheet")
+        self.status_bar.SetStatusText("  None file")
         self.status_bar.SetStatusText("  None task",1)
         self.status_bar.SetStatusText("None data",2)
 
@@ -182,13 +183,11 @@ class MainWindow(wx.Frame):
             wx.MessageBox(task['data'],"Error",wx.ICON_ERROR)
 
     def OnPredictionModel(self,evt):
-        
-        #dialog=PickDialog(self)#VariableTypeDialog(self)
-        #code=dialog.ShowModal()    
-    
-        code=self.OnManageCurrentTask()
+            
+        code=self.OnManageCurrentTask(check_strings=True)
 
         if code == wx.ID_APPLY:
+            
             #self.train_button.Enable(True)
             self.updateColors()
 
@@ -196,17 +195,18 @@ class MainWindow(wx.Frame):
             code=dialog_prediction.ShowModal()
 
             if code==wx.ID_OK:
-                #show resusts
+                #show results
+                self.updateStatusTask(self.controller.get_task_name().getResponse()['data'])
                 dialog=ResultsDialog(self)
                 code=dialog.ShowModal() 
     
-    def OnManageCurrentTask(self):
+    def OnManageCurrentTask(self,check_strings=False):
         response=self.controller.task_state().getResponse()
         status=response['status']
         
 
         if status==Status.UNEXISTING_TASK or status==Status.EXISTING_TASK:
-            dialog=PickDialog(self)
+            dialog=PickDialog(self,check_strings)
             code=dialog.ShowModal()
             return code
         
@@ -259,16 +259,16 @@ class MainWindow(wx.Frame):
     def OnNeurofuzzyModel(self,evt):
         
           
-        code=self.OnManageCurrentTask()
+        code=self.OnManageCurrentTask(check_strings=True)
 
         if code == wx.ID_APPLY:
             
             self.updateColors()
-
             dialog_prediction=RulePredictinglDialog(self)
             code=dialog_prediction.ShowModal()
 
             if code==wx.ID_OK:
+                self.updateStatusTask(self.controller.get_task_name().getResponse()['data'])
                 dialog=RulesResultsDialog(self)
                 code=dialog.ShowModal()
 
@@ -410,7 +410,7 @@ class MainWindow(wx.Frame):
                         
                         
                         dlg=None
-                        if df.shape[0]>50:
+                        if df.shape[0]>100:
                             
                             dlg = wx.ProgressDialog("Escribiendo en el Grid", "Progreso", maximum=df.shape[1], parent=self, style=wx.PD_APP_MODAL|wx.PD_AUTO_HIDE)
                         
@@ -429,33 +429,40 @@ class MainWindow(wx.Frame):
             wx.MessageBox("You probably have selected a wrong loading file configuration. Be careful with separator and decimal characters. Try again.","Error",wx.ICON_ERROR)
             print(exc)
             self.OnOpenFile(event)
-            """
-            
-            file=response['data']['df']
-            name=response['data']['filename']
-            response=self.controller.load_content(file,name).getResponse()
-            if response['status']==Status.OK:
-                
-                self.ClearGrid()
-                self.updateGrid(response['data']['data'])
-                self.filename=response['data']['file']
-                
-                self.SetStatusText(str(" Working on "+self.filename))
-            """
-
            
- 
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
     
+        shape=self.controller.get_data_shape().getResponse()['data']
         
-        response=self.controller.update_data_position(row,col,self.grid.GetCellValue(row,col)).getResponse()
-
-        if not response['status'] == Status.OK:
-            self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).getResponse()['data']))
-            wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+        print(shape)
+        if shape==None:
+            wx.MessageBox("You must create a set or import a file first.\n Go to menu Data -> Create Set or File/Import file.")
+            self.grid.SetCellValue(row,col,"")
+        elif col>=shape[1]:
+            wx.MessageBox("You must add a column first.\n Go to menu Data -> Add columns.")
+            self.grid.SetCellValue(row,col,"")
         else:
-            self.grid.SetCellBackgroundColour(row, col, wx.Colour('#FFFFFF'))
+
+            value=self.grid.GetCellValue(row,col)
+            if row>shape[0]:
+                self.grid.SetCellValue(row,col,"")
+                row=shape[0]
+                self.grid.SetCellValue(row,col,value)
+            
+            if self.names[col] in self.string_variable_names:
+                self.grid.SetCellAlignment(row,col,wx.ALIGN_CENTER,wx.ALIGN_CENTER)
+
+            response=self.controller.update_data_position(row,col,value).getResponse()
+
+            if not response['status'] == Status.OK:
+                self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).getResponse()['data']))
+                wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+            else:
+                self.grid.SetCellBackgroundColour(row, col, wx.Colour('#FFFFFF'))
+
+            shape=self.controller.get_data_shape().getResponse()['data']
+            self.updateStatus(shape[0],shape[1])
             
 
     def OnClearGrid(self,event):
@@ -468,6 +475,7 @@ class MainWindow(wx.Frame):
     def _OnClearGrid(self):
         self.ClearGrid()
         self.controller.clear_data()
+        self.controller.clear_task()
 
         for coords in self.highlighted_outliers_cells:
             self.grid.SetCellBackgroundColour(coords[0], coords[1], wx.WHITE)
@@ -478,6 +486,7 @@ class MainWindow(wx.Frame):
         self.enableButtons(False)
         self.restoreStatus()
         self.override_warning=True
+        self.filename=""
 
     def ClearDataStructures(self):
         self.int_variable_names=[]
@@ -506,6 +515,7 @@ class MainWindow(wx.Frame):
 
     def updateStatus(self,rows,cols):
         message=str(rows)+" rows, "+str(cols)+" cols"
+        
         self.SetStatusText(message,2)
         task=self.controller.get_task_name().getResponse()
         if task['status']==Status.OK:
@@ -514,6 +524,8 @@ class MainWindow(wx.Frame):
     def updateStatusTask(self,taskname):
         self.SetStatusText("Task: "+taskname,1)
 
+    def updateStatusFile(self,file):
+        self.SetStatusText("Working on "+file)
 
     def restoreStatus(self):
         self.SetStatusText(" None existing file")
@@ -522,13 +534,13 @@ class MainWindow(wx.Frame):
 
 
     def updateGrid(self,df,updater=None):
-        print(df)
+        
+        
         i=0 
         rows,cols = df.shape
+        self.updateStatus(rows,cols)
         if rows==0:
             rows=self.setting.initial_rows
-
-        self.updateStatus(rows,cols)
 
         rows+=5
         i=0
@@ -539,16 +551,18 @@ class MainWindow(wx.Frame):
             if self.start:
                 self.initial_col_names.append(self.grid.GetColLabelValue(i))
             type=df.dtypes[i]
-        
             if str(type).find("int") != -1:
+                
                 self.grid.SetColFormatNumber(i)
-            elif str(type).find("float") != -1:
+            elif str(type).find("float") != -1  :
+                
                 self.grid.SetColFormatFloat(i,-1,2)
-            
+            else:
+               
+                self.grid.SetColFormatCustom(i,gridlib.GRID_VALUE_STRING)
+
             self.grid.SetColLabelValue(i,column)
-            #Verifico el tipo 
-            #self.types=df[column].dtypes
-            #print(self.types)
+            
             i+=1
         self.start=False
                 
@@ -558,6 +572,7 @@ class MainWindow(wx.Frame):
         for i in range(len(df.axes[1])):
             for j in range(len(df.axes[0])):
                 if(i<self.COL_BOUND and j<self.ROW_BOUND):
+                    
                     value=str(df.loc[j][i])
                     align=True
                     
@@ -570,11 +585,8 @@ class MainWindow(wx.Frame):
                         value=str(np.round(df.loc[j][i],2))
                         
                     elif Validator.check_integer(df.loc[j][i]):
-                        
+                        value=str(int(df.loc[j][i]))
                         align=False
-                        print(f'check integer {df.loc[j][i]} -->{Validator.check_integer(df.loc[j][i])}')
-                        print(df.loc[j][i])
-                    
                     
                     if align:
                         self.grid.SetCellAlignment(j,i,wx.ALIGN_CENTER,wx.ALIGN_CENTER)
@@ -592,10 +604,8 @@ class MainWindow(wx.Frame):
             self.enableButtons(False)
         
         self.float_variable_names,self.int_variable_names,self.string_variable_names=self.controller.get_types().getResponse()['data']
-
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
-       
         
     def createDataGrid(self,rows,cols):
         myGrid = gridlib.Grid(self.panel)
@@ -877,9 +887,19 @@ class MainWindow(wx.Frame):
             code=wx.MessageBox("Are you sure you want to override "+self.filename,"Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
             self.override_warning=False
         
+        file=self.filename
+        if self.filename=="":
+            response=self.IO.OnSaveAs(self,message="Save as new file",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
+            if response['status']==Status.OK:
+                file=response['data']
+                code==wx.YES
+            else:
+                code=wx.NO
+
         if code==wx.YES:
-            
-            self.controller.save_data(self.filename)
+            self.controller.save_data(file)
+            self.filename=file
+            self.updateStatusFile(file)
 
     def OnShowHideOptions(self,evt):
         self.sizer_task.ShowItems(not self.showPredictionOptions.IsChecked())
@@ -916,14 +936,13 @@ class MainWindow(wx.Frame):
 
 
     def OnCreateSet(self,evt):
-        data={}
-        dialog=CreateSetDialog(self,data)
+        dialog=CreateSetDialog(self,"Create set")
         code=dialog.ShowModal()
 
         if code==wx.ID_APPLY:
             
             response=self.controller.create_empty_set(self.new_set).getResponse()
-            
+            self.new_set={}
             if response['status']!=Status.OK:
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
             else:
@@ -933,12 +952,10 @@ class MainWindow(wx.Frame):
                 self.enableButtons(True)
 
     def OnHelpTask(self,evt):
-        
         dialog=HelpDialog(self,file="./front/resources/help/task_help.json",title="Task help")
         dialog.ShowModal()
     
     def OnHelpData(self,evt):
-        
         dialog=HelpDialog(self,file="./front/resources/help/data_help.json",title="Data help")
         dialog.ShowModal()
 
@@ -946,6 +963,24 @@ class MainWindow(wx.Frame):
         dialog=TraceDialog(self)
         dialog.ShowModal()
 
+    def OnAddColumns(self,evt):
+        
+        dialog=CreateSetDialog(self,"Add columns")
+        code=dialog.ShowModal()
+
+        if code==wx.ID_APPLY:
+            
+            response=self.controller.add_columns(self.new_set).getResponse()
+            self.new_set={}
+            if response['status']!=Status.OK:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+            else:
+                self.ClearGrid()
+                
+                self.updateGrid(response['data'])
+                self.enableButtons(True)
+            
+            
     def createMenuBar(self):
         menubar = wx.MenuBar()  
         menubar.SetFont(self.setting.font)
@@ -954,9 +989,6 @@ class MainWindow(wx.Frame):
         importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
 
         fileSaveMenu=wx.MenuItem(fileMenu,wx.ID_ANY,'&Save\tCtrl+S')
-        #image = wx.Image('./front/resources/img/guardar.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        #wx.Bitmap.Rescale(image,wx.Size(16,16))
-        #fileSaveMenu.SetBitmap(image)
 
         fileMenu.Append(fileSaveMenu)
         fileAsSaveMenu=fileMenu.Append(wx.ID_ANY,'&Save as\tCtrl+A',"Save current file")
@@ -982,6 +1014,7 @@ class MainWindow(wx.Frame):
         item=wx.MenuItem(dataMenu,wx.ID_ANY,'&Show identifier columns')
         showIdentifier=dataMenu.Append(item)
         createSetOption=dataMenu.Append(wx.ID_ANY,"&Create set")
+        addColumnsOption=dataMenu.Append(wx.ID_ANY,"&Add Columns")
         clearDataOptiondata=dataMenu.Append(wx.ID_ANY,"&Clear data")
         helpDataOption=dataMenu.Append(wx.ID_ANY,"&Help")
         #dataMenu.AppendSubMenu(preprocessSubmenu,"Data processing")
@@ -1045,6 +1078,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnCreateSet,createSetOption)
         self.Bind(wx.EVT_MENU,self.OnHelpTask,helpTaskOption)
         self.Bind(wx.EVT_MENU,self.OnHelpData,helpDataOption)
+        self.Bind(wx.EVT_MENU,self.OnAddColumns,addColumnsOption)
         self.Bind(wx.EVT_MENU,self.OnShowTrace,traceOption)
        
         self.SetMenuBar(menubar)  
