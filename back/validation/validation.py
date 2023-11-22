@@ -22,6 +22,7 @@ class Validator():
         else:
             return False
     
+    @staticmethod
     def check_parse_float(val):
         toret=False
         try:
