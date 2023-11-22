@@ -22,7 +22,6 @@ class Task():
 
         self.rules=rules
 
-        ##metadata
         self.taskName=name
         self.date=datetime.date.today()
         self.path=None
@@ -44,8 +43,6 @@ class Task():
                 
                 self.models[variable].append(ModelImplementation(model=model))
                 
-
-
         indexes = list(range(self.contextData.values.shape[0])) 
         tmp=self.contextData.get_values_inputs()
         X=tmp[0]
@@ -120,7 +117,6 @@ class Task():
         models=self.models[variable]
 
         for model in models:
-
             tmp={}
             #y=self.contextData.get_values_output(variable)
             #y_test=y[self.test_index]
@@ -177,11 +173,12 @@ class Task():
         for variable in self.input_names:
             input[i]=self.contextData.apply_transform(variable,input[i])
             i+=1
-        if not self.rules:
-            for model in self.models[output_variable]:
-                if model==model:
-                    prediction=model.predict(np.array(input,dtype=np.float64).reshape(1,-1))
         
+        for mod in self.models[output_variable]:
+            if mod.modelname==model:
+                prediction=mod.predict(np.array(input,dtype=np.float64).reshape(1,-1))
+        
+
         return prediction
         
         
