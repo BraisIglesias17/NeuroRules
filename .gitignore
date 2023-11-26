@@ -1,14 +1,11 @@
 #Folders to ignore
 __pycache__
 
-./back/controller/__pycache__
-./back/IO/__pycache__
-./back/data/__pycache__
-./back/ML/__pycache__
-./back/constants/__pycache__
-./back/validation/__pycache__
+*.pyc
+__pycache__
 
-./front/views/__pycache__
-./front/settings/__pycache__
-
-./back/__pycache__
+./dist
+./build
+./tests
+./main.spec
+./.vscode
