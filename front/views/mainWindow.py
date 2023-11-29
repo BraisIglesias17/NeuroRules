@@ -4,7 +4,12 @@ from front.settings.settings import Settings
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
 from back.respuestas import Status
-from front.views.dialogs import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,RulesDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryDialog,AboutUsDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,CreateTaskDialog,ShowIdentifierColsDialog
+#from front.views.dialogs_ import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,TransformDialog,CleanDataDialog,GraphDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,ShowIdentifierColsDialog
+
+from front.views.dialogs.dialogs_analysis import PreprocessDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryPickDialog,StatisticDialog
+from front.views.dialogs.dialogs_general import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,PickDialog,ShowHiddenDialog,ShowIdentifierColsDialog
+from front.views.dialogs.dialogs_task import RulesResultsDialog,RuleGeneratinglDialog,ResultsDialog,PredictionModelDialog
+
 from back.validation.validation import Validator
 import numpy as np
 import sys
@@ -139,11 +144,9 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnOpenFile,self.import_file_button)
         self.Bind(wx.EVT_BUTTON,self.OnClearGrid,self.clear_set_button)
         self.Bind(wx.grid.EVT_GRID_CELL_CHANGED,self.OnCellEdit)
-        #self.Bind(wx.EVT_BUTTON,self.OnNext,self.next_button)
         self.Bind(wx.EVT_BUTTON,self.OnNeurofuzzyModel,self.neurofuzzy_button)
         self.Bind(wx.EVT_BUTTON,self.OnPredictionModel,self.prediction_button)
         self.Bind(wx.EVT_BUTTON,self.OnShowResults,self.results_button)
-        #self.Bind(wx.EVT_BUTTON, self.OnTrain,self.train_button)
         #self.Bind(wx.EVT_BUTTON,self.OnPreprocess,self.preprocess_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnCleanData,self.clean_data_button)
         self.Bind(wx.EVT_BUTTON,self.OnTransformData,self.transform_data_button)
@@ -153,9 +156,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.OnStatistics,self.statistics_button)
         self.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,self.OnCickLabelCell)
         self.Bind(wx.EVT_CLOSE,self.OnExit)
-                
-        #self.Bind(wx.EVT_BUTTON,self.OnCreateData,self.create_set_button)
-        #self.Bind(wx.EVT_BUTTON,self.OnNext,self.statistics_button)
         
         self.enableButtons(False)
         self.panel.SetSizer(sizer_1)
@@ -264,7 +264,7 @@ class MainWindow(wx.Frame):
         if code == wx.ID_APPLY:
             
             self.updateColors()
-            dialog_prediction=RulePredictinglDialog(self)
+            dialog_prediction=RuleGeneratinglDialog(self)
             code=dialog_prediction.ShowModal()
 
             if code==wx.ID_OK:
@@ -304,7 +304,7 @@ class MainWindow(wx.Frame):
         dialog.ShowModal()
 
     def OnCleanData(self,evt):
-        dialog=CleanDataDialog(self,self.controller,self.setting)
+        dialog=CleanDataDialog(self)
         code=dialog.ShowModal()
 
         if code==wx.ID_APPLY:
@@ -348,15 +348,7 @@ class MainWindow(wx.Frame):
         
     def OnPreprocess(self,event):
         dialog=PreprocessDialog(self)
-        code=dialog.ShowModal()
-       
-            
-    def OnTrain(self,event):
-        
-        #Validar datos
-        dialog=CreateTaskDialog(self)
-        dialog.Show()
-        
+        code=dialog.ShowModal()     
 
     def updateColors(self):
         

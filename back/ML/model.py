@@ -56,13 +56,50 @@ class ParamsMapper():
     def model_params():
 
         return {
+                    'Linear Regression': {
+                        'fit_intercept': [True, False],
+                        'normalize': [True, False],
+                    },
+                    'Random Forest Classifier': {
+                        'n_estimators': [10, 50, 100],
+                        'criterion': ['gini', 'entropy'],
+                        'max_depth': [None, 10, 20],
+                        'min_samples_split': [2, 5, 10],
+                        'min_samples_leaf': [1, 2, 4],
+                        'max_features': ['auto', 'sqrt', 'log2'],
+                    },
+                    'Random Forest Regressor': {
+                        'n_estimators': [10, 50, 100],
+                        'criterion': ['mse', 'mae'],
+                        'max_depth': [None, 10, 20],
+                        'min_samples_split': [2, 5, 10],
+                        'min_samples_leaf': [1, 2, 4],
+                        'max_features': ['auto', 'sqrt', 'log2'],
+                    },
+                    'MLP Classifier': {
+                        'hidden_layer_sizes': [(50, 50), (100,)],
+                        'activation': ['relu', 'logistic', 'tanh'],
+                        'solver': ['sgd', 'adam'],
+                        'alpha': [0.0001, 0.05],
+                    },
+                    'MLP Regressor': {
+                        'hidden_layer_sizes': [(50, 50), (100,)],
+                        'activation': ['relu', 'logistic', 'tanh'],
+                        'solver': ['sgd', 'adam'],
+                        'alpha': [0.0001, 0.05],
+                    },
+                    'Support Vector Machine': {
+                        'C': [0.1, 1, 10],
+                        'kernel': ['linear', 'rbf', 'poly'],
+                        'gamma': ['scale', 'auto'],
+                    },
+                    'Support Vector Machine Regressor': {
+                        'C': [0.1, 1, 10],
+                        'kernel': ['linear', 'rbf', 'poly'],
+                        'gamma': ['scale', 'auto'],
+                    },
+                }
 
-            'Linear Regression':{
-                                    'fit_intercept': [True, False], 
-                                    'copy_X': [True, False], 
-                                }
-            
-        }
     
         
 class ModelImplementation(Model):
@@ -178,7 +215,7 @@ class ModelImplementation(Model):
 
         tmp= np.delete(input, toDel, axis=1)
         input=tmp
-
+        
         X_test=copy.deepcopy(self.X_test)
         X_test=np.delete(X_test,toDel,axis=1)
        
@@ -223,6 +260,9 @@ class ModelImplementation(Model):
             if scores['r2']>r2:
                 bestmodel=True
 
+            print(f" Value {scores}")
+            print(f" Value {test_scores}")
+            print("-------")
             self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}
             
             i+=1
@@ -278,6 +318,7 @@ class ModelImplementation(Model):
             self.ensembled_model=ensemble
             #METRICAS CON VALIDACION TEST
             self.ensembled_model_metrics=ensemble.score(X_test,self.y_test)
+            print(self.ensembled_model_metrics)
             #METRICAS CON VALIDACION TRAIN
             #self.ensembled_model_metrics=ensemble.score(inputs,y)
         else:
@@ -339,16 +380,21 @@ class ModelImplementation(Model):
                         indices.append(i_name)
                     i_name+=1
                 
-               
-                output_submodel[i]=self.submodels[submodel]['model'].predict(input)
+                tmp_input=[]
+                for i in range(len(self.names_input)):
+                    if i in indices:
+                        tmp_input.append(input[i])
+                
+                print(np.array(tmp_input).reshape(1,-1))
+                    
+                output_submodel[i]=self.submodels[submodel]['model'].predict(np.array(tmp_input).reshape(1,-1))
                 
                 i+=1
 
-            print(output_submodel)
+            
 
             return self.ensembled_model.predict(output_submodel)
         else:
-        
             return self.model.predict(input)
 
     def get_params(self):
@@ -447,8 +493,7 @@ class ModelImplementation(Model):
                 report+="\t Inputs: "
                 for input in self.submodels[submodel]['inputs']:
                     report+=input+" "
-                    #if input!=self.submodels[submodel]['inputs'][input][-1]:
-                    #    report=report+", "
+                    
                 report+="\n"
 
                 report+="\t Training scores: \n"

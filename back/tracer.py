@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
 
-class Trace:
+
+class Trace():
     _instance = None
 
     def __new__(cls):
@@ -17,10 +18,8 @@ class Trace:
         self._initialized = True
 
         # Configuración del logger
-        self.logger = logging.getLogger("TraceLogger")
+        self.logger = logging.getLogger("trace")
         self.logger.setLevel(logging.INFO)
-
-        # Configuración del manejador (handler)
         handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)

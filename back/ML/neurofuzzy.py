@@ -255,9 +255,8 @@ class NeuroFuzzy():
             - output: array de valores difussos de funcion multivariable 
         
         """
-        toret=None
-        size=self.n_membership*self.X.shape[1]
-        """
+        # toret=None
+        # size=self.n_membership*self.X.shape[1]
         
         start=0
         end=0
@@ -273,13 +272,14 @@ class NeuroFuzzy():
         #result=np.zeros((1,n_rules),dtype=np.float64)
         i=0
         previous=None
-        currentProduct=None
+        currentProduct=input
         for array in arrays:
             if i!=0:
                 currentProduct=previous.reshape(previous.shape[0],1).dot(array.reshape(1,array.shape[0]))
             previous=array
             i+=1
-        print(f"TRY: {(currentProduct.reshape(1,-1)[0])}")
+       
+        
         """
         if self.n_variables == 1:
 
@@ -360,11 +360,15 @@ class NeuroFuzzy():
             r9=self.multivariate_operation(input[2],input[5])
 
             toret=[r1,r2,r3,r4,r5,r6,r7,r8,r9]
-
-        #if len(self.rules)==0:
-        #self._create_rules_template()
+        """
+        if len(self.rules)==0:
+            self._create_rules_template()
+        
         #print(f"REAL: {(toret)}")
-        return np.array(toret)
+        #return np.array(toret)
+        
+        return (currentProduct.reshape(1,-1)[0])
+
 
     def _create_rules_template(self):
         rules=[]
@@ -798,22 +802,26 @@ class NeuroFuzzy():
         Return:
             -output: valor de y esperado
         """
+        
         rows=input.shape[0]
         cols=input.shape[1]
         toret=[]
+        
         if self.trained and cols==self.n_variables:
             for row in range(rows):
+                
                 data=input[row,:]
                 
                 input_fuzzy=self.to_fuzzy(data)
+                
                 output=self.nn(input_fuzzy.values[0])
-
+                
                 #print(f"Input{data}\nOuput:{output}")
                 toret.append(output)
             
+           
             return toret
         else:
-            
             return None
         
     def get_weigths(self):
