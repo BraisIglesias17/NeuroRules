@@ -1,5 +1,7 @@
-from abc import ABC, abstractmethod
+"""Module for model implementation"""
 import pickle
+import copy
+from abc import ABC, abstractmethod
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor,RandomForestClassifier
 from sklearn.model_selection import cross_val_score,GridSearchCV,KFold
@@ -13,7 +15,6 @@ from .neurofuzzy import NeuroFuzzy
 from .neuroclassifier import NeuroClassifier
 from itertools import combinations
 from scipy.stats import pearsonr
-import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
@@ -105,7 +106,6 @@ class ParamsMapper():
 class ModelImplementation(Model):
     
     def __init__(self,model,filename=None,params=None):
-        
         
         self.model=None
         self.modelname=model

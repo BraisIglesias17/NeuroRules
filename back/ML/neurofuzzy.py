@@ -1,14 +1,10 @@
+""" Module for neurofuzzy """
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.cluster import KMeans
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
-from scipy.optimize import minimize
-from mpl_toolkits.mplot3d import Axes3D
 from sklearn.metrics import r2_score,mean_squared_error
-from sklearn.linear_model import Ridge
-import itertools
 
 class NeuroFuzzy():
     """
@@ -35,7 +31,6 @@ class NeuroFuzzy():
         elif number ==4:
             return['Low','Medium_1','Medium_2','High']    
     
-
 
     def __init__(self,input,input_names,output,output_name,n_membership_input,n_membership_output,types,memebership_function="default"):
         
@@ -142,8 +137,6 @@ class NeuroFuzzy():
         self.metrics={'r2':0.0,'rmse':0.0,'mse':0.0}
         
         self.done=False
-
-        
         
     def fuzzyfication(self,C=0.3):
         """
@@ -195,7 +188,6 @@ class NeuroFuzzy():
         self.fuzz_X=toret.values
 
         return toret
-
         
     def get_scores(self,X,y):
         y_pred=self.predict(X)
@@ -241,7 +233,6 @@ class NeuroFuzzy():
             i+=1
        
         return toret
-
 
     def multivariate_memb(self,input):
 
@@ -369,7 +360,6 @@ class NeuroFuzzy():
         
         return (currentProduct.reshape(1,-1)[0])
 
-
     def _create_rules_template(self):
         rules=[]
         conditions={}
@@ -403,7 +393,6 @@ class NeuroFuzzy():
         return self.product_tnorm(a,b) 
 
     def normalization_layer(self,input):
-
         """
         Capa de normalizacion de los valores de entrada
 
@@ -414,7 +403,6 @@ class NeuroFuzzy():
             - output: array de valores de entrada normalizados
         
         """
-        
         s=np.sum(input)
         if s != 0:
             output=input/np.sum(input)
@@ -422,9 +410,7 @@ class NeuroFuzzy():
             output=input
 
         return output
-    
-
-    
+        
     def fit(self, learning_rate=0.01,epochs=25):
         """
         Funcion de entrenamiento de la red
@@ -520,7 +506,6 @@ class NeuroFuzzy():
         #invoca funcion que genera las consecuencias de las reglas
         self.rules_consecuences()
         self.trained=True
-
 
     def calculate_gradient_mse(self,M,w,y):
         
@@ -642,9 +627,7 @@ class NeuroFuzzy():
             ax.legend()
 
             plt.show()
-            
-            
-
+                  
     def plot_precisewise(self):
         
         y_calculada=np.zeros(self.X.shape[0])
@@ -746,7 +729,6 @@ class NeuroFuzzy():
         #print(f'################################')
         return self.layer_4_output
 
-
     def calculate_output(self,x, weights):
         """
         Funcion de activación de la red que consiste en el producto mas sumatorio de cada entrada a la neurona por los pesos de la misma
@@ -791,7 +773,6 @@ class NeuroFuzzy():
             self.rules[i]=actual
             i+=1
         
-
     def predict(self,input):
 
         """
@@ -821,8 +802,7 @@ class NeuroFuzzy():
             
            
             return toret
-        else:
-            return None
+        return None
         
     def get_weigths(self):
         """
