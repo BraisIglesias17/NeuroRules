@@ -44,7 +44,6 @@ class ContextData():
         
         self.identifier_cols=[]
 
-
         self.data_cleanse={} # 'lubricant':{'delete_missing':0,'substitute_missing':'Mean','delete_outliers':0,'substitute_outliers':'Mean'}
         self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
         self.transformers={}
@@ -66,7 +65,6 @@ class ContextData():
         for variable in self.data.columns:
             self.data_preprocess[variable]={'transformation':'None','keep_original':True,'params':None}
             self.transformers[variable]=None
-
 
     def update_set(self,df):
         self.__init__(df)
@@ -110,8 +108,6 @@ class ContextData():
             else:
                 self.characterValues.append(col)
                 
-
-    
     def add_columns(self,dict):
        
         new_cols=pd.DataFrame(columns=dict.keys())
@@ -179,7 +175,6 @@ class ContextData():
 
         return True
         
-
     def add_identifier_col(self,name):
         
         if not name in self.get_names():
@@ -187,7 +182,6 @@ class ContextData():
         if not name in self.identifier_cols:
             self.identifier_cols.append(name)
         
-
     def remove_identifier_col(self,name):
         
         if not name in self.get_names():
@@ -197,7 +191,6 @@ class ContextData():
         else:
             raise ValueError("Col not declared as identifier.")
         
-    
     def get_normal_variables(self):
 
         data=self.get_numeric_variables()
@@ -283,7 +276,6 @@ class ContextData():
         
         return toret
 
-
     def get_position(self,row,col):
         if row < self.data.shape[0] and col < self.data.shape[1]:
             return self.data.iloc[row,col]
@@ -360,18 +352,18 @@ class ContextData():
         names=self.data.columns
         self.variables=names[indexes]
         self.variables_index=indexes
-        if not self._check_consistency():
-            self.variables=[]
-            self.variables_index=[]
+        # if not self._check_consistency():
+        #     self.variables=[]
+        #     self.variables_index=[]
 
     def set_target(self,indexes):
         names=self.data.columns[indexes]
         self.targets=names
         self.targets_index=indexes
 
-        if not self._check_consistency():
-            self.targets=[]
-            self.targets_index=[]
+        # if not self._check_consistency():
+        #     self.targets=[]
+        #     self.targets_index=[]
 
     def _check_consistency(self):
         toret=True
