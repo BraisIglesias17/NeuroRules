@@ -5,7 +5,7 @@ import pandas as pd
 from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
 from back.saver import Saver
-from ...plots import plot_barplot_object,plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
+from ...plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
 import math
@@ -13,11 +13,8 @@ import threading
 import time
 import re
 from ..functions import validate_name,validate_range
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-
-
-
-
+from ...constants import WILDCARD_DATA_FILE
+from ..dialogs.dialogs_general import HelpDialog
 
 class MappingDialog(wx.Dialog):
     def __init__(self,parent, bins,variable):
@@ -527,7 +524,7 @@ class TransformDialog(wx.Dialog):
         shift=100/len(self.names)
         for variable in self.names:
             if variable!="All":
-                result=self.controller.apply_preprocess(variable).getResponse()
+                result=self.controller.apply_preprocess(variable).get_response()
                 
                 if result['status']!=Status.OK:
                     wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -550,7 +547,7 @@ class TransformDialog(wx.Dialog):
         
         process=True
         for variable in self.names:
-            result=self.controller.set_preprocess_option(variable,self.data_preprocess[variable]).getResponse()
+            result=self.controller.set_preprocess_option(variable,self.data_preprocess[variable]).get_response()
 
             if result['status']!=Status.OK:
                 wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -689,7 +686,7 @@ class AutomaticTest(wx.Dialog):
         self.SetFont(parent.GetFont())
         self.SetTitle("Automatic test result")
         
-        result=parent.controller.automatic_statistic_test().getResponse()
+        result=parent.controller.automatic_statistic_test().get_response()
 
         normal_variables=["None"]
         self.grouped_different_variables=["None"]
@@ -814,7 +811,7 @@ class SingleSummaryDialog(wx.Dialog):
             if numeric:
                 plottable=False
 
-        response=parent.controller.get_variable_summary(variable,group).getResponse()
+        response=parent.controller.get_variable_summary(variable,group).get_response()
         
         data=None
         
@@ -881,14 +878,14 @@ class SingleSummaryDialog(wx.Dialog):
 
     def plot_histogram(self,evt):
             
-        response=self.parent.controller.get_column(list(self.parent.names).index(self.variable)).getResponse()
+        response=self.parent.controller.get_column(list(self.parent.names).index(self.variable)).get_response()
         if response['status']!=Status.OK:
             wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
         else:
             x=response['data']
             
             if self.numeric:
-                response=self.parent.controller.get_column(list(self.parent.names).index(self.group)).getResponse()
+                response=self.parent.controller.get_column(list(self.parent.names).index(self.group)).get_response()
                 if response['status']!=Status.OK:
                     wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
                 else:
@@ -1240,9 +1237,9 @@ class StatisticDialog(wx.Dialog):
         other_option=False
         
         if self.checkbox_automatic_tests.GetValue():
-            shape=self.controller.get_data_shape().getResponse()['data']
+            shape=self.controller.get_data_shape().get_response()['data']
             code=wx.YES
-            classes=self.controller.get_nominal_classes().getResponse()['data']
+            classes=self.controller.get_nominal_classes().get_response()['data']
 
             warning=False
             message="The following variables will be ignored because they have more than 5 groups: "
@@ -1263,7 +1260,7 @@ class StatisticDialog(wx.Dialog):
                 code=dialog.ShowModal()
 
         elif self.checkbox_corr.GetValue() or self.checkbox_covariance.GetValue():
-            df=self.controller.get_data().getResponse()['data']
+            df=self.controller.get_data().get_response()['data']
             
             df=df.drop(self.identifier_cols,axis=1)
             if self.checkbox_corr.GetValue():
@@ -1289,11 +1286,11 @@ class StatisticDialog(wx.Dialog):
                             wx.MessageBox("You have to select B variable","Error",wx.OK|wx.ICON_ERROR)
                         else:
                             index_b=self.names.index(b)
-                            y=self.controller.get_column(index_b).getResponse()['data']
+                            y=self.controller.get_column(index_b).get_response()['data']
                             complete=True
                     
                     index_a=self.names.index(a)
-                    x=self.controller.get_column(index_a).getResponse()['data']
+                    x=self.controller.get_column(index_a).get_response()['data']
                     if 'Shapiro' in test:   
                         self.OnLaunchResulDialog(StatisticTest.shapiro_wilk,test,variables=[x],names=[a],condition=True,msg="to determine that this variable has a normal distribution")
                     elif 'ANOVA' in test and complete:
@@ -1505,7 +1502,7 @@ class CleanDataDialog(wx.Dialog):
 
         sizer_12 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Apply to"), wx.HORIZONTAL)
         sizer_3.Add(sizer_12, 0, wx.ALL| wx.EXPAND, 10)
-        options=parent.controller.get_names().getResponse()['data']
+        options=parent.controller.get_names().get_response()['data']
         self.names=options
         options=list(options)
         options.append("All")
@@ -1545,7 +1542,7 @@ class CleanDataDialog(wx.Dialog):
     def OnChangeVariable(self,event):
         target=self.combo_box_variable.GetValue()
         if target != "All":
-            options=self.parent.controller.get_cleanse().getResponse()
+            options=self.parent.controller.get_cleanse().get_response()
             if options['status']==Status.OK:
                 options=options['data'][target]
                 
@@ -1613,10 +1610,10 @@ class CleanDataDialog(wx.Dialog):
             if target == "All":
                 #Cambiar todos
                 for variable in self.names:
-                    result=self.parent.controller.set_cleanse_option(variable,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so,'upper_bound':upper_bound,'lower_bound':lower_bound}).getResponse()
+                    result=self.parent.controller.set_cleanse_option(variable,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so,'upper_bound':upper_bound,'lower_bound':lower_bound}).get_response()
                     
             else:
-                result=self.parent.controller.set_cleanse_option(target,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so,'upper_bound':upper_bound,'lower_bound':lower_bound}).getResponse()
+                result=self.parent.controller.set_cleanse_option(target,{'delete_missing':dm,'substitute_missing':sm,'delete_outliers':do,'highlight_outliers':ho,'substitute_outliers':so,'upper_bound':upper_bound,'lower_bound':lower_bound}).get_response()
             
             if result['status']== Status.OK:
                 wx.MessageBox("Configuration succesfully saved ")
@@ -1632,14 +1629,14 @@ class CleanDataDialog(wx.Dialog):
         thread.start()
         #thread.join()
         """
-        options=self.parent.controller.get_cleanse().getResponse()
+        options=self.parent.controller.get_cleanse().get_response()
         deleted=0
         modified=0
         if options['status']==Status.OK:
             #HERE
 
             for variable in options['data']:
-                response=self.parent.controller.apply_cleanse(variable).getResponse()
+                response=self.parent.controller.apply_cleanse(variable).get_response()
                 
                 if response['status']==Status.OK:
                     d=response['data']['deleted_rows']
@@ -1658,7 +1655,7 @@ class CleanDataDialog(wx.Dialog):
         
             
     def execute_thread(self):
-        options=self.parent.controller.get_cleanse().getResponse()
+        options=self.parent.controller.get_cleanse().get_response()
         deleted=0
         modified=0
         if options['status']==Status.OK:
@@ -1666,7 +1663,7 @@ class CleanDataDialog(wx.Dialog):
             i=0
             shift=100/len(options['data'])
             for variable in options['data']:
-                response=self.parent.controller.apply_cleanse(variable).getResponse()
+                response=self.parent.controller.apply_cleanse(variable).get_response()
                 
                 if response['status']==Status.OK:
                     d=response['data']['deleted_rows']
@@ -1704,7 +1701,7 @@ class GraphDialog(wx.Dialog):
         self.SetFont(parent.GetFont())
         self.controller=parent.controller
 
-        resp=self.controller.get_names().getResponse()
+        resp=self.controller.get_names().get_response()
         self.string_variable=parent.string_variable_names
 
         if resp['status'] == Status.OK:
@@ -1864,7 +1861,7 @@ class GraphDialog(wx.Dialog):
         else:
             return True
     def generate_graph(self,evt):
-        data=self.controller.get_data().getResponse()
+        data=self.controller.get_data().get_response()
         if data['status']==Status.OK:
             data=data['data']
         else:
@@ -1897,12 +1894,12 @@ class GraphDialog(wx.Dialog):
                 if not entered_y and not entered_y_right:
                     wx.MessageBox(str("You must be select either left or right Y axis variable"),"Error",wx.OK|wx.ICON_ERROR)
                 else:
-                    plot_2d(arg,options)
+                    plot_2d(arg)
                     if self.checkbox_regression_line.GetValue():
                         if self._validate_selection(y,"left y"):
-                            plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]}},options)
+                            plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]}})
                         if self._validate_selection(y_right,"right y"):
-                            plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y_right,'data':data[y_right]}},options)
+                            plot_regression({'x':{'name':x,'data':data[x]},'y':{'name':y_right,'data':data[y_right]}})
 
             if self.radio_btn_3d_graph.GetValue():
                 
@@ -1912,8 +1909,8 @@ class GraphDialog(wx.Dialog):
                     wx.MessageBox("A nomial variable can not be selected for 3D graph","Error",wx.OK|wx.ICON_ERROR)
                 else:
                     if self._validate_selection(y,"left y") and self._validate_selection(z,"z"):
-                        options={}
-                        plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}},options)
+                        
+                        plot_3d({'x':{'name':x,'data':data[x]},'y':{'name':y,'data':data[y]},'z':{'name':z,'data':data[z]}})
                     else:
                         wx.MessageBox("You must select Y and Z axis","Error",wx.OK|wx.ICON_ERROR)
             if self.radio_btn_frequency.GetValue():
@@ -1926,11 +1923,10 @@ class GraphDialog(wx.Dialog):
                     plot_hist({'x':{'name':x,'data':data[x]}},options)
 
             if self.radio_btn_box_plot.GetValue():
-                options={}
                 if x in self.string_variable:
                     wx.MessageBox("Could not generate box plot for a nominal variable","Warning",wx.ICON_WARNING)
                 else:   
-                    plot_boxplot({'x':{'name':x,'data':data[x]}},options)
+                    plot_boxplot({'x':{'name':x,'data':data[x]}})
 
 class SummaryDialog(wx.Dialog):
     def __init__(self,parent):
@@ -1945,7 +1941,7 @@ class SummaryDialog(wx.Dialog):
         self.parent=parent
         self.IO=parent.IO
         self.names=parent.names
-        self.summary=parent.controller.get_summary().getResponse()
+        self.summary=parent.controller.get_summary().get_response()
         
         if self.summary['status']== Status.OK:
             self.names=self.names
@@ -2033,7 +2029,7 @@ class SummaryDialog(wx.Dialog):
                 code=wx.MessageBox(str("You have selected "+str(len(indexes)-1)+" variables this will create a hard to read plot and could take a few minutes to generate"),"Warning",wx.OK|wx.CANCEL|wx.ICON_WARNING)
             
             if code==wx.OK:
-                response=self.parent.controller.get_data().getResponse()
+                response=self.parent.controller.get_data().get_response()
 
                 if response['status']!=Status.OK:
                     wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -2043,7 +2039,7 @@ class SummaryDialog(wx.Dialog):
         
 
     def OnSave(self,event):
-        result=self.IO.OnSaveAs(self,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
+        result=self.IO.GetPath(self,message="Save summary",wildcard=WILDCARD_DATA_FILE).get_response()
         
         if result['status'] == Status.OK:
             path=result['data']
@@ -2093,55 +2089,3 @@ class SummaryDialog(wx.Dialog):
 
         return myGrid
 
-class CrossValidationDialog(wx.Dialog):
-    def __init__(self,parent,cross_validation,metric):
-        
-        wx.Dialog.__init__(self, parent)
-        self.SetTitle("Cross validation")
-        
-
-        figure=plot_barplot_object(cross_validation,xtitle="Folds",ytitle=metric).gcf()
-        self.canvas = FigureCanvas(self, -1, figure)
-
-        sizer_1 = wx.BoxSizer(wx.VERTICAL)
-
-        sizer_3 = wx.BoxSizer(wx.VERTICAL)
-        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
-
-        label_1 = wx.StaticText(self, wx.ID_ANY, "Cross Validation Report")
-        label_1.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
-        sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
-
-        self.grid_folds_result = wx.grid.Grid(self, wx.ID_ANY)
-        self.grid_folds_result.CreateGrid(1,len(cross_validation))
-        i=0
-        for key in cross_validation:
-            self.grid_folds_result.SetColLabelValue(i,key)
-            self.grid_folds_result.SetCellValue(0,i,str(np.round(cross_validation[key],2)))
-            i+=1
-       
-        
-        self.grid_folds_result.SetRowLabelValue(0,metric)
-        sizer_3.Add(self.grid_folds_result, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 20)
-
-        sizer_figure = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_3.Add(sizer_figure, 1, wx.EXPAND, 0)
-
-        sizer_figure.Add(self.canvas, 1, wx.EXPAND, 0)
-
-
-
-        sizer_2 = wx.StdDialogButtonSizer()
-        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
-
-        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
-        sizer_2.AddButton(self.button_CLOSE)
-
-        sizer_2.Realize()
-
-        self.SetSizer(sizer_1)
-        sizer_1.Fit(self)
-
-        self.SetEscapeId(self.button_CLOSE.GetId())
-
-        self.Layout()

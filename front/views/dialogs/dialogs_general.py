@@ -5,7 +5,7 @@ from back.respuestas import Status
 from back.saver import Saver
 from back.tracer import Trace
 import copy
-from ...constants import WILDCARD_TEXT_FILE
+from ...constants import WILDCARD_TEXT_FILE,WILDCARD_DATA_FILE
 from ..functions import validate_name
 import wx.html2 as wxhtml2
 import json
@@ -266,24 +266,19 @@ class PickDialog(wx.Dialog):
         elif len(self.targets)==0:
             wx.MessageBox('You must select one or more properties', 'Error', wx.OK | wx.ICON_WARNING)
         else:
-            toAdd=[]
-            names=list(self.names)
-            for independent in self.independent_variables:
-                toAdd.append(names.index(independent))
-
-            self.controller.set_independent_variables(toAdd)
-
-            toAdd=[]
-            names=list(self.names)
-            for target in self.targets:
-                toAdd.append(names.index(target))
-
-            self.controller.set_targets(toAdd)
-
-            del toAdd
             
+            self.controller.set_independent_variables(self._get_indexes(self.independent_variables))
+            self.controller.set_targets(self._get_indexes(self.targets))
+
             self.EndModal(wx.ID_APPLY)
             self.Destroy()
+
+    def _get_indexes(self,group):
+        toAdd=[]
+        names=list(self.names)
+        for element in group:
+            toAdd.append(names.index(element))
+        return toAdd
 
     def OnAddInput(self,evt):
         self.OnAdd(self.list_box_inputs,self.independent_variables,check_strings=self.not_check_strings)
@@ -387,7 +382,7 @@ class SettingsDialog(wx.Dialog):
         sizer_6.Add(label_font_size_copy, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
 
-        self.default_path_ctrl = wx.TextCtrl(self, wx.ID_ANY,self.currentSettings.defaultPath,style=wx.TE_READONLY,size=(300,-1))
+        self.default_path_ctrl = wx.TextCtrl(self, wx.ID_ANY,self.currentSettings.default_path,style=wx.TE_READONLY,size=(300,-1))
         sizer_6.Add(self.default_path_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/guardar.png", wx.BITMAP_TYPE_ANY))
@@ -405,7 +400,7 @@ class SettingsDialog(wx.Dialog):
         label_1 = wx.StaticText(self, wx.ID_ANY, "Inputs")
         sizer_7.Add(label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.input_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,self.currentSettings.independentColor)
+        self.input_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,self.currentSettings.independent_color)
         
         sizer_7.Add(self.input_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
@@ -415,7 +410,7 @@ class SettingsDialog(wx.Dialog):
         label_2 = wx.StaticText(self, wx.ID_ANY, "Outputs")
         sizer_8.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.output_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,self.currentSettings.targetColor)
+        self.output_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,self.currentSettings.target_color)
         
         sizer_8.Add(self.output_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
@@ -425,7 +420,7 @@ class SettingsDialog(wx.Dialog):
         label_3 = wx.StaticText(self, wx.ID_ANY, "Missing values")
         sizer_9.Add(label_3, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.nan_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,colour=self.currentSettings.NanColor)
+        self.nan_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,colour=self.currentSettings.nan_color)
         
         sizer_9.Add(self.nan_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
@@ -435,7 +430,7 @@ class SettingsDialog(wx.Dialog):
         label_4 = wx.StaticText(self, wx.ID_ANY, "Outliers")
         sizer_10.Add(label_4, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.outliers_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,colour=self.currentSettings.outlierColor)
+        self.outliers_color_ctrl = wx.ColourPickerCtrl(self, wx.ID_ANY,colour=self.currentSettings.outlier_color)
         
         sizer_10.Add(self.outliers_color_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
@@ -467,7 +462,7 @@ class SettingsDialog(wx.Dialog):
             self.restart=True
     
     def OnChooseFolder(self,evt):
-        response=IOManage.GetPathFolder(self,"Select a new path").getResponse()
+        response=IOManage.get_path_folder(self,"Select a new path").get_response()
         if response['status']==Status.OK:
             self.default_path_ctrl.SetLabelText(response['data'])
 
@@ -478,11 +473,11 @@ class SettingsDialog(wx.Dialog):
             wx.MessageBox("Invalid value for font size","Error",wx.ICON_ERROR)
         else:
             self.currentSettings.font_size=font_size
-            self.currentSettings.defaultPath=self.default_path_ctrl.GetValue()
-            self.currentSettings.independentColor=self.input_color_ctrl.GetColour()
-            self.currentSettings.targetColor=self.output_color_ctrl.GetColour()
-            self.currentSettings.NanColor=self.nan_color_ctrl.GetColour()
-            self.currentSettings.outlierColor=self.outliers_color_ctrl.GetColour()
+            self.currentSettings.default_path=self.default_path_ctrl.GetValue()
+            self.currentSettings.independent_color=self.input_color_ctrl.GetColour()
+            self.currentSettings.target_color=self.output_color_ctrl.GetColour()
+            self.currentSettings.nan_color=self.nan_color_ctrl.GetColour()
+            self.currentSettings.outlier_color=self.outliers_color_ctrl.GetColour()
 
             message="Configuration saved!"
             if self.restart:
@@ -843,7 +838,7 @@ class LoadFileDialog(wx.Dialog):
         self.EndModal(wx.ID_OK)
 
     def OnChangePath(self,evt):
-        response=IOManage.LoadFile(self,evt).getResponse()
+        response=IOManage.get_path_import(self,"Open file",WILDCARD_DATA_FILE).get_response()
         if response['status']==Status.OK:
             self.path.SetLabelText(response['data'])
             self._on_change_path(response['data'])
@@ -918,7 +913,7 @@ class TraceDialog(wx.Dialog):
 
     def OnSave(self,evt):
         
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.settings.GetPath()).getResponse()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.settings.GetPath()).get_response()
 
         if path['status']==Status.OK: 
             saver=Saver(path['data'],content=self.text_logs.GetLabelText())

@@ -15,7 +15,7 @@ import numpy as np
 import sys
 from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
 import wx.adv
-
+import traceback
 
 
 class MainWindow(wx.Frame):    
@@ -167,7 +167,7 @@ class MainWindow(wx.Frame):
 
     def OnShowResults(self,evt):
         
-        task=self.controller.task_state().getResponse()
+        task=self.controller.task_state().get_response()
         if task['status']==Status.EXISTING_TASK or task['status']==Status.EXISTING_TASK_NO_EXECUTED or task['status']==Status.EXISTING_TASK_UNSAVED:
             rules=task['data']['rules']
            
@@ -196,12 +196,12 @@ class MainWindow(wx.Frame):
 
             if code==wx.ID_OK:
                 #show results
-                self.updateStatusTask(self.controller.get_task_name().getResponse()['data'])
+                self.updateStatusTask(self.controller.get_task_name().get_response()['data'])
                 dialog=ResultsDialog(self)
                 code=dialog.ShowModal() 
     
     def OnManageCurrentTask(self,check_strings=False):
-        response=self.controller.task_state().getResponse()
+        response=self.controller.task_state().get_response()
         status=response['status']
         
 
@@ -238,18 +238,18 @@ class MainWindow(wx.Frame):
 
     def saveTask(self):
         cancel=False
-        taskname=self.controller.get_task_name().getResponse()
+        taskname=self.controller.get_task_name().get_response()
         if taskname['status']==Status.OK:
             taskname=taskname['data']
             
-            pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=taskname).getResponse()
+            pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,default_folder=self.setting.get_default_path(),default_name=taskname).get_response()
             
             if pathname['status']==Status.OK:
                 pathname=pathname['data']
             else:
                 cancel=True
         if not cancel:
-            response=self.controller.save_task(pathname).getResponse()
+            response=self.controller.save_task(pathname).get_response()
             
             if response['status']==Status.OK:
                 wx.MessageBox("Succesfully saved in "+pathname,"Info")
@@ -268,7 +268,7 @@ class MainWindow(wx.Frame):
             code=dialog_prediction.ShowModal()
 
             if code==wx.ID_OK:
-                self.updateStatusTask(self.controller.get_task_name().getResponse()['data'])
+                self.updateStatusTask(self.controller.get_task_name().get_response()['data'])
                 dialog=RulesResultsDialog(self)
                 code=dialog.ShowModal()
 
@@ -280,7 +280,7 @@ class MainWindow(wx.Frame):
         
         if code==wx.OK:
             
-            df=self.controller.get_data().getResponse()
+            df=self.controller.get_data().get_response()
             if df['status']==Status.OK:
                 self.ClearGrid()
                 self.updateGrid(df['data'])
@@ -309,9 +309,9 @@ class MainWindow(wx.Frame):
 
         if code==wx.ID_APPLY:
             
-            response=self.controller.get_data().getResponse()
+            response=self.controller.get_data().get_response()
             
-            outliers=self.controller.get_outliers().getResponse()
+            outliers=self.controller.get_outliers().get_response()
             
             if response['status']==Status.OK:
                 self.ClearGrid()
@@ -329,7 +329,7 @@ class MainWindow(wx.Frame):
     def HighlightOutliers(self,outliers):
         
         for cell in self.highlighted_outliers_cells:
-            self.grid.SetCellBackgroundColour(cell[0],cell[1], self.setting.defaultColor)
+            self.grid.SetCellBackgroundColour(cell[0],cell[1], self.setting.default_color)
 
         
         for var in outliers:    
@@ -338,7 +338,7 @@ class MainWindow(wx.Frame):
             col=outliers[var]['index']
 
             for i in range(len(positions)):
-                self.grid.SetCellBackgroundColour(positions[i],col, self.setting.outlierColor)
+                self.grid.SetCellBackgroundColour(positions[i],col, self.setting.outlier_color)
                 self.highlighted_outliers_cells.append((positions[i],col))
 
         
@@ -352,23 +352,22 @@ class MainWindow(wx.Frame):
 
     def updateColors(self):
         
-        independent=self.controller.get_independent_indexes().getResponse()['data']
-        targets=self.controller.get_target_indexes().getResponse()['data']
+        independent=self.controller.get_independent_indexes().get_response()['data']
+        targets=self.controller.get_target_indexes().get_response()['data']
 
-       
-        rows,cols=self.controller.get_data_shape().getResponse()['data']
+        rows,cols=self.controller.get_data_shape().get_response()['data']
 
         if rows<100:
             for row in range(rows):
                 for col in range(cols):
                     if col in targets:
-                        self.grid.SetCellBackgroundColour(row, col, self.setting.targetColor)
+                        self.grid.SetCellBackgroundColour(row, col, self.setting.target_color)
                         self.highlighted_cols.append([row,col])
                     elif col in independent:
-                        self.grid.SetCellBackgroundColour(row, col, self.setting.independentColor)
+                        self.grid.SetCellBackgroundColour(row, col, self.setting.independent_color)
                         self.highlighted_cols.append([row,col])
                     else:
-                        self.grid.SetCellBackgroundColour(row, col, self.setting.defaultColor)
+                        self.grid.SetCellBackgroundColour(row, col, self.setting.default_color)
         
        
     def enableButtons(self,val):
@@ -381,12 +380,11 @@ class MainWindow(wx.Frame):
         self.neurofuzzy_button.Enable(val)
         self.prediction_button.Enable(val)
         self.results_button.Enable(val)
-        #self.next_button.Enable(val)
         self.transform_data_button.Enable(val)
 
     def OnOpenFile(self,event):
         try:
-            response=IOManage.LoadFile(self,event).getResponse()
+            response=IOManage.get_path_import(self,"Open file",WILDCARD_DATA_FILE).get_response()
             if response['status']==Status.OK:
                 pathname=response['data']
                 conf={'sep':',','dec':'.','pathname':pathname}
@@ -397,9 +395,8 @@ class MainWindow(wx.Frame):
                     self._OnClearGrid()
                     df,filename=IOManage.load_file(conf)
                                      
-                    response=self.controller.load_content(df,filename).getResponse()
+                    response=self.controller.load_content(df,filename).get_response()
                     if response['status']==Status.OK:
-                        
                         
                         dlg=None
                         if df.shape[0]>100:
@@ -419,13 +416,14 @@ class MainWindow(wx.Frame):
                         self.SetStatusText(str(" Working on "+self.filename))
         except Exception as exc:
             wx.MessageBox("You probably have selected a wrong loading file configuration. Be careful with separator and decimal characters. Try again.","Error",wx.ICON_ERROR)
-            print(exc)
+            
+            traceback.print_exc()
             self.OnOpenFile(event)
            
     def OnCellEdit(self,event):
         row,col=event.GetRow(),event.GetCol()
     
-        shape=self.controller.get_data_shape().getResponse()['data']
+        shape=self.controller.get_data_shape().get_response()['data']
         
         print(shape)
         if shape==None:
@@ -445,15 +443,15 @@ class MainWindow(wx.Frame):
             if self.names[col] in self.string_variable_names:
                 self.grid.SetCellAlignment(row,col,wx.ALIGN_CENTER,wx.ALIGN_CENTER)
 
-            response=self.controller.update_data_position(row,col,value).getResponse()
+            response=self.controller.update_data_position(row,col,value).get_response()
 
             if not response['status'] == Status.OK:
-                self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).getResponse()['data']))
+                self.grid.SetCellValue(row,col,str(self.controller.get_position(row,col).get_response()['data']))
                 wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
             else:
                 self.grid.SetCellBackgroundColour(row, col, wx.Colour('#FFFFFF'))
 
-            shape=self.controller.get_data_shape().getResponse()['data']
+            shape=self.controller.get_data_shape().get_response()['data']
             self.updateStatus(shape[0],shape[1])
             
 
@@ -509,7 +507,7 @@ class MainWindow(wx.Frame):
         message=str(rows)+" rows, "+str(cols)+" cols"
         
         self.SetStatusText(message,2)
-        task=self.controller.get_task_name().getResponse()
+        task=self.controller.get_task_name().get_response()
         if task['status']==Status.OK:
             self.SetStatusText("Task: "+task['data'],1)
     
@@ -569,7 +567,7 @@ class MainWindow(wx.Frame):
                     align=True
                     
                     if value=="" or value=="nan":
-                        self.grid.SetCellBackgroundColour(j, i, self.setting.NanColor)
+                        self.grid.SetCellBackgroundColour(j, i, self.setting.nan_color)
                         self.highlighted_cells.append([i,j])
 
                     elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
@@ -595,7 +593,7 @@ class MainWindow(wx.Frame):
         else:
             self.enableButtons(False)
         
-        self.float_variable_names,self.int_variable_names,self.string_variable_names=self.controller.get_types().getResponse()['data']
+        self.float_variable_names,self.int_variable_names,self.string_variable_names=self.controller.get_types().get_response()['data']
         #self.grid_sizer.Layout()
         #self.grid.AutoSize()
         
@@ -612,7 +610,7 @@ class MainWindow(wx.Frame):
         row = evt.GetRow()
         col = evt.GetCol()
 
-        shape=self.controller.get_data_shape().getResponse()
+        shape=self.controller.get_data_shape().get_response()
         
         if col !=-1:
             if shape['status']==Status.OK:
@@ -684,12 +682,12 @@ class MainWindow(wx.Frame):
 
         if code == wx.ID_OK:
             new_value=dialog.GetValue()
-            result=self.controller.rename_col(new_value,current_name).getResponse()
+            result=self.controller.rename_col(new_value,current_name).get_response()
 
             if result['status']!=Status.OK:
                 wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
             else:
-                data=self.controller.get_data().getResponse()['data']
+                data=self.controller.get_data().get_response()['data']
                 
                 #reemplazar elementos de la lista
                 self.names[col]=new_value
@@ -724,18 +722,18 @@ class MainWindow(wx.Frame):
 
         code=wx.MessageBox(message,"Info",wx.YES_NO| wx.ICON_INFORMATION)
         if code==wx.YES:
-            result=self.controller.delete_col(col).getResponse()
+            result=self.controller.delete_col(col).get_response()
             if result['status']!=Status.OK:
                 wx.MessageBox(result['data'],"Error",wx.OK| wx.ICON_ERROR)
             else:
-                response=self.controller.get_data().getResponse()
+                response=self.controller.get_data().get_response()
                 if response['status']==Status.OK:
                     self.ClearGrid()
                     self.updateGrid(response['data'])
 
                 new_highlighted=[]
                 for cell in self.highlighted_outliers_cells:
-                    self.grid.SetCellBackgroundColour(cell[0],cell[1],self.setting.defaultColor)
+                    self.grid.SetCellBackgroundColour(cell[0],cell[1],self.setting.default_color)
                     shift=0
                     itself=False
                     for col in cols:
@@ -744,10 +742,10 @@ class MainWindow(wx.Frame):
                         elif col==cell[1]:
                             itself=True
 
-                    shape=self.controller.get_data_shape().getResponse()['data']
+                    shape=self.controller.get_data_shape().get_response()['data']
 
                     if not itself or shape[1]==1:
-                        self.grid.SetCellBackgroundColour(cell[0],cell[1]-shift,self.setting.outlierColor)
+                        self.grid.SetCellBackgroundColour(cell[0],cell[1]-shift,self.setting.outlier_color)
                         new_highlighted.append((cell[0],cell[1]-shift))
                 self.highlighted_outliers_cells=new_highlighted
 
@@ -761,13 +759,13 @@ class MainWindow(wx.Frame):
 
         code=wx.MessageBox(str(message),"Info",wx.YES_NO| wx.ICON_INFORMATION)
         if code==wx.YES:
-            result=self.controller.delete_row(row).getResponse()
+            result=self.controller.delete_row(row).get_response()
             if result['status']!=Status.OK:
                 wx.MessageBox(result['data'],"Error",wx.OK| wx.ICON_ERROR)
                 
             else:
                 
-                response=self.controller.get_data().getResponse()
+                response=self.controller.get_data().get_response()
                 if response['status']==Status.OK:
                     
                     self.ClearGrid()
@@ -776,7 +774,7 @@ class MainWindow(wx.Frame):
                 
                 new_highlighted=[]
                 for cell in self.highlighted_outliers_cells:
-                    self.grid.SetCellBackgroundColour(cell[0],cell[1],self.setting.defaultColor)
+                    self.grid.SetCellBackgroundColour(cell[0],cell[1],self.setting.default_color)
                     shift=0
                     itself=False
                     for col in rows:
@@ -785,10 +783,10 @@ class MainWindow(wx.Frame):
                         elif col==cell[0]:
                             itself=True
 
-                    shape=self.controller.get_data_shape().getResponse()['data']
+                    shape=self.controller.get_data_shape().get_response()['data']
 
                     if not itself or shape[0]==1:
-                        self.grid.SetCellBackgroundColour(cell[0]-shift,cell[1],self.setting.outlierColor)
+                        self.grid.SetCellBackgroundColour(cell[0]-shift,cell[1],self.setting.outlier_color)
                         new_highlighted.append((cell[0]-shift,cell[1]))
                 self.highlighted_outliers_cells=new_highlighted
                     
@@ -842,11 +840,11 @@ class MainWindow(wx.Frame):
 
 
     def OnImportTask(self,event):
-        pathname=IOManage.GetPathImport(self,message="Select a task file",wildcard=WILCARD_TASK).getResponse()
+        pathname=IOManage.get_path_import(self,message="Select a task file",wildcard=WILCARD_TASK).get_response()
         
         if pathname['status']==Status.OK:
             pathname=pathname['data']
-            response=self.controller.import_task(pathname).getResponse()
+            response=self.controller.import_task(pathname).get_response()
         
             if response['status']!=Status.OK:
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
@@ -854,7 +852,7 @@ class MainWindow(wx.Frame):
                 self.restore()
 
     def restore(self):
-        response=self.controller.get_data().getResponse()
+        response=self.controller.get_data().get_response()
         if response['status']==Status.OK:
             df=response['data']
             self.updateGrid(df)
@@ -865,11 +863,11 @@ class MainWindow(wx.Frame):
         path=self.filename
         arr=self.filename.split("\\")
         name=arr[len(arr)-1]
-        response=self.IO.OnSaveAs(self,message="Save summary",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx",dir=path,file=name).getResponse()
+        response=self.IO.GetPath(self,message="Save summary",wildcard=WILDCARD_DATA_FILE,default_folder=path,default_name=name).get_response()
 
         if response['status']==Status.OK:
             pathname=response['data']
-            response=self.controller.save_data(pathname).getResponse()
+            response=self.controller.save_data(pathname).get_response()
             if response['status']==Status.OK:
                 wx.MessageBox("Filed saved on "+pathname,"Info")
 
@@ -881,7 +879,7 @@ class MainWindow(wx.Frame):
         
         file=self.filename
         if self.filename=="":
-            response=self.IO.OnSaveAs(self,message="Save as new file",wildcard="(*.csv)|*.csv|(*.xlsx)|*.xlsx").getResponse()
+            response=self.IO.GetPath(self,message="Save as new file",wildcard=WILDCARD_DATA_FILE).get_response()
             if response['status']==Status.OK:
                 file=response['data']
                 code==wx.YES
@@ -907,16 +905,16 @@ class MainWindow(wx.Frame):
             self.Refresh()
 
     def OnSaveTask(self,evt):
-        response=self.controller.task_state().getResponse()
+        response=self.controller.task_state().get_response()
 
         if response['status']!=Status.UNEXISTING_TASK:
             
-            path=IOManage.GetPath(self,"Path to save",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=response['data']['name']).getResponse()
+            path=IOManage.GetPath(self,"Path to save",WILCARD_TASK,default_folder=self.setting.get_default_path(),default_name=response['data']['name']).get_response()
             
             if path['status']==Status.OK:
 
                 path=path['data']
-                response=self.controller.save_task(path).getResponse()
+                response=self.controller.save_task(path).get_response()
 
                 if response['status']==Status.OK:
                     wx.MessageBox("Succesfully saved in"+path)
@@ -933,7 +931,7 @@ class MainWindow(wx.Frame):
 
         if code==wx.ID_APPLY:
             
-            response=self.controller.create_empty_set(self.new_set).getResponse()
+            response=self.controller.create_empty_set(self.new_set).get_response()
             self.new_set={}
             if response['status']!=Status.OK:
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
@@ -962,7 +960,7 @@ class MainWindow(wx.Frame):
 
         if code==wx.ID_APPLY:
             
-            response=self.controller.add_columns(self.new_set).getResponse()
+            response=self.controller.add_columns(self.new_set).get_response()
             self.new_set={}
             if response['status']!=Status.OK:
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)

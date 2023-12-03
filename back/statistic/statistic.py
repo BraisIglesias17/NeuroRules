@@ -1,75 +1,94 @@
-from scipy.stats import chi2,pearsonr,wilcoxon,shapiro,kruskal,kstest,t,f_oneway,mannwhitneyu,ttest_ind
+"""Module for statistic test"""
 import numpy as np
+from scipy.stats import chi2,pearsonr,shapiro,kruskal,kstest,f_oneway,mannwhitneyu,ttest_ind
 
 class StatisticTest():
-
+    """
+        Class that encapsulates the statistics test
+    """
     @staticmethod
     def GROUPING_SAME_VARIABLE():
-        return ['T Student - (Difference between groups)','ANOVA - (Difference between groups)','Kruskal Wallis - (Difference between groups)','Wilcoxon - (Difference between groups)']
-
+        """
+            Return the list of available methods for one variable grouped
+        """
+        return ['T Student - (Difference between groups)'
+                ,'ANOVA - (Difference between groups)'
+                ,'Kruskal Wallis - (Difference between groups)'
+                ,'Wilcoxon - (Difference between groups)']
     @staticmethod
     def COMPARING_DIFFERENT_VARIABLES():
+        """
+            Return the list of available methods for two different variable
+        """
         return ['Pearson - (Correlation)']
-    
     @staticmethod
     def SINGLE_VARIABLE():
+        """
+            Return the list of available methods for one variable
+        """
         return ['Shapiro - (Normality)']
-    
     @staticmethod
     def get_tests():
+        """
+            Return the list of all test
+        """
         return ['T Student','ANOVA','Kruskal Wallis','Wilcoxon','Pearson','Shapiro']
-    
     @staticmethod
     def get_placeholder():
-        return ['T Student - (Difference between groups)','ANOVA - (Difference between groups)','Kruskal Wallis - (Difference between groups)','Wilcoxon - (Difference between groups)','Pearson - (Correlation)','Shapiro - (Normality)']
-    
+        """
+            Return the list of all test placeholder
+        """
+        return ['T Student - (Difference between groups)'
+                ,'ANOVA - (Difference between groups)'
+                ,'Kruskal Wallis - (Difference between groups)'
+                ,'Wilcoxon - (Difference between groups)'
+                ,'Pearson - (Correlation)','Shapiro - (Normality)']
     @staticmethod
     def t_student(x,y):
-        
+        """
+            Return the result of T Student test
+        """
         return ttest_ind(np.array(x).astype(float),np.array(y).astype(float))
-
     @staticmethod
     def ANOVA(x,y):
+        """
+            Return the result of ANOVA test
+        """
         return f_oneway(x,y)
-    
     @staticmethod
-    def chi_squared(input):
-        return chi2(input)
-    
+    def chi_squared(x):
+        """
+            Return the result of CHI SQUARED test
+        """
+        return chi2(x)
     @staticmethod
     def wilcoxon(x,y):
-        
+        """
+            Return the result of MANNWHITNEY test
+        """
         return mannwhitneyu(np.array(x).astype(float),np.array(y).astype(float))
-    
     @staticmethod
     def kruskal_wallis(x,y):
+        """
+            Return the result of KRUSKAL WALLIS test
+        """
         return kruskal(x,y)
-    
     @staticmethod
     def kolmorov_smirnov(x,y):
+        """
+            Return the result of KOLMOROV test
+        """
         return kstest(x,y)
-    
     @staticmethod
     def shapiro_wilk(x):
+        """
+            Return the result of SHAPIRO test
+        """
         return shapiro(x)
-    
-    @staticmethod
-    def mcNemar():
-        return 0.0
-
     @staticmethod
     def pearson(x,y):
+        """
+            Return the result of Pearson test
+        """
         return pearsonr(x,y)
     
-"""
-import pandas as pd
-data=pd.read_csv("C:/Users/USUARIO/Desktop/TFM/project/invitro_g.csv",sep=",")
-
-x=data['PolymerA']
-y=data['1hr']
-print(StatisticTest.kruskal_wallis(x,y))
-"""
-
-
-
-

@@ -1,6 +1,10 @@
-import json
+""" Module for defining the responses 
+format for the communication between components in the program"""
 
 class Status():
+    """
+    Class that defines some status for response
+    """
     OK=1
     VALIDATION_ERROR=2
     GENERAL_ERROR=3
@@ -12,12 +16,16 @@ class Status():
     UNEXISTING_TASK=9
 
 class Response():
-
+    """
+        Function that represent a communication between back and front
+    """
     def __init__(self,data=None,status=None):
         self.response={}
         self.response['data']=data
         self.response['status']=status
-
-
-    def getResponse(self):
+    def get_response(self):
+        """
+        Function that returns the current response
+        """
         return self.response
+    
