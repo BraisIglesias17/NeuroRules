@@ -1,18 +1,19 @@
+import sys
+import os 
 import wx
+import threading
+import time
 import wx.html2
+import numpy as np
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from front.IO.IOManage import IOManage
 from back.respuestas import Status
 from back.saver import Saver
 from back.validation.validation import Validator
-from ...plots import plot_barplot
-import numpy as np
-import threading
-import time
+from ...plots import plot_barplot,plot_barplot_object
 from ...constants import WILCARD_TASK,WILDCARD_TEXT_FILE
 from ..functions import get_task_name
-import sys
-import os 
-
+from ..dialogs.dialogs_general import HelpDialog
 ##
 # Dialog for displaying the detail of a task
 ##
@@ -116,7 +117,7 @@ class RuleGeneratinglDialog(wx.Dialog):
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
-        self.shape=parent.controller.get_data_shape().getResponse()['data']
+        self.shape=parent.controller.get_data_shape().get_response()['data']
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
         self.parent=parent
@@ -131,7 +132,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.regression_vars=[]
         self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
 
-        response=self.controller.get_target_process_type().getResponse()
+        response=self.controller.get_target_process_type().get_response()
 
         if response['status']==Status.OK:
             
@@ -148,7 +149,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         else:
             wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
 
-        response=self.controller.get_available_models().getResponse()
+        response=self.controller.get_available_models().get_response()
         if response['status']==Status.OK:
             self.regression_models=response['data']['regression'] 
             self.classification_models=response['data']['classification']    
@@ -209,7 +210,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         name,cancel=get_task_name(self)
 
         if not cancel:
-            response=self.controller.create_task(name,self.model_selection,self.validation,True).getResponse()
+            response=self.controller.create_task(name,self.model_selection,self.validation,True).get_response()
         
             if response['status']==Status.OK:        
                 self.Hide()
@@ -291,7 +292,7 @@ class PredictDialog(wx.Dialog):
         for row in range(self.n_inputs):
             values.append(self.grid_inputs.GetCellValue(row,1))
 
-        response=self.controller.get_prediction(self.variable,self.model,values).getResponse()
+        response=self.controller.get_prediction(self.variable,self.model,values).get_response()
 
         if response['status']!=Status.OK:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
@@ -333,7 +334,7 @@ class RulesResultsDialog(wx.Dialog):
         self.setting=parent.setting
         self.outputs=[]
         self.types=[]
-        response=self.controller.get_target_process_type().getResponse()
+        response=self.controller.get_target_process_type().get_response()
         self.string_variable_names=parent.string_variable_names
         self.currentMetrics={}
         self.currentModel={}
@@ -347,7 +348,7 @@ class RulesResultsDialog(wx.Dialog):
         else:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
-        self.models=self.controller.get_variable_models().getResponse()['data']
+        self.models=self.controller.get_variable_models().get_response()['data']
         self.submodels={}
         i=0
         for output in self.outputs:
@@ -356,7 +357,7 @@ class RulesResultsDialog(wx.Dialog):
         outputs=self._custom_outputs()
 
         self.cb_selections=[]
-        metadata=self.controller.get_task_metadata().getResponse()['data']
+        metadata=self.controller.get_task_metadata().get_response()['data']
         self.saved=metadata['saved']
         self.path=metadata['path']
 
@@ -473,7 +474,7 @@ class RulesResultsDialog(wx.Dialog):
 
     def OnPredict(self,evt):
         variable=self.lb_outputs.GetStringSelection().split('  ')[0]
-        inputs=self.controller.get_inputs_task().getResponse()['data']
+        inputs=self.controller.get_inputs_task().get_response()['data']
         model="Neurofuzzy"
         if variable in self.string_variable_names:
             model="DecisionTree"
@@ -481,7 +482,7 @@ class RulesResultsDialog(wx.Dialog):
         dialog.ShowModal()
 
     def OnDetails(self,evt):
-        dialog=DetailsDialog(self,self.controller.get_task_metadata().getResponse()['data'])
+        dialog=DetailsDialog(self,self.controller.get_task_metadata().get_response()['data'])
         dialog.ShowModal()
 
     def ClearGrid(self):
@@ -496,17 +497,17 @@ class RulesResultsDialog(wx.Dialog):
         variable=self.lb_outputs.GetString(index).split("  ")[0]
         submodel=self.cb_submodel.GetValue().split(" - ")[0]
         
-        response=self.controller.get_text_reports(variable).getResponse()
+        response=self.controller.get_text_reports(variable).get_response()
         try:
             content=response['data']['Neurofuzzy']
         except Exception as exc:
             content=response['data']['DecisionTree']
 
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.setting.GetPath(),defaultname=(submodel+"_"+variable)).getResponse()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.setting.get_default_path(),default_name=(submodel+"_"+variable)).get_response()
 
         if path['status']==Status.OK:
             path=path['data']
-            response=self.controller.save_file(content,path).getResponse()
+            response=self.controller.save_file(content,path).get_response()
             if response['status']==Status.OK:
                 wx.MessageBox("Filed saved in "+path)
             else:
@@ -661,12 +662,12 @@ class RulesResultsDialog(wx.Dialog):
     def OnSaveTask(self,evt):
         
         cancel=False
-        taskname=self.controller.get_task_name().getResponse()
+        taskname=self.controller.get_task_name().get_response()
         if taskname['status']==Status.OK:
             taskname=taskname['data']
 
             if not self.saved:
-                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=taskname).getResponse()
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,default_folder=self.setting.get_default_path(),default_name=taskname).get_response()
                 
                 if pathname['status']==Status.OK:
                     pathname=pathname['data']
@@ -677,7 +678,7 @@ class RulesResultsDialog(wx.Dialog):
                 pathname=self.path
 
             if not cancel:
-                response=self.controller.save_task(pathname).getResponse()
+                response=self.controller.save_task(pathname).get_response()
 
                 if response['status']==Status.OK:
                     wx.MessageBox("Succesfully saved in "+pathname,"Info")
@@ -691,6 +692,61 @@ class RulesResultsDialog(wx.Dialog):
             wx.MessageBox(taskname['data'],"Error",wx.ICON_ERROR)
 
 ##
+# Shows the result of cross validation
+## 
+class CrossValidationDialog(wx.Dialog):
+    def __init__(self,parent,cross_validation,metric):
+        
+        wx.Dialog.__init__(self, parent)
+        self.SetTitle("Cross validation")
+        
+
+        figure=plot_barplot_object(cross_validation,xtitle="Folds",ytitle=metric).gcf()
+        self.canvas = FigureCanvas(self, -1, figure)
+
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "Cross Validation Report")
+        label_1.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(label_1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+
+        self.grid_folds_result = wx.grid.Grid(self, wx.ID_ANY)
+        self.grid_folds_result.CreateGrid(1,len(cross_validation))
+        i=0
+        for key in cross_validation:
+            self.grid_folds_result.SetColLabelValue(i,key)
+            self.grid_folds_result.SetCellValue(0,i,str(np.round(cross_validation[key],2)))
+            i+=1
+       
+        
+        self.grid_folds_result.SetRowLabelValue(0,metric)
+        sizer_3.Add(self.grid_folds_result, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 20)
+
+        sizer_figure = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3.Add(sizer_figure, 1, wx.EXPAND, 0)
+
+        sizer_figure.Add(self.canvas, 1, wx.EXPAND, 0)
+
+
+
+        sizer_2 = wx.StdDialogButtonSizer()
+        sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+
+        self.button_CLOSE = wx.Button(self, wx.ID_CLOSE, "")
+        sizer_2.AddButton(self.button_CLOSE)
+
+        sizer_2.Realize()
+
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+
+        self.SetEscapeId(self.button_CLOSE.GetId())
+
+        self.Layout()
+##
 # Shows the result of predicting model
 ## 
 class ResultsDialog(wx.Dialog):
@@ -702,7 +758,7 @@ class ResultsDialog(wx.Dialog):
         self.controller=parent.controller
         self.setting=parent.setting
         self.outputs=[]
-        response=self.controller.get_target_process_type().getResponse()
+        response=self.controller.get_target_process_type().get_response()
         
         self.currentMetrics={}
         self.currentModel={}
@@ -714,7 +770,7 @@ class ResultsDialog(wx.Dialog):
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
 
-        self.models=self.controller.get_variable_models().getResponse()['data']
+        self.models=self.controller.get_variable_models().get_response()['data']
 
         self.cb_selections=[]
 
@@ -853,7 +909,7 @@ class ResultsDialog(wx.Dialog):
         model=self.cb_model.GetStringSelection()
         output=self.lb_outputs.GetStringSelection()
 
-        response=self.controller.get_model_plot(output,model).getResponse()
+        response=self.controller.get_model_plot(output,model).get_response()
 
         if response['status']==Status.OK:
             figure=response['data']
@@ -866,15 +922,15 @@ class ResultsDialog(wx.Dialog):
         index=self.lb_outputs.GetSelection()
         variable=self.lb_outputs.GetString(index)
         model=self.cb_model.GetValue()
-        response=self.controller.get_text_reports(variable).getResponse()
+        response=self.controller.get_text_reports(variable).get_response()
 
         content=response['data'][model]
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.setting.GetPath(),defaultname=(model+"_"+variable)).getResponse()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.setting.get_default_path(),default_name=(model+"_"+variable)).get_response()
 
         if path['status']==Status.OK:
             #save officialy
             path=path['data']
-            response=self.controller.save_file(content,path).getResponse()
+            response=self.controller.save_file(content,path).get_response()
             if response['status']==Status.OK:
                 wx.MessageBox("Filed saved in "+path)
             else:
@@ -892,19 +948,19 @@ class ResultsDialog(wx.Dialog):
                 wx.MessageBox("You have to select a model","Error",wx.ICON_ERROR)
             else:
                 variable=self.lb_outputs.GetString(index)
-                inputs=self.controller.get_inputs_task().getResponse()['data']
+                inputs=self.controller.get_inputs_task().get_response()['data']
                 dialog=PredictDialog(self.Parent,variable,model,inputs)
                 code=dialog.ShowModal()
 
     def OnSaveTask(self,evt):
         
         cancel=False
-        taskname=self.controller.get_task_name().getResponse()
+        taskname=self.controller.get_task_name().get_response()
         if taskname['status']==Status.OK:
             taskname=taskname['data']
 
             if not self.saved:
-                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,defaultDir=self.setting.GetPath(),defaultname=taskname).getResponse()
+                pathname=IOManage.GetPath(self,"Select a path",WILCARD_TASK,default_folder=self.setting.get_default_path(),default_name=taskname).get_response()
                 
                 if pathname['status']==Status.OK:
                     pathname=pathname['data']
@@ -915,7 +971,7 @@ class ResultsDialog(wx.Dialog):
                 pathname=self.path
 
             if not cancel:
-                response=self.controller.save_task(pathname).getResponse()
+                response=self.controller.save_task(pathname).get_response()
 
                 if response['status']==Status.OK:
                     wx.MessageBox("Succesfully saved in "+pathname,"Info")
@@ -1007,7 +1063,7 @@ class ResultsDialog(wx.Dialog):
         model=evt.GetString()
         output=self.lb_outputs.GetString(self.lb_outputs.GetSelection())
         
-        response=self.controller.get_output_info(output).getResponse()
+        response=self.controller.get_output_info(output).get_response()
         
         if model!="":
             
@@ -1118,7 +1174,7 @@ class PredictionModelDialog(wx.Dialog):
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
-        self.shape=parent.controller.get_data_shape().getResponse()['data']
+        self.shape=parent.controller.get_data_shape().get_response()['data']
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND, 0)
         self.parent=parent
@@ -1133,7 +1189,7 @@ class PredictionModelDialog(wx.Dialog):
         self.regression_vars=[]
         self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.3}}
 
-        response=self.controller.get_target_process_type().getResponse()
+        response=self.controller.get_target_process_type().get_response()
 
         if response['status']==Status.OK:
             
@@ -1148,7 +1204,7 @@ class PredictionModelDialog(wx.Dialog):
         else:
             wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
 
-        response=self.controller.get_available_models().getResponse()
+        response=self.controller.get_available_models().get_response()
         if response['status']==Status.OK:
             self.regression_models=response['data']['regression'] 
             self.classification_models=response['data']['classification']    
@@ -1178,7 +1234,7 @@ class PredictionModelDialog(wx.Dialog):
         label_4 = wx.StaticText(self.notebook_regression, wx.ID_ANY, "Select Models")
         sizer_12.Add(label_4, 0, 0, 0)
 
-        self.list_box_models_regression = wx.ListBox(self.notebook_regression, wx.ID_ANY, choices=self.regression_models)
+        self.list_box_models_regression = wx.ListBox(self.notebook_regression, wx.ID_ANY, choices=self.regression_models, style=wx.LB_MULTIPLE)
         sizer_12.Add(self.list_box_models_regression, 1, wx.BOTTOM | wx.EXPAND, 5)
 
         self.checkbox_1 = wx.CheckBox(self.notebook_regression, wx.ID_ANY, "Automatic grid search")
@@ -1227,7 +1283,7 @@ class PredictionModelDialog(wx.Dialog):
         label_2 = wx.StaticText(self, wx.ID_ANY, u"Nº of sets")
         sizer_9.Add(label_2, 0, wx.RIGHT, 5)
         
-        self.shape=self.controller.get_data_shape().getResponse()['data']
+        self.shape=self.controller.get_data_shape().get_response()['data']
 
         self.spin_ctrl_sets = wx.SpinCtrl(self, wx.ID_ANY, "3", min=1, max=100)
         sizer_9.Add(self.spin_ctrl_sets, 0, 0, 0)
@@ -1339,10 +1395,16 @@ class PredictionModelDialog(wx.Dialog):
         self.checkbox_1.Enable(val)
         
 
+    def _clear_selections(self,listbox):
+        for element in listbox.GetSelections():
+            listbox.Deselect(element)
+
     def OnChangeOutput(self,evt):
-        self.list_box_models_classification.Deselect(self.list_box_models_classification.GetSelection())
-        self.list_box_models_regression.Deselect(self.list_box_models_regression.GetSelection())
-        
+        #self.list_box_models_classification.Deselect(self.list_box_models_classification.GetSelections())
+        #self.list_box_models_regression.Deselect(self.list_box_models_regression.GetSelections())
+        self._clear_selections(self.list_box_models_classification)
+        self._clear_selections(self.list_box_models_regression)
+
         variable=evt.GetString()
         variable=variable.split(" - ")[0]
         
@@ -1367,27 +1429,30 @@ class PredictionModelDialog(wx.Dialog):
         if variable!="All":
             grid=False
             if variable in self.regression_vars:
-                model=self.list_box_models_regression.GetStringSelection()
+                model=self.list_box_models_regression.GetSelections()
                 grid=self.checkbox_1.GetValue()
             else:
-                model=self.list_box_models_classification.GetStringSelection()
+                model=self.list_box_models_classification.GetSelections()
                 grid=self.checkbox_auto_grid_class.GetValue()
 
-            self.model_selection[variable]['model']=[model]
+            models=[self.list_box_models_regression.GetStrings()[i] for i in model]
+            self.model_selection[variable]['model']=models
             self.model_selection[variable]['params']=grid
         else:
             if self.notebook_regression.IsShown():
-                model=self.list_box_models_regression.GetStringSelection()
+                model=self.list_box_models_regression.GetSelections()
                 for variable in self.model_selection:
                     if variable in self.regression_vars:
-                        self.model_selection[variable]['model']=[model]
+                        models=[self.list_box_models_regression.GetStrings()[i] for i in model]
+                        self.model_selection[variable]['model']=models
                         self.model_selection[variable]['params']=self.checkbox_1.GetValue()
 
             elif self.notebook_classification.IsShown():
-                model=self.list_box_models_classification.GetStringSelection()
+                model=self.list_box_models_classification.GetSelections()
                 for variable in self.model_selection:
                     if not variable in self.regression_vars:
-                        self.model_selection[variable]['model']=[model]
+                        models=[self.list_box_models_regression.GetStrings()[i] for i in model]
+                        self.model_selection[variable]['model']=models
                         self.model_selection[variable]['params']=self.checkbox_auto_grid_class.GetValue()
 
     def OnChangeValidation(self,evt):
@@ -1421,7 +1486,7 @@ class PredictionModelDialog(wx.Dialog):
             name,cancel=get_task_name(self)
             
             if not cancel:
-                response=self.controller.create_task(name,self.model_selection,self.validation,False).getResponse()
+                response=self.controller.create_task(name,self.model_selection,self.validation,False).get_response()
 
                 if response['status']==Status.OK:
                     #self.Parent.updateStatusTask(taskname)
@@ -1452,7 +1517,7 @@ class TaskReportDialog(wx.Dialog):
         self.parent=parent
         self.task_report=""
         self.controller=parent.controller
-        self.task_report=self.controller.get_task_info().getResponse()['data']
+        self.task_report=self.controller.get_task_info().get_response()['data']
 
         self.progressBar=None
 
@@ -1511,7 +1576,7 @@ class TaskReportDialog(wx.Dialog):
         self.button_SAVE.Enable(value)
 
     def OnSave(self,evt):
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,defaultDir=self.parent.setting.GetPath()).getResponse()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.parent.setting.get_default_path()).get_response()
 
         if path['status']==Status.OK:
             
@@ -1520,9 +1585,9 @@ class TaskReportDialog(wx.Dialog):
             wx.MessageBox("File saved succesfully in "+path['data'],"Info")
 
     def OnApply(self,event):
-        targets=self.controller.get_target_indexes().getResponse()['data']
+        targets=self.controller.get_target_indexes().get_response()['data']
         maximum=len(targets)*100
-        
+        print(maximum)
         self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_AUTO_HIDE)
         #self.progressbar.Update(10,"Training in progress...")
         #self.execute_thread()
@@ -1531,7 +1596,7 @@ class TaskReportDialog(wx.Dialog):
     
     def OnApplyBg(self,evt):
         from plyer import notification
-        pathname=IOManage.GetPath(self,"Select a path for the task",WILCARD_TASK,defaultDir=self.parent.setting.GetPath()).getResponse()
+        pathname=IOManage.GetPath(self,"Select a path for the task",WILCARD_TASK,default_folder=self.parent.setting.get_default_path()).get_response()
 
         notification.notify(title="Starting training",message="The training of the models is about to start.",timeout=1,app_name="NeuroRule",app_icon="./front/resources/img/logo_128x128.ico")
         time.sleep(1)
@@ -1548,13 +1613,13 @@ class TaskReportDialog(wx.Dialog):
 
     
     def execute_thread_bg(self,pathname):
-        response=self.controller.execute_task(None).getResponse()
+        response=self.controller.execute_task(None).get_response()
         if response['status']==Status.OK:
             self.controller.save_task(pathname)
 
     def execute_thread(self):
         self._activate_training(False)
-        response=self.controller.execute_task(self.update_progress).getResponse()
+        response=self.controller.execute_task(self.update_progress).get_response()
      
         #wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
         self.progressBar.Update(self.progressBar.GetRange())
