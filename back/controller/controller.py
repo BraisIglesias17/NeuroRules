@@ -19,8 +19,6 @@ class Controller():
 
         """
         self.contextData=None
-        self.models={}
-
         self.currentTask=None
 
     def load_content(self,df,filename):
@@ -177,19 +175,6 @@ class Controller():
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
-
-    ##NOT USED
-    def update_context_data(self,df):
-        try:
-            if self.contextData==None:
-                self.contextData=ContextData(df)
-            else:
-                self.contextData.update_set(df)
-            return Response(data="",status=Status.OK)
-        except Exception as exc:
-            return Response(data=str(exc),status=Status.GENERAL_ERROR)
-        
-    
     def clear_data(self):
         try:
             self.contextData=ContextData()
@@ -308,16 +293,6 @@ class Controller():
         
         except Exception as exc:
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
-    def clear_data(self):
-        try:
-            
-            self.contextData=ContextData()
-            
-            return Response(data={},status=Status.OK)
-        except Exception as exc:
-            print(exc)
-            return Response(data=str(exc),status=Status.GENERAL_ERROR)
-
 
     def rename_col(self,new_name,old_name):
         try:
@@ -402,7 +377,7 @@ class Controller():
     def execute_task(self,callable,*args):
         try:
             
-            self.currentTask.execute(callable,args)
+            self.currentTask.execute(callable)
             
             return Response(data={},status=Status.OK)
         except Exception as exc:
@@ -442,7 +417,7 @@ class Controller():
     def get_task_name(self):
         try:
             
-            return Response(data=self.currentTask.taskName,status=Status.OK)
+            return Response(data=self.currentTask.task_name,status=Status.OK)
             
         except Exception as exc:
            
@@ -453,13 +428,13 @@ class Controller():
             
             if self.currentTask!=None and self.currentTask.executed and self.currentTask.saved:
                 #se cierra la tarea actual
-                return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK)
+                return Response(data={'name':self.currentTask.task_name,'rules':self.currentTask.rules},status=Status.EXISTING_TASK)
             elif self.currentTask!=None and self.currentTask.executed and not self.currentTask.saved:
                 #se pregunta al usuario si quiere guardar
-                return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_UNSAVED)
+                return Response(data={'name':self.currentTask.task_name,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_UNSAVED)
             elif self.currentTask!=None and not self.currentTask.executed:
                 #se pregunta al usuario si quiere mantener las variables o si quiere cambiar
-                return Response(data={'name':self.currentTask.taskName,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_NO_EXECUTED)            
+                return Response(data={'name':self.currentTask.task_name,'rules':self.currentTask.rules},status=Status.EXISTING_TASK_NO_EXECUTED)            
             else:
                 return Response(data='There is no task',status=Status.UNEXISTING_TASK)
         except Exception as exc:
