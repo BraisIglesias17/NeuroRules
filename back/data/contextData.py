@@ -457,23 +457,18 @@ class ContextData():
                 params=settings['params']
                 custom=params['custom']
                 auto=params['auto']
-
                 index=list(self.data.columns).index(variable)
                 original=self.values[:,index]
 
                 if auto:
                     print("Auto bin create")
-                
                     # Calcular el ancho de bin según la regla de Freedman-Diaconis
                     IQR = np.percentile(original, 75) - np.percentile(original, 25)
                     h_fd = (2 * IQR) / (original.shape[0] ** (1/3))
-
                     n_bins = int((np.max(original) - np.min(original)) / h_fd)
-                    
                     bins = np.histogram_bin_edges(original, bins=n_bins)
                     self._create_bins(bins,variable)
                     
-                                              
                 elif not custom:
                     n_bins=params['n_bins']
                     names=params['names_bins']
@@ -498,6 +493,8 @@ class ContextData():
 
                     self.data[var_name] = new_varible
                     self.characterValues.append(var_name)
+                    self.data_cleanse[var_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
+                    self.data_preprocess[var_name]={'transformation':'None','keep_original':True}
                     self.values=self.data.values  
 
             else:
