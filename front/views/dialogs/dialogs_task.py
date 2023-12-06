@@ -808,12 +808,6 @@ class ResultsDialog(wx.Dialog):
         sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Metrics"), wx.HORIZONTAL)
         sizer_6.Add(sizer_7, 1, wx.ALL | wx.EXPAND, 10)
 
-
-        #self.label_metrics = wx.StaticText(self, wx.ID_ANY,label="Select output")
-        #sizer_7.Add(self.label_metrics, 1, wx.ALL | wx.EXPAND, 5)
-
-        ##
-        # Grid
         self.validation_grid=wx.grid.Grid(self, wx.ID_ANY)
         self.validation_grid.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
         self.validation_grid.CreateGrid(4, 2)
@@ -823,12 +817,9 @@ class ResultsDialog(wx.Dialog):
         self.validation_grid.SetRowLabelValue(3, "")
         self.validation_grid.SetColLabelValue(0, "Testing")
         self.validation_grid.SetColLabelValue(1, "Training")
-        #self.validation_grid.HideColLabels()
 
         sizer_7.Add(self.validation_grid, 0, wx.ALL, 10)
-        ##
-
-
+        
         sizer_plot=wx.BoxSizer(wx.VERTICAL)
         sizer_7.Add(sizer_plot,0,wx.EXPAND,10)
 
@@ -871,9 +862,7 @@ class ResultsDialog(wx.Dialog):
         self.button_save_alone = wx.Button(self, wx.ID_ANY, "Export to file")
         grid_sizer_1.Add(self.button_save_alone, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        #self.button_details = wx.Button(self, wx.ID_ANY, "Details")
-        #grid_sizer_1.Add(self.button_details, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-
+        self.button_DETAILS = wx.Button(self, wx.ID_APPLY, "Details")
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
@@ -881,8 +870,11 @@ class ResultsDialog(wx.Dialog):
         self.button_SAVE.SetDefault()
         sizer_2.AddButton(self.button_SAVE)
 
+        sizer_2.AddButton(self.button_DETAILS)
+
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
+
         self._enableButtons(False)
         self.Bind(wx.EVT_LISTBOX,self.OnSelectOutput,self.lb_outputs)
         self.Bind(wx.EVT_COMBOBOX,self.OnSelectModel,self.cb_model)
@@ -893,6 +885,7 @@ class ResultsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnExportToFile,self.button_save_alone)
         self.Bind(wx.EVT_BUTTON,self.OnPredict,self.button_predict)
         self.Bind(wx.EVT_BUTTON,self.OnPlotPrecision,self.button_plot_precisewise)
+        self.Bind(wx.EVT_BUTTON,self.OnDetailsTask,self.button_DETAILS)
         sizer_2.Realize()   
 
         self.SetSizer(sizer_1)
@@ -904,6 +897,11 @@ class ResultsDialog(wx.Dialog):
         #self.SetSize(600,500)
         self.Center()
         self.Layout()
+
+    
+    def OnDetailsTask(self,evt):
+        dialog=DetailsDialog(self,self.controller.get_task_metadata().get_response()['data'])
+        dialog.ShowModal()
     
     def OnPlotPrecision(self,evt):
         model=self.cb_model.GetStringSelection()
@@ -1225,7 +1223,6 @@ class PredictionModelDialog(wx.Dialog):
         self.notebook_regression = wx.Panel(self.notebook_type, wx.ID_ANY)
         self.notebook_type.AddPage(self.notebook_regression, "Regression")
 
-        
         sizer_11 = wx.BoxSizer(wx.HORIZONTAL)
 
         sizer_12 = wx.BoxSizer(wx.VERTICAL)
@@ -1252,7 +1249,7 @@ class PredictionModelDialog(wx.Dialog):
         label_4b = wx.StaticText(self.notebook_classification, wx.ID_ANY, "Select Models")
         sizer_12b.Add(label_4b, 0, 0, 0)
 
-        self.list_box_models_classification = wx.ListBox(self.notebook_classification, wx.ID_ANY, choices=self.classification_models)
+        self.list_box_models_classification = wx.ListBox(self.notebook_classification, wx.ID_ANY, choices=self.classification_models,style=wx.LB_MULTIPLE)
         sizer_12b.Add(self.list_box_models_classification, 1, wx.BOTTOM | wx.EXPAND, 5)
 
         self.checkbox_auto_grid_class = wx.CheckBox(self.notebook_classification, wx.ID_ANY, "Automatic grid search")
@@ -1451,7 +1448,7 @@ class PredictionModelDialog(wx.Dialog):
                 model=self.list_box_models_classification.GetSelections()
                 for variable in self.model_selection:
                     if not variable in self.regression_vars:
-                        models=[self.list_box_models_regression.GetStrings()[i] for i in model]
+                        models=[self.list_box_models_classification.GetStrings()[i] for i in model]
                         self.model_selection[variable]['model']=models
                         self.model_selection[variable]['params']=self.checkbox_auto_grid_class.GetValue()
 
