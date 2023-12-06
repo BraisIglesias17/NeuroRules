@@ -1,21 +1,21 @@
 import wx
 import wx.grid as gridlib
+import wx.adv
+import numpy as np
+import sys
+import traceback
 from front.settings.settings import Settings 
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
 from back.respuestas import Status
 #from front.views.dialogs_ import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,TransformDialog,CleanDataDialog,GraphDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,ShowIdentifierColsDialog
+from back.validation.validation import Validator
+from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
 
 from front.views.dialogs.dialogs_analysis import PreprocessDialog,TransformDialog,CleanDataDialog,GraphDialog,SummaryPickDialog,StatisticDialog
 from front.views.dialogs.dialogs_general import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,PickDialog,ShowHiddenDialog,ShowIdentifierColsDialog
 from front.views.dialogs.dialogs_task import RulesResultsDialog,RuleGeneratinglDialog,ResultsDialog,PredictionModelDialog
 
-from back.validation.validation import Validator
-import numpy as np
-import sys
-from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
-import wx.adv
-import traceback
 
 
 class MainWindow(wx.Frame):    
@@ -790,14 +790,11 @@ class MainWindow(wx.Frame):
                         new_highlighted.append((cell[0]-shift,cell[1]))
                 self.highlighted_outliers_cells=new_highlighted
                     
-                
-                
-
     def OnHideColumn(self,event,col):
         selections=(self.grid.GetSelectedCols())
         if col not in selections:
             selections.append(col)
-        self.hidden_columns=selections
+        self.hidden_columns+=selections
       
         for column in selections:
             self.grid.HideCol(column)
@@ -843,6 +840,7 @@ class MainWindow(wx.Frame):
         pathname=IOManage.get_path_import(self,message="Select a task file",wildcard=WILCARD_TASK).get_response()
         
         if pathname['status']==Status.OK:
+            self.ClearGrid()
             pathname=pathname['data']
             response=self.controller.import_task(pathname).get_response()
         
