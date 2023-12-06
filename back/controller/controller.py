@@ -468,7 +468,7 @@ class Controller():
         try:
             
             self.currentTask=Task.load(path)
-            self.contextData=self.currentTask.contextData
+            self.contextData=self.currentTask.context_data
             
             return Response(data={},status=Status.OK)
             
