@@ -62,7 +62,7 @@ class ShowHiddenDialog(wx.Dialog):
         self.parent=parent
         self.names=parent.names[parent.hidden_columns]
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
-
+        
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select hidden variables"), wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 10)
 
@@ -77,6 +77,7 @@ class ShowHiddenDialog(wx.Dialog):
 
         self.button_APPLY = wx.Button(self, wx.ID_APPLY, "Show")
         sizer_2.AddButton(self.button_APPLY)
+        self.button_APPLY.SetDefault()
 
         sizer_2.Realize()
 
@@ -87,6 +88,7 @@ class ShowHiddenDialog(wx.Dialog):
 
         self.SetEscapeId(self.button_CANCEL.GetId())
 
+        self.SetSize((300,300))
         self.Center()
         self.Layout()
 
@@ -748,7 +750,8 @@ class HelpDialog(wx.Dialog):
 class LoadFileDialog(wx.Dialog):
     def __init__(self,parent,conf):
         
-        wx.Dialog.__init__(self,parent)
+        super(LoadFileDialog, self).__init__(parent)
+        
         self.SetTitle("Load file")
 
         self.conf=conf
@@ -803,22 +806,20 @@ class LoadFileDialog(wx.Dialog):
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "")
-        
         sizer_2.AddButton(self.button_OK)
+        self.button_OK.SetDefault()
 
         self.button_CANCEL = wx.Button(self, wx.ID_CANCEL, "")
         sizer_2.AddButton(self.button_CANCEL)
+        self.SetEscapeId(self.button_CANCEL.GetId())
 
         sizer_2.Realize()
 
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
-
-        self.SetEscapeId(self.button_CANCEL.GetId())
         self.Bind(wx.EVT_BUTTON,self.OnChangePath,self.button_change_path)
         self.Bind(wx.EVT_BUTTON,self.OnApply,self.button_OK)
-        self.button_OK.SetDefault()
 
         self.SetSize(800,200)
         self.Center()
