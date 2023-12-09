@@ -170,6 +170,7 @@ class ModelImplementation(Model):
              self.model=pickle.load(open(filename, 'rb'))
              
     def train(self,input,target,cv=False,subsets=10,gridSearch=False,names_input=None,name_output=None,types=None,X_test=None,y_test=None):
+        
         self.X_test=X_test
         self.y_test=y_test
         self.name_output=name_output
@@ -197,7 +198,6 @@ class ModelImplementation(Model):
 
 
     def _fit_rule_generating_regression(self,input,target,names_input,name_output,types):
-        
         #filtrar por correlacion
         toDel=[]
         self.discarded={}
@@ -363,37 +363,13 @@ class ModelImplementation(Model):
     def SRM(self,X_test,y_test):
         print("IMPLEMENTACION DE STRUCTURAL RISK MINIMIZATION")
         
-    def predict(self,input):
+    def predict(self,input,submodel=None):
         
         if self.rule_generator and self.estimator_type=="regressor":
-            output_submodel=np.empty((len(self.submodels),1))
-
-            i=0
-            for submodel in self.submodels:
-                
-                tmp=np.empty((len(self.submodels[submodel]['inputs']),1))
-
-                i_name=0
-                indices=[]
-                for name in self.names_input:
-                    if name in self.submodels[submodel]['inputs']:
-                        indices.append(i_name)
-                    i_name+=1
-                
-                tmp_input=[]
-                for i in range(len(self.names_input)):
-                    if i in indices:
-                        tmp_input.append(input[i])
-                
-                print(np.array(tmp_input).reshape(1,-1))
-                    
-                output_submodel[i]=self.submodels[submodel]['model'].predict(np.array(tmp_input).reshape(1,-1))
-                
-                i+=1
-
             
-
-            return self.ensembled_model.predict(output_submodel)
+            model=self.submodels[submodel['submodel']]['model']
+            
+            return model.predict(input)
         else:
             return self.model.predict(input)
 

@@ -6,8 +6,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from .ML.model import ModelImplementation
 
-
-
 class Task():
     """ Class that defines a task """
 
@@ -248,7 +246,7 @@ class Task():
                 message=message+"\n\n"
         return message
     
-    def get_prediction(self,output_variable,model,input):
+    def get_prediction(self,output_variable,model,input,submodel=None):
         """
         Method that returns the correspondent prediction of the specified model.
 
@@ -262,14 +260,27 @@ class Task():
         """
         i=0
         prediction=None
-        for variable in self.input_names:
-            input[i]=self.context_data.apply_transform(variable,input[i])
-            i+=1
+        if submodel!=None and len(input)!=len(self.input_names):
+            input=self._transform_input(submodel['inputs'],input)
+            # for variable in submodel['inputs']:
+            #     input[i]=self.context_data.apply_transform(variable,input[i])
+            #     i+=1
+        else:
+            input=self._transform_input(self.input_names,input)
+            # for variable in self.input_names:
+            #     input[i]=self.context_data.apply_transform(variable,input[i])
+            #     i+=1
         for mod in self.models[output_variable]:
             if mod.modelname==model:
-                prediction=mod.predict(np.array(input,dtype=np.float64).reshape(1,-1))
-        return prediction
+                prediction=mod.predict(np.array(input,dtype=np.float64).reshape(1,-1),submodel=submodel)
+                return prediction
+        return None
         
         
-
+    def _transform_input(self,list,input):
+        i=0
+        for variable in list:
+                input[i]=self.context_data.apply_transform(variable,input[i])
+                i+=1
+        return input
 

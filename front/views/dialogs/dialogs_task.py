@@ -232,7 +232,7 @@ class RuleGeneratinglDialog(wx.Dialog):
 # Dialog for predicting, it shows the fields to the input variables and displays the output obtained
 ##
 class PredictDialog(wx.Dialog):
-    def __init__(self,parent,variable,model,inputs):
+    def __init__(self,parent,variable,model,inputs,submodel=None):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Predictions on "+variable)
@@ -243,6 +243,7 @@ class PredictDialog(wx.Dialog):
         self.n_inputs=len(inputs)    
         self.variable=variable
         self.model=model
+        self.submodel=submodel
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -292,13 +293,14 @@ class PredictDialog(wx.Dialog):
         for row in range(self.n_inputs):
             values.append(self.grid_inputs.GetCellValue(row,1))
 
-        response=self.controller.get_prediction(self.variable,self.model,values).get_response()
+        response=self.controller.get_prediction(self.variable,self.model,values,self.submodel).get_response()
 
         if response['status']!=Status.OK:
             wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
         elif response['status']==Status.OK:
-            if Validator.check_float(response['data'][0]):
-                value=np.round(response['data'],2)[0]
+            
+            if Validator.check_parse_float(response['data'][0]):
+                value=np.round(response['data'],3)[0]
             else:
                 value=response['data'][0]
 
@@ -475,10 +477,12 @@ class RulesResultsDialog(wx.Dialog):
     def OnPredict(self,evt):
         variable=self.lb_outputs.GetStringSelection().split('  ')[0]
         inputs=self.controller.get_inputs_task().get_response()['data']
+        submodel=self.cb_submodel.GetStringSelection().split(' - ')[0]
+        inputs=self.submodels[variable][submodel]['inputs']
         model="Neurofuzzy"
         if variable in self.string_variable_names:
             model="DecisionTree"
-        dialog=PredictDialog(self,variable,model,inputs)
+        dialog=PredictDialog(self,variable,model,inputs,submodel={'submodel':submodel,'inputs':inputs})
         dialog.ShowModal()
 
     def OnDetails(self,evt):

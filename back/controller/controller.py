@@ -476,15 +476,15 @@ class Controller():
             print(exc)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
-    def get_prediction(self,variable,model,input):
+    def get_prediction(self,variable,model,input,submodel=None):
         try:
             
-            prediction=self.currentTask.get_prediction(variable,model,input)
+            prediction=self.currentTask.get_prediction(variable,model,input,submodel)
             return Response(data=prediction,status=Status.OK)
             
         except Exception as exc:
             print(exc)
-            #traceback.print_exc()
+            traceback.print_exc()
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_task_metadata(self):
