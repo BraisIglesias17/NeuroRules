@@ -38,16 +38,20 @@ class Settings():
                             , wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
     def _parse_content(self,file):
-        tree = ET.parse(file)
-        root = tree.getroot()
-        self.root_node=root
-        settings={}
-        for child in root:
-            val=child.text
-            if val is None:
-                val=""
-            settings[child.tag]=val
-        self._initialize(settings)
+        try:
+            tree = ET.parse(file)
+            root = tree.getroot()
+            self.root_node=root
+            settings={}
+            for child in root:
+                val=child.text
+                if val is None:
+                    val=""
+                settings[child.tag]=val
+            self._initialize(settings)
+        except Exception:
+            os.remove(self.file)
+            self.__init__()
 
     def update_conf(self):
         """
