@@ -7,6 +7,12 @@ class Validator():
     """
         Class used for encapsule validation methods for the application
     """
+
+    @staticmethod
+    def _check_types(val,valid_types):
+        if any(isinstance(val, typ) for typ in valid_types):
+            return True
+        return False
     @staticmethod
     def check_integer(val):
         """
@@ -16,13 +22,9 @@ class Validator():
 
         returns: true if its integer, false if it is not
         """
-        try:
-            cast=int(val)
-            if isinstance(cast,type([int,np.int32,np.int16])) and val==cast:
-                return True
-            return False
-        except Exception:
-            return False        
+        valid_types = [int, np.int32, np.int16]
+        return Validator._check_types(val,valid_types)
+               
     @staticmethod
     def check_float(val):
         """
@@ -32,7 +34,8 @@ class Validator():
 
         returns: true if its float, false if it is not
         """
-        return isinstance(val,type([float,np.float32,val,np.float64]))
+        valid_types = [float,np.float32,np.float64]
+        return Validator._check_types(val,valid_types)
     @staticmethod
     def check_parse_float(val):
         """
@@ -47,7 +50,22 @@ class Validator():
             return True
         except Exception:
             return False
-        return False
+    
+    @staticmethod
+    def check_parse_int(val):
+        """
+        Function used parse a value to float type
+        Args:
+            - val: input value
+
+        returns: value as float type
+        """
+        try:
+            np.int32(val)
+            return True
+        except Exception:
+            return False
+        
     @staticmethod
     def check_string(val):
         """
@@ -68,3 +86,4 @@ class Validator():
             return False
         return re.match(r'^[a-zA-Z0-9_/]*$', val)
     
+
