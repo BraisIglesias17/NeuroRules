@@ -189,7 +189,8 @@ class ModelImplementation(Model):
         
         self.model=NeuroClassifier(input_names,class_names)
         self.model.fit(X=input,y=target)
-        
+        self.n_classes=len(class_names)
+        self.class_names=class_names
         scores=self.get_score(X=input,y=target)
         test_scores=self.get_score(self.X_test,self.y_test)
         self.submodels['all']={'model':self.model,'training_score':scores,'test_score':test_scores,'best':self.model,'inputs':input_names}
@@ -259,14 +260,33 @@ class ModelImplementation(Model):
             bestmodel=False
             if scores['r2']>r2:
                 bestmodel=True
-
-            print(f" Value {scores}")
-            print(f" Value {test_scores}")
-            print("-------")
-            self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}
-            
+            self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}            
             i+=1
+        #submodel pruning
+        self.submodels=self.SRM(self.submodels)
         self._generate_ensemble_model(input.shape[0],target)
+
+    def SRM(self,submodels):
+        print("---------------------------------------------")
+        print("IMPLEMENTACION DE STRUCTURAL RISK MINIMIZATION")
+        print(self.submodels)
+        worth_submodels={}
+        max_score=-np.inf
+        #primer bucle para determinar la mejor medicion
+        for submodel in submodels:
+            average_metric=(0.7*submodels[submodel]['test_score']['r2']+0.3*submodels[submodel]['training_score']['r2'])/len(submodels[submodel]['inputs'])
+            if average_metric>max_score:
+                max_score=average_metric
+
+        i=1
+        #segundo bucle para quedarse unicamente con los modelos que no empeoran mucho al mejor
+        for submodel in submodels:
+            average_metric=(0.7*submodels[submodel]['test_score']['r2']+0.3*submodels[submodel]['training_score']['r2'])/len(submodels[submodel]['inputs'])
+            if not average_metric<(0.8*max_score):
+                worth_submodels['submodel_'+str(i)]=submodels[submodel]
+                i+=1
+        print("---------------------------------------------")
+        return worth_submodels
 
     def _submodels_pruning(self):
         print("delete worsts models")
@@ -340,35 +360,22 @@ class ModelImplementation(Model):
             crf.fit(input,target)
             self.training_scores={scorer:crf.best_score_}
             self.model=crf.best_estimator_
-            
         elif cv:
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
-            
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
-        
             self.model.fit(input,target)
-        
             self.test_scores=self.get_score(self.X_test,self.y_test)
-
             self.training_scores={'average_'+scorer:np.mean(scores),'folds_'+scorer:scores}
-            
         else:
             self.model.fit(input,target)
             self.training_scores=self.get_score(input,target)
             self.test_scores=self.get_score(self.X_test,self.y_test)
-
-
-    def SRM(self,X_test,y_test):
-        print("IMPLEMENTACION DE STRUCTURAL RISK MINIMIZATION")
         
     def predict(self,input,submodel=None):
-        
         if self.rule_generator and self.estimator_type=="regressor":
-            
             model=self.submodels[submodel['submodel']]['model']
-            
             return model.predict(input)
         else:
             return self.model.predict(input)
@@ -385,29 +392,22 @@ class ModelImplementation(Model):
     def get_score(self,X,y):
         tmp={}
         y_pred=self.model.predict(X)
-        
         if self.estimator_type=="regressor": 
-        
             tmp['r2']=r2_score(y_pred=y_pred,y_true=y)
-            
             min=np.min(y)
             max=np.max(y)
             tmp['mse']=mean_squared_error(y_pred=y_pred,y_true=y)/(max-min)
-            
             tmp['rmse']=np.sqrt(tmp['mse'])
             
         elif self.estimator_type=="classifier":
-                        
-            labels=np.unique(y_pred)
-            n_class=len(labels)
-
+            
             avg="binary"
-            if n_class>2:
+            if self.n_classes>2:
                 avg="weighted"
             tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y)
-            tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=labels,average=avg,pos_label=labels[0])
-            tmp['precision']=precision_score(y,y_pred,pos_label=labels[0],average=avg)
-            tmp['recall']=recall_score(y_pred,y,pos_label=labels[0],average=avg)
+            tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0])
+            tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg)
+            tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg)
 
         return tmp
 
@@ -424,77 +424,51 @@ class ModelImplementation(Model):
     def get_text_report(self):
         
         report=" ----- "+self.modelname+" ----- \n"
-    
         report=report+"Inputs:"
-
         for name in self.names_input:
             report+=name
             if name!=self.names_input[-1]:
                 report+=", "
-        
         report+="\n"
-
         report+="Output: "+self.name_output+"\n\n"
-
         if self.modelname!="Neurofuzzy":
-
             report+="Training metrics:\n"
-            
-            
             report+=self._dict_to_text(self.training_scores,"=",0)
-
             report+="\n"
             report+="Testing metrics:\n"
-          
             report+=self._dict_to_text(self.test_scores,"=",0)
-
             report+="\n"
             report+="Model params:\n"
             params=self.model.get_params()
             for param in params:
                 report+=" - "+param+"= "+str(params[param])+"\n"
-
         else:
             report+="Discarded inputs (name(correlation p-value)):\n"
-            
             for discarded in self.discarded:
                 report+=" - "+discarded+" ("+str(np.round(self.discarded[discarded],3))+")"+"\n"
-
             report+="\n\n"
             report+="Submodels:\n"
-
             for submodel in self.submodels:
                 report+=" - "+submodel+":\n"
-
                 report+="\t Inputs: "
                 for input in self.submodels[submodel]['inputs']:
                     report+=input+" "
-                    
                 report+="\n"
-
                 report+="\t Training scores: \n"
-
                 report+=self._dict_to_text(self.submodels[submodel]['training_score'],"=",2)
-
                 report+="\t Test scores: \n"
-
                 report+=self._dict_to_text(self.submodels[submodel]['test_score'],"=",2)
-
                 report=report+"\t Rules: \n"
-
                 rules=self.submodels[submodel]['model'].get_rules()
                 for rule in rules:
                     report+="\t\t"+rule+"\n"
-
         return report
         
 
     def _dict_to_text(self,dict,sep,tabs):
         toret=""
         for elemn in dict:
-            
             for i in range(tabs):
                 toret+="\t"
             toret+=" - "+elemn+sep+str(dict[elemn])+"\n"
-        
         return toret
