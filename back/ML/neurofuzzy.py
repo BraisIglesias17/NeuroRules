@@ -92,20 +92,15 @@ class NeuroFuzzy():
         #lista de objetos Antecedent de skfuzzy (uno por cada variable de entrada)
         self.antecedents=[]
         
-        
-        
         for i in range(0,len(input_names),1):
             
-            if not 'object' in str(self.types[i]):
-                
+            if not 'object' in str(self.types[i]):    
                 self.antecedents.append(ctrl.Antecedent(np.array(np.sort(input[:,i]),dtype=np.float64),input_names[i]))
                 
             else:
                 self.antecedents.append(ctrl.Antecedent([0,1],input_names[i]))
                 self.nominal_variables.append(i)
-                
-        
-
+            
         self.mebm_info={}
         i=0
         self.n_rules=1
@@ -755,20 +750,17 @@ class NeuroFuzzy():
             confs=[]
             for j in range(self.n_membership_output):
                 
-                
+            
                 conf=fuzz.interp_membership(x=np.array(self.consecuence.universe,dtype=np.float64),xmf=self.consecuence[self.NAMES(self.n_membership_output)[j]].mf,xx=weight)
-
                 if (self.NAMES(self.n_membership_output)[j]=="Low" and weight < np.min(self.consecuence.universe)) or (self.NAMES(self.n_membership_output)[j]=="High" and weight > np.max(self.consecuence.universe)) :
                     conf=1.0
-
-                
 
                 confs.append(conf)
             
             actual=self.rules[i]
             for j in range(self.n_membership_output):
                 
-                actual=actual+" "+self.y_name+" is "+self.NAMES(self.n_membership_output)[j]+" ("+str(round(confs[j],2))+")"
+                actual=actual+" THEN "+self.y_name+" is "+self.NAMES(self.n_membership_output)[j]+" ("+str(round(confs[j],2))+")"
             
             self.rules[i]=actual
             i+=1
@@ -790,17 +782,10 @@ class NeuroFuzzy():
         
         if self.trained and cols==self.n_variables:
             for row in range(rows):
-                
                 data=input[row,:]
-                
                 input_fuzzy=self.to_fuzzy(data)
-                
                 output=self.nn(input_fuzzy.values[0])
-                
-                #print(f"Input{data}\nOuput:{output}")
                 toret.append(output)
-            
-           
             return toret
         return None
         
