@@ -21,6 +21,17 @@ class Controller():
         self.contextData=None
         self.currentTask=None
 
+    def template_method(func):
+        def wrapper(*args, **kwargs):
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except Exception as exc:
+                Trace.log(message=str(exc),level=Trace.ERROR)
+                return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        return wrapper
+
+    @template_method
     def load_content(self,df,filename):
         try:
             
@@ -31,6 +42,17 @@ class Controller():
         except Exception as exc:
             Trace().log("Loading content, "+str(exc))
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
+    # def load_content(self,df,filename):
+    #     try:
+            
+    #         self.contextData=ContextData(df)
+    #         info={'data':self.contextData.data,'file':filename}
+    #         Trace().log("Content loaded from file: "+filename)
+    #         return Response(data=info,status=Status.OK)
+    #     except Exception as exc:
+    #         Trace().log("Loading content, "+str(exc))
+    #         return Response(data=str(exc),status=Status.GENERAL_ERROR)
            
 
     def create_empty_set(self,dict):
@@ -79,7 +101,8 @@ class Controller():
         try:
             return Response(data=self.contextData.get_types(),status=Status.OK)
         except Exception as exc:
-                return Response(data=str(exc),status=Status.GENERAL_ERROR)
+            Trace.log(message=str(exc),level=Trace.ERROR)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_data(self):
         try:
@@ -89,7 +112,8 @@ class Controller():
                 toret=self.contextData.get_data()
             return Response(data=toret,status=Status.OK)
         except Exception as exc:
-                return Response(data=str(exc),status=Status.GENERAL_ERROR)
+            Trace.log(message=str(exc),level=Trace.ERROR)
+            return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     
     def get_data_shape(self):
@@ -100,6 +124,7 @@ class Controller():
                 toret=self.contextData.get_shape()
             return Response(data=toret,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
 
@@ -107,18 +132,21 @@ class Controller():
         try:
             return Response(data=self.contextData.variables_index,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_target_indexes(self):
         try:
             return Response(data=self.contextData.targets_index,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_target_process_type(self):
         try:
             return Response(data=self.contextData.get_type_process_target(),status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_summary(self):
@@ -126,6 +154,7 @@ class Controller():
             data=self.contextData.get_data_summary()
             return Response(data=data,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_variable_summary(self,variable,group):
@@ -135,12 +164,14 @@ class Controller():
             return Response(data=data,status=Status.OK)
         
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def set_independent_variables(self,indexes):
         try:
             self.contextData.set_variables(indexes)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_names(self):
@@ -148,6 +179,7 @@ class Controller():
             data=self.contextData.get_names()
             return Response(data=data,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
 
@@ -157,6 +189,7 @@ class Controller():
             self.contextData.set_target(indexes)
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_position(self,row,col):
@@ -165,6 +198,7 @@ class Controller():
             value=self.contextData.get_position(row,col)
             return Response(data=value,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
 
@@ -173,6 +207,7 @@ class Controller():
             value=self.contextData.get_column(col)
             return Response(data=value,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def clear_data(self):
@@ -218,6 +253,7 @@ class Controller():
             self.contextData.set_preprocess(variable,options)
             return Response(data="",status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_cleanse(self):
@@ -225,6 +261,7 @@ class Controller():
             ret=self.contextData.get_cleanse()
             return Response(data=ret,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_preprocess(self):
@@ -232,6 +269,7 @@ class Controller():
             ret=self.contextData.get_preprocess()
             return Response(data=ret,status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def confirm_delete(self):
@@ -239,7 +277,7 @@ class Controller():
             self.contextData.delete_marked()
             return Response(data={},status=Status.OK)
         except Exception as exc:
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def apply_cleanse(self,variable):
@@ -248,7 +286,7 @@ class Controller():
             
             return Response(data={'deleted_rows':result[0],'modified_rows':result[1]},status=Status.OK)
         except Exception as exc:
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def apply_preprocess(self,variable):
@@ -258,52 +296,61 @@ class Controller():
             
             return Response(data={result},status=Status.OK)
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def refresh_types(self):
         try:
+
             self.contextData._get_types()
             return Response(data={},status=Status.OK)
+        
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def delete_row(self,row):
         try:
+
             value=self.contextData.delete_row(row)
             return Response(data={},status=Status.OK)
+        
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def delete_col(self,col):
         try:
+
             value=self.contextData.delete_column(col)
             return Response(data={},status=Status.OK)
+        
         except Exception as exc:
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def set_col_as_id(self,name,remove=False):
         try:
+
             if remove:
                 self.contextData.remove_identifier_col(name)
             else:
                 self.contextData.add_identifier_col(name)
-
             return Response(data={},status=Status.OK)
         
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def rename_col(self,new_name,old_name):
         try:
             
             res=self.contextData.rename_col(new_name,old_name)
-            
             if res:
                 return Response(data={},status=Status.OK)
         
         except Exception as exc:
-            print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     
@@ -311,45 +358,37 @@ class Controller():
         try:
             
             res=self.contextData.get_outliers()
-            
             return Response(data=res,status=Status.OK)
         
         except Exception as exc:
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_available_models(self):
         try:
-            
+
             res={'regression':Model.GET_REGRESSION_LIST(),'classification':Model.GET_CLASSIFICATION_LIST()}
-            
             return Response(data=res,status=Status.OK)
         
         except Exception as exc:
             print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def automatic_statistic_test(self):
         try:
-            """
-            data=self.contextData.get_numeric_variables()
-            normal_variables=[]
-
-
-            for col in data:
-                result=StatisticTest.shapiro_wilk((data[col]))
-                if result.pvalue>0.05:
-                    normal_variables.append(col)"""
             
             normal_variables=self.contextData.get_normal_variables()
-            
+            correlation_pairs=self.contextData.get_correlation_pairs()
             covariance_pairs=self.contextData.get_covariance_pairs()
             difference_in_groups=self.contextData.get_differences_in_groups()
             covariance={'directly':covariance_pairs[0],'inverse':covariance_pairs[1]}
-
-            return Response(data={'normal_variables':normal_variables,'covariance':covariance,'differences':difference_in_groups},status=Status.OK)
+            correlation={'directly':correlation_pairs[0],'inverse':correlation_pairs[1]}
+            return Response(data={'normal_variables':normal_variables,'correlation':correlation
+                                  ,'covariance':covariance,'differences':difference_in_groups},status=Status.OK)
 
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     
@@ -362,6 +401,7 @@ class Controller():
             return Response(data={},status=Status.OK)
             
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_task_info(self):
@@ -372,6 +412,7 @@ class Controller():
             return Response(data=info,status=Status.OK)
             
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def execute_task(self,callable,*args):
@@ -383,6 +424,7 @@ class Controller():
         except Exception as exc:
             print(exc)
             traceback.print_exc() 
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_variable_models(self):
@@ -392,7 +434,7 @@ class Controller():
                 return Response(data=self.currentTask.models,status=Status.OK)
             
         except Exception as exc:
-            print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_output_info(self,variable):
@@ -402,7 +444,7 @@ class Controller():
             return Response(data=self.currentTask.get_report(variable),status=Status.OK)
             
         except Exception as exc:
-            print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_text_reports(self,variable):
@@ -412,6 +454,7 @@ class Controller():
             
         except Exception as exc:
             traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def get_task_name(self):
@@ -420,7 +463,7 @@ class Controller():
             return Response(data=self.currentTask.task_name,status=Status.OK)
             
         except Exception as exc:
-           
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def task_state(self):
@@ -439,6 +482,7 @@ class Controller():
                 return Response(data='There is no task',status=Status.UNEXISTING_TASK)
         except Exception as exc:
             print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def save_task(self,path):
@@ -452,6 +496,7 @@ class Controller():
             
         except Exception as exc:
             print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_inputs_task(self):
@@ -462,6 +507,7 @@ class Controller():
             
         except Exception as exc:
             print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
 
     def import_task(self,path):
@@ -474,6 +520,7 @@ class Controller():
             
         except Exception as exc:
             print(exc)
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_prediction(self,variable,model,input,submodel=None):
@@ -485,6 +532,7 @@ class Controller():
         except Exception as exc:
             print(exc)
             traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_task_metadata(self):
@@ -496,7 +544,9 @@ class Controller():
                 return Response(data=result,status=Status.OK)
             
         except Exception as exc:
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
+        
     def save_file(self,content,path):
         try:
             
@@ -507,8 +557,7 @@ class Controller():
             return Response(data={},status=Status.OK)
         
         except Exception as exc:
-            
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
         
     def get_model_plot(self,variable,model):
@@ -518,8 +567,7 @@ class Controller():
             return Response(data=figure,status=Status.OK)
         
         except Exception as exc:
-            
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
     
     def get_nominal_classes(self):
@@ -528,6 +576,5 @@ class Controller():
             return Response(data=self.contextData.get_nominals_classes(),status=Status.OK)
         
         except Exception as exc:
-            
-            traceback.print_exc()
+            Trace.log(message=str(exc),level=Trace.ERROR)
             return Response(data=str(exc),status=Status.GENERAL_ERROR)
