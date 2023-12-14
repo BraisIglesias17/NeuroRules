@@ -34,11 +34,7 @@ class NeuroClassifier():
 
     def _get_rules(self):
         tree_ = self.tree.tree_
-        feature_name = [
-            self.names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
-            for i in tree_.feature
-        ]
-
+        feature_name = [ self.names[i] if i != _tree.TREE_UNDEFINED else "undefined!" for i in tree_.feature ]
         paths = []
         path = []
         
@@ -58,26 +54,25 @@ class NeuroClassifier():
                 
         recurse(0, path, paths)
 
-        # sort by samples count
         samples_count = [p[-1][1] for p in paths]
         ii = list(np.argsort(samples_count))
         paths = [paths[i] for i in reversed(ii)]
         
         rules = []
         for path in paths:
-            rule = "if "
+            rule = "IF "
             
             for p in path[:-1]:
-                if rule != "if ":
-                    rule += " and "
+                if rule != "IF ":
+                    rule += " AND "
                 rule += str(p)
-            rule += " then "
+            rule += " THEN "
             if self.class_names is None:
                 rule += "response: "+str(np.round(path[-1][0][0][0],3))
             else:
                 classes = path[-1][0][0]
                 l = np.argmax(classes)
-                rule += f" {self.class_names[l]} ({np.round(100.0*classes[l]/np.sum(classes),2)}%)"
+                rule += f" {self.class_names[l]} ({np.round(classes[l]/np.sum(classes),2)})"
             rules += [rule]
             
         return rules
