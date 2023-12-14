@@ -1,9 +1,13 @@
 """ Logger module"""
 import logging
 from datetime import datetime
-
+import warnings
 
 class Trace():
+    
+    WARNING=logging.WARNING
+    ERROR=logging.ERROR
+    INFO=logging.INFO
     """
     Singleton class to register logs
     """
@@ -21,12 +25,16 @@ class Trace():
         if self._initialized:
             return
         self._initialized = True
+        warnings.showwarning=self._log_warning
         self.logger = logging.getLogger("trace")
         self.logger.setLevel(logging.INFO)
         handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
+    
+    def _log_warning(self,message, category, filename, lineno, file=None, line=None):
+        self.log(message=str(message).split(' - ')[0],level=logging.WARNING)
 
     def log(self, message,level=logging.INFO):
         """
