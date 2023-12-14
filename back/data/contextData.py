@@ -52,6 +52,7 @@ class ContextData():
         self.set_initial_preprocess()
 
         self.COV_THRESHOLD=1
+        self.COR_THRESHOLD=0.8
         self.NORMALITY_THRESHOLD=0.05
         self.DIFFERENCE_THRESHOLD=0.05
     
@@ -209,14 +210,10 @@ class ContextData():
         
     def get_covariance_pairs(self):
         valid_columns=self.data.select_dtypes(include=['number']).columns
-
         X=self.data[valid_columns].cov()
-        
         directly_proportional=[]
         inverse_proportional=[]
-    
         resting_cols=list(X.columns)
-
         for column in X.columns:
             resting_cols.remove(column)
             if not column in self.identifier_cols:
@@ -228,6 +225,27 @@ class ContextData():
                         if value < -self.COV_THRESHOLD:
                             inverse_proportional.append(info)
                         elif value > self.COV_THRESHOLD:
+                            directly_proportional.append(info)
+        
+        return directly_proportional,inverse_proportional
+
+    def get_correlation_pairs(self):
+        valid_columns=self.data.select_dtypes(include=['number']).columns
+        X=self.data[valid_columns].corr()
+        directly_proportional=[]
+        inverse_proportional=[]
+        resting_cols=list(X.columns)
+        for column in X.columns:
+            resting_cols.remove(column)
+            if not column in self.identifier_cols:
+                for row in resting_cols:
+                    if not row in self.identifier_cols:
+                        value=(X.loc[row,column])
+                        info={'variables':(str(row+','+column)),'correlation':value}
+                        
+                        if value < -self.COR_THRESHOLD:
+                            inverse_proportional.append(info)
+                        elif value > self.COR_THRESHOLD:
                             directly_proportional.append(info)
         
         return directly_proportional,inverse_proportional
