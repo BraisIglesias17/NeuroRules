@@ -690,7 +690,7 @@ class AutomaticTest(wx.Dialog):
 
         normal_variables=["None"]
         self.grouped_different_variables=["None"]
-        covariance=["None"]
+        correlation=["None"]
         directly=[]
         inverse=[]
         self.covariance_list=[]
@@ -701,14 +701,14 @@ class AutomaticTest(wx.Dialog):
         if result['status']==Status.OK:
             
             normal_variables=result['data']['normal_variables']
-            covariance=result['data']['covariance']
+            correlation=result['data']['correlation']
             differences_in_groups=result['data']['differences']
 
-            for pair in covariance['directly']:
+            for pair in correlation['directly']:
                 directly.append(str(pair['variables'] +" - "+" directly"))
 
-            for pair in covariance['inverse']:
-                directly.append(str(pair['variables'] +" - "+" inverse"))
+            for pair in correlation['inverse']:
+                inverse.append(str(pair['variables'] +" - "+" inverse"))
 
             self.covariance_list=directly+inverse
 
@@ -733,7 +733,7 @@ class AutomaticTest(wx.Dialog):
         self.list_box_normal = wx.ListBox(self, wx.ID_ANY, choices=normal_variables)
         sizer_4.Add(self.list_box_normal, 1, wx.ALL | wx.EXPAND, 10)
 
-        sizer_4b = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Covariance"), wx.HORIZONTAL)
+        sizer_4b = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Correlation"), wx.HORIZONTAL)
 
         sizer_filter_covariance=wx.BoxSizer(wx.VERTICAL)
 
@@ -779,7 +779,6 @@ class AutomaticTest(wx.Dialog):
         self.Center()
         self.Layout()
         
-
     def OnChangeCovarianceFilter(self,evt):
         filter=self.combobox_filter_covariance.GetValue()
         filtered=[value for value in self.covariance_list if (str(filter) in value)]

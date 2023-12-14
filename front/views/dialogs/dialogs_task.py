@@ -541,8 +541,12 @@ class RulesResultsDialog(wx.Dialog):
         submodel=self.cb_submodel.GetString(self.cb_submodel.GetSelection()).split(" - ")[0]
         
         model=self.currentSubmodels[submodel]['model']
-
-        model.plot_r2_evolution()
+        try:
+            model.plot_r2_evolution()
+            
+        except Exception:
+            
+            wx.MessageBox("This plot is not available for neuroclassifier","Warning",wx.ICON_WARNING)
 
     def OnPotMembershipFunctions(self,evt):
         

@@ -913,9 +913,7 @@ class TraceDialog(wx.Dialog):
         return logs
 
     def OnSave(self,evt):
-        
         path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.settings.GetPath()).get_response()
-
         if path['status']==Status.OK: 
             saver=Saver(path['data'],content=self.text_logs.GetLabelText())
             saver.save()
