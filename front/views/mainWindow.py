@@ -8,7 +8,6 @@ from front.settings.settings import Settings
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
 from back.respuestas import Status
-#from front.views.dialogs_ import TraceDialog,LoadFileDialog,HelpDialog,CreateSetDialog,SettingsDialog,RulesResultsDialog,RulePredictinglDialog,ResultsDialog,PredictionModelDialog,PickDialog,PreprocessDialog,TransformDialog,CleanDataDialog,GraphDialog,ShowHiddenDialog,SummaryPickDialog,StatisticDialog,ShowIdentifierColsDialog
 from back.validation.validation import Validator
 from front.constants import WILCARD_TASK,WILDCARD_DATA_FILE
 
