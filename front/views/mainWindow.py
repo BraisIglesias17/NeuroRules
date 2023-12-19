@@ -414,7 +414,9 @@ class MainWindow(wx.Frame):
                         self.filename=response['data']['file']
                         
                         self.SetStatusText(str(" Working on "+self.filename))
-        except Exception as exc:
+                    else:
+                        wx.MessageBox("A problem has ocurred:"+response['data'],"Error",wx.ICON_ERROR)
+        except Exception:
             wx.MessageBox("You probably have selected a wrong loading file configuration. Be careful with separator and decimal characters. Try again.","Error",wx.ICON_ERROR)
             
             traceback.print_exc()
