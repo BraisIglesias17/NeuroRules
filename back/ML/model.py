@@ -394,7 +394,7 @@ class ModelImplementation(Model):
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
-            print(f' CV RESULTS {self.cross_validation(subsets,self.model)}')
+            #print(f' CV RESULTS {self.cross_validation(subsets,self.model)}')
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
             self.model.fit(input,target)
             self.test_scores=self.get_score(self.X_test,self.y_test)
