@@ -9,6 +9,7 @@ from sklearn.neural_network import MLPRegressor,MLPClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.svm import SVR,SVC
 from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,precision_recall_curve,auc,recall_score,precision_score
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn import tree
 import numpy as np
 from .neurofuzzy import NeuroFuzzy
@@ -19,6 +20,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import pandas as pd
+from sklearn.model_selection import StratifiedKFold
 
 class Model(ABC):
     
@@ -28,7 +30,7 @@ class Model(ABC):
     
     @staticmethod
     def GET_CLASSIFICATION_LIST():
-        return ["Support Vector Machine","Random Forest","Multiple Layer Perceptron","K-Nearest Neighbours","Radial Basis Function"]
+        return ["Support Vector Machine","Random Forest","Multiple Layer Perceptron","K-Nearest Neighbours"]
     
     @abstractmethod
     def train(self,input,target):
@@ -149,8 +151,8 @@ class ModelImplementation(Model):
             self.model=MLPClassifier()
             self.estimator_type="classifier"
 
-        elif model=="Radial Basis Function":
-            self.model=RBF()
+        elif model=="K-Nearest Neighbours":
+            self.model=KNeighborsClassifier()
             self.estimator_type="classifier"
 
         elif model=="Neurofuzzy":
@@ -162,7 +164,6 @@ class ModelImplementation(Model):
             self.estimator_type="classifier"
             self.rule_generator=True
             self.submodels={}
-
         else:
             raise ValueError("Not supported model")
         
@@ -182,7 +183,6 @@ class ModelImplementation(Model):
             self._fit_rule_generating_classifier(input,target,names_input,np.unique(target))
         else:
             self._fit_prediction_model(input,target,cv=cv,subsets=subsets,gridSearch=gridSearch)
-
 
 
     def _fit_rule_generating_classifier(self,input,target,input_names,class_names):
@@ -294,6 +294,33 @@ class ModelImplementation(Model):
     def get_enssemble_metrics(self):
         return self.ensembled_model_metrics
     
+    def cross_validation(self,n_folds,model):
+        if n_folds>self.X_test.shape[0] or n_folds<0:
+            raise ValueError("Invalid number of folds")
+
+        cv_results={}
+        kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        for fold, (train_index, test_index) in enumerate(kf.split(self.X_test, self.y_test)):
+            X_train, X_test = self.X_test[train_index], self.X_test[test_index]
+            y_train, y_test = self.y_test[train_index], self.y_test[test_index]
+
+            model.fit(X_train,y_train)
+            #self.get_score(X_test,y_test)
+            #cv_results=self._calculate_average(cv_results,self.get_score(X_test,y_test))
+        
+        return cv_results
+
+    def _calculate_average(self,results,new_results):
+        toret={}
+        if len(results)==0:
+            toret=new_results
+        else: 
+            keys=list(results.keys())
+            for key in keys:
+                toret[key]=(results[key]+new_results[key])/2
+
+        return toret
+
     def plot_model_results(self):
         if self.estimator_type=="classifier" and not self.rule_generator:
             y_pred = self.model.predict(self.X_test)
@@ -302,7 +329,7 @@ class ModelImplementation(Model):
 
             plt.figure(figsize=(8, 6))
             sns.heatmap(cm, annot=True, fmt="d", cmap=sns.color_palette("vlag", as_cmap=True), cbar=False,
-                        xticklabels=self.classes, yticklabels=self.classes)
+                        xticklabels=self.class_names, yticklabels=self.class_names)
             plt.xlabel('Predicted Labels')
             plt.ylabel('True Labels')
             plt.title('Confusion Matrix')
@@ -350,7 +377,9 @@ class ModelImplementation(Model):
         if self.estimator_type=="regressor":
             scorer="r2"
         else:
-            self.classes=np.unique(target)
+            self.class_names=np.unique(target)
+            self.n_classes=len(self.class_names)
+            self.class_names=np.unique(target)
             scorer="accuracy"
         if gridSearch:
             self.grid_search=gridSearch
@@ -361,9 +390,11 @@ class ModelImplementation(Model):
             self.training_scores={scorer:crf.best_score_}
             self.model=crf.best_estimator_
         elif cv:
+
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
+            print(f' CV RESULTS {self.cross_validation(subsets,self.model)}')
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
             self.model.fit(input,target)
             self.test_scores=self.get_score(self.X_test,self.y_test)
