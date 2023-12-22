@@ -1,7 +1,7 @@
 """Module for statistic test"""
 import numpy as np
 from scipy.stats import chi2,pearsonr,shapiro,kruskal,kstest,f_oneway,mannwhitneyu,ttest_ind
-
+from numpy.typing import ArrayLike
 class StatisticTest():
     """
         Class that encapsulates the statistics test
@@ -44,49 +44,49 @@ class StatisticTest():
                 ,'Wilcoxon - (Difference between groups)'
                 ,'Pearson - (Correlation)','Shapiro - (Normality)']
     @staticmethod
-    def t_student(x,y):
+    def t_student(x:ArrayLike,y:ArrayLike):
         """
             Return the result of T Student test
         """
         return ttest_ind(np.array(x).astype(float),np.array(y).astype(float))
     @staticmethod
-    def ANOVA(x,y):
+    def ANOVA(x:ArrayLike,y:ArrayLike):
         """
             Return the result of ANOVA test
         """
         return f_oneway(x,y)
     @staticmethod
-    def chi_squared(x):
+    def chi_squared(x:ArrayLike):
         """
             Return the result of CHI SQUARED test
         """
         return chi2(x)
     @staticmethod
-    def wilcoxon(x,y):
+    def wilcoxon(x:ArrayLike,y:ArrayLike):
         """
             Return the result of MANNWHITNEY test
         """
         return mannwhitneyu(np.array(x).astype(float),np.array(y).astype(float))
     @staticmethod
-    def kruskal_wallis(x,y):
+    def kruskal_wallis(x:ArrayLike,y:ArrayLike):
         """
             Return the result of KRUSKAL WALLIS test
         """
         return kruskal(x,y)
     @staticmethod
-    def kolmorov_smirnov(x,y):
+    def kolmorov_smirnov(x:ArrayLike,y:ArrayLike):
         """
             Return the result of KOLMOROV test
         """
         return kstest(x,y)
     @staticmethod
-    def shapiro_wilk(x):
+    def shapiro_wilk(x:ArrayLike):
         """
             Return the result of SHAPIRO test
         """
         return shapiro(x)
     @staticmethod
-    def pearson(x,y):
+    def pearson(x:ArrayLike,y:ArrayLike):
         """
             Return the result of Pearson test
         """

@@ -5,6 +5,7 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 from sklearn.metrics import r2_score,mean_squared_error
+from numpy.typing import ArrayLike
 
 class NeuroFuzzy():
     """
@@ -15,7 +16,7 @@ class NeuroFuzzy():
 
 
     ""
-    def NAMES(self,number):
+    def NAMES(self,number: int):
         """
         Esta funcion devuelve el nombre de las membresías.
 
@@ -32,7 +33,7 @@ class NeuroFuzzy():
             return['Low','Medium_1','Medium_2','High']    
     
 
-    def __init__(self,input,input_names,output,output_name,n_membership_input,n_membership_output,types,memebership_function="default"):
+    def __init__(self,input: ArrayLike,input_names: list[str],output: ArrayLike,output_name: str,n_membership_input: int,n_membership_output:int,types:[],memebership_function: str="default"):
         
         """
         Constructor
@@ -59,20 +60,20 @@ class NeuroFuzzy():
         if n_membership_input>4 or n_membership_input<1:
             raise ValueError("Invalid number of input memberships (0 > input memberships < 5)")
 
-        self.n_membership=n_membership_input
-        self.n_membership_output=n_membership_output
-        self.trained=False
+        self.n_membership: int=n_membership_input
+        self.n_membership_output: int=n_membership_output
+        self.trained: bool=False
 
-        self.memb_func=memebership_function
-        self.X_names=input_names
-        self.X=input
-        self.y=output
-        self.y_name=output_name
-        self.nominal_variables=[]
-        self.types=types
+        self.memb_func: str=memebership_function
+        self.X_names: list[str]=input_names
+        self.X: ArrayLike=input
+        self.y: ArrayLike=output
+        self.y_name: str=output_name
+        self.nominal_variables: list[str]=[]
+        self.types:list=types
         
         #variable que contendrá la matriz de valores fuzzificados
-        self.fuzz_X=None
+        self.fuzz_X: ArrayLike=None
 
         #array de pesos de cada regla
         # el numero de reglas se determina por el numero de funciones de membresia de entrada elevada al numero de variables
@@ -83,11 +84,11 @@ class NeuroFuzzy():
         #self.weigths=np.random.normal(0,1,self.n_membership**self.n_variables)
         #print(f'initial weights: {self.weigths}')
 
-        self.historic_weigths=None
-        self.historic_error=None
+        self.historic_weigths: ArrayLike=None
+        self.historic_error: ArrayLike=None
         self.historic_r2=None
         #lista que contendrá las reglas
-        self.rules=[]
+        self.rules:[str]=[]
 
         #lista de objetos Antecedent de skfuzzy (uno por cada variable de entrada)
         self.antecedents=[]
@@ -131,9 +132,9 @@ class NeuroFuzzy():
 
         self.metrics={'r2':0.0,'rmse':0.0,'mse':0.0}
         
-        self.done=False
+        self.done: bool=False
         
-    def fuzzyfication(self,C=0.3):
+    def fuzzyfication(self,C: int | float=0.3):
         """
         Funcion utilziada para generar los valores difusos para cada variable en cada membresía y las almacena en la 
         variable de clase fuzz_X
@@ -184,7 +185,7 @@ class NeuroFuzzy():
 
         return toret
         
-    def get_scores(self,X,y):
+    def get_scores(self,X: ArrayLike,y: ArrayLike):
         y_pred=self.predict(X)
         r2=r2_score(y,y_pred)
         max=np.max(y)
@@ -197,7 +198,7 @@ class NeuroFuzzy():
 
         return {'r2':r2,'mse':mse,'rmse':rmse}
     
-    def to_fuzzy(self,input):
+    def to_fuzzy(self,input: ArrayLike):
         """
         Funcion que fuzzifica un registro de entrada de la red
 
@@ -229,7 +230,7 @@ class NeuroFuzzy():
        
         return toret
 
-    def multivariate_memb(self,input):
+    def multivariate_memb(self,input: ArrayLike):
 
         """
         Capa de la red cuyo objetivo es generar los valores de multivariable aplicando a los valores difusos de entrda una operación T NORMA
@@ -350,9 +351,6 @@ class NeuroFuzzy():
         if len(self.rules)==0:
             self._create_rules_template()
         
-        #print(f"REAL: {(toret)}")
-        #return np.array(toret)
-        
         return (currentProduct.reshape(1,-1)[0])
 
     def _create_rules_template(self):
@@ -371,7 +369,7 @@ class NeuroFuzzy():
         
         self.rules=rules
             
-    def _get_combinations(self,list1,list2):
+    def _get_combinations(self,list1:[],list2:[]):
         toret=[]
         if len(list1)==0:
             return list2
@@ -384,10 +382,10 @@ class NeuroFuzzy():
     
         return toret
     
-    def multivariate_operation(self, a, b):
+    def multivariate_operation(self, a: ArrayLike, b: ArrayLike):
         return self.product_tnorm(a,b) 
 
-    def normalization_layer(self,input):
+    def normalization_layer(self,input: ArrayLike):
         """
         Capa de normalizacion de los valores de entrada
 
@@ -406,7 +404,7 @@ class NeuroFuzzy():
 
         return output
         
-    def fit(self, learning_rate=0.01,epochs=25):
+    def fit(self, learning_rate: float=0.01,epochs: int=25):
         """
         Funcion de entrenamiento de la red
 
@@ -698,7 +696,7 @@ class NeuroFuzzy():
         ax.legend()
         plt.show()
         
-    def nn(self,input):
+    def nn(self,input: ArrayLike):
         """
         Funcion que actua como pipeline de la red, recibe un array de valores fuzzy y atraviesa toda la red para devolver el valor 
         esperado
@@ -724,7 +722,7 @@ class NeuroFuzzy():
         #print(f'################################')
         return self.layer_4_output
 
-    def calculate_output(self,x, weights):
+    def calculate_output(self,x: ArrayLike, weights: ArrayLike):
         """
         Funcion de activación de la red que consiste en el producto mas sumatorio de cada entrada a la neurona por los pesos de la misma
         
@@ -765,7 +763,7 @@ class NeuroFuzzy():
             self.rules[i]=actual
             i+=1
         
-    def predict(self,input):
+    def predict(self,input: ArrayLike):
 
         """
         Funcion para predecir un registro una vez esta entrenada

@@ -19,7 +19,7 @@ class Response():
     """
         Function that represent a communication between back and front
     """
-    def __init__(self,data=None,status=None):
+    def __init__(self,data: any=None,status: Status=None):
         self.response={}
         self.response['data']=data
         self.response['status']=status

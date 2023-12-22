@@ -36,7 +36,7 @@ class Trace():
     def _log_warning(self,message, category, filename, lineno, file=None, line=None):
         self.log(message=str(message).split(' - ')[0],level=logging.WARNING)
 
-    def log(self, message,level=logging.INFO):
+    def log(self, message: str,level=logging.INFO):
         """
         Register a log history
         Args:

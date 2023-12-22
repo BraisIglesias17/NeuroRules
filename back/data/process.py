@@ -2,8 +2,13 @@ import pandas as pd
 import numpy as np
 import statistics as stat
 from sklearn.preprocessing import LabelEncoder,OneHotEncoder,QuantileTransformer,StandardScaler,RobustScaler,Normalizer,MinMaxScaler
+from numpy.typing import ArrayLike
+from pandas import DataFrame
+from typing import Union
 
-def remove_outliers(dataframe,variable,upper_bound,lower_bound):
+Number=Union[int,float]
+
+def remove_outliers(dataframe: DataFrame,variable: str,upper_bound:Number,lower_bound:Number):
     indexes=[]
     if dataframe[variable].dtype != "object":
         q1 = dataframe[variable].quantile(lower_bound)
@@ -21,10 +26,10 @@ def remove_outliers(dataframe,variable,upper_bound,lower_bound):
     return indexes
 
 
-def remove_missing(dataframe,variable):
+def remove_missing(dataframe: DataFrame,variable: str):
     return dataframe.dropna(subset=[variable])
 
-def substitute_outliers(dataframe,variable,method,upper_bound,lower_bound):
+def substitute_outliers(dataframe: DataFrame,variable: str,method: ['Mean','Median','Adjust Closer'],upper_bound: Number,lower_bound: Number):
     
     if dataframe[variable].dtype != "object":
         higher=0.0
@@ -57,14 +62,14 @@ def substitute_outliers(dataframe,variable,method,upper_bound,lower_bound):
 
     return dataframe,count
 
-def count_outliers(x, lower_bound, upper_bound):
+def count_outliers(x: ArrayLike, lower_bound: Number, upper_bound: Number):
     if x < lower_bound:
         return True
     elif x > upper_bound:
         return True
     return False
 
-def replace_outliers(x, lower_bound, upper_bound, higher,lower):
+def replace_outliers(x: ArrayLike, lower_bound: Number, upper_bound: Number, higher: Number,lower: Number):
     
     if x < lower_bound:
         return lower
@@ -74,7 +79,7 @@ def replace_outliers(x, lower_bound, upper_bound, higher,lower):
     
     return x
 
-def susbstitute_missing(dataframe,variable,method):
+def susbstitute_missing(dataframe: DataFrame,variable: str,method: str):
     value=None
     if dataframe[variable].dtype != "object":
         if method == "Mean":
@@ -91,7 +96,7 @@ def susbstitute_missing(dataframe,variable,method):
 
 class Transformer():
 
-    def __init__(self,name,variable_name):
+    def __init__(self,name: str,variable_name: str):
         
         self.operation=None
         self.name=name
@@ -111,7 +116,7 @@ class Transformer():
         elif name == "Standard Scaler":
             self.operation=StandardScaler()
 
-    def fit(self,x):
+    def fit(self,x: ArrayLike):
         self.x=x
         if self.name=="One hot encoding":
             x=x.reshape(-1,1)
@@ -127,15 +132,12 @@ class Transformer():
                     
         return result 
     
-    def transform(self,x):
+    def transform(self,x: ArrayLike):
         if self.name=="Label encoding":
             x=np.array([x])
         else:
             x=x.reshape(1,-1)
-        
-
-        result=self.operation.transform(x)
-        
+        result=self.operation.transform(x)    
         return result
 
 
