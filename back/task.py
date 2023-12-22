@@ -111,7 +111,8 @@ class Task():
         for variable in outputs:
             self.models[variable]=[]
             for model in self.outputs[variable]['model']:
-                self.models[variable].append(ModelImplementation(model=model))
+                params=self.outputs[variable]['params']
+                self.models[variable].append(ModelImplementation(model=model,params=params))
 
     def get_metadata(self):
         """
@@ -151,8 +152,6 @@ class Task():
             print(f"\tstarting {variable}...")
             n_models=len(self.models[variable])
             
-            #i+=inc/n_models
-            print(i)
             for model in self.models[variable]:
                 y=self.context_data.get_values_output(variable)
                 y_train=y[self.train_index]

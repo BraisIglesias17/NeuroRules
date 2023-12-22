@@ -2,17 +2,18 @@ from sklearn.tree import DecisionTreeClassifier,plot_tree,export_text
 from sklearn.tree import _tree
 import numpy as np
 import matplotlib.pyplot as plt
-
+from numpy.typing import ArrayLike
 
 class NeuroClassifier():
 
-    def __init__(self,names,classes):
-        self.tree=DecisionTreeClassifier(max_depth=len(names))
+    def __init__(self,names: list[str],classes: list[str],params: {}):
+        
+        
+        self.tree=DecisionTreeClassifier(max_depth=len(names),**params)
         self.class_names=classes
         self.names=names
-        
     
-    def fit(self,X,y):
+    def fit(self,X: ArrayLike,y: ArrayLike):
         self.tree.fit(X,y)
 
     def get_rules(self):
@@ -20,6 +21,9 @@ class NeuroClassifier():
     
     def get_params(self):
         return self.tree.get_params()
+
+    def set_params(self,params:{}):
+        self.tree.set_params(params)
 
     def plot_tree(self):
         fig = plt.figure(figsize=(8,8))
@@ -29,7 +33,7 @@ class NeuroClassifier():
                         filled=True)
         plt.show()
 
-    def predict(self,X):
+    def predict(self,X: ArrayLike):
         return self.tree.predict(X)
 
     def _get_rules(self):

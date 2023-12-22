@@ -12,6 +12,7 @@ from sklearn.metrics import r2_score,mean_squared_error,f1_score,accuracy_score,
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import tree
 import numpy as np
+from numpy.typing import ArrayLike
 from .neurofuzzy import NeuroFuzzy
 from .neuroclassifier import NeuroClassifier
 from itertools import combinations
@@ -21,6 +22,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
+from typing import Dict,Union
 
 class Model(ABC):
     
@@ -107,21 +109,21 @@ class ParamsMapper():
         
 class ModelImplementation(Model):
     
-    def __init__(self,model,filename=None,params=None):
+    def __init__(self,model,filename=None,params:{}=None):
         
-        self.model=None
-        self.modelname=model
-        self.estimator_type=None
+        self.model: Model=None
+        self.modelname: str=model
+        self.estimator_type: str=None
         self.folds=None
-        self.training_scores=None
-        self.X_test=None
-        self.y_test=None
-        self.name_output=None
-        self.names_input=None
-        self.grid_search=False
-        self.cv=False
-
-        self.rule_generator=False
+        self.training_scores: Dict[str,float]=None
+        self.X_test: ArrayLike=None
+        self.y_test: ArrayLike=None
+        self.name_output: str=None
+        self.names_input: str=None
+        self.grid_search: bool=False
+        self.cv: bool=False
+        self.params: Dict[str,Union[float,str,int]]=params
+        self.rule_generator: bool=False
 
         if model=="Linear Regression":
             self.model=LinearRegression()
@@ -166,11 +168,12 @@ class ModelImplementation(Model):
             self.submodels={}
         else:
             raise ValueError("Not supported model")
-        
-        if(not filename == None):
+    
+
+        if(not filename is None):
              self.model=pickle.load(open(filename, 'rb'))
              
-    def train(self,input,target,cv=False,subsets=10,gridSearch=False,names_input=None,name_output=None,types=None,X_test=None,y_test=None):
+    def train(self,input: ArrayLike,target: ArrayLike,cv: bool=False,subsets: int=10,gridSearch: bool=False,names_input: list[str]=None,name_output:str=None,types:[]=None,X_test:ArrayLike=None,y_test:ArrayLike=None):
         
         self.X_test=X_test
         self.y_test=y_test
@@ -185,9 +188,10 @@ class ModelImplementation(Model):
             self._fit_prediction_model(input,target,cv=cv,subsets=subsets,gridSearch=gridSearch)
 
 
-    def _fit_rule_generating_classifier(self,input,target,input_names,class_names):
+    def _fit_rule_generating_classifier(self,input: ArrayLike,target: ArrayLike,input_names:list[str],class_names: list[str]):
         
-        self.model=NeuroClassifier(input_names,class_names)
+        self.model=NeuroClassifier(input_names,class_names,self.params)
+
         self.model.fit(X=input,y=target)
         self.n_classes=len(class_names)
         self.class_names=class_names
@@ -198,7 +202,7 @@ class ModelImplementation(Model):
         self.test_scores=test_scores
 
 
-    def _fit_rule_generating_regression(self,input,target,names_input,name_output,types):
+    def _fit_rule_generating_regression(self,input: ArrayLike,target: ArrayLike,names_input:list[str],name_output: str,types:[]):
         #filtrar por correlacion
         toDel=[]
         self.discarded={}
@@ -266,7 +270,7 @@ class ModelImplementation(Model):
         self.submodels=self.SRM(self.submodels)
         self._generate_ensemble_model(input.shape[0],target)
 
-    def SRM(self,submodels):
+    def SRM(self,submodels:{}):
         print("---------------------------------------------")
         print("IMPLEMENTACION DE STRUCTURAL RISK MINIMIZATION")
         print(self.submodels)
@@ -294,7 +298,7 @@ class ModelImplementation(Model):
     def get_enssemble_metrics(self):
         return self.ensembled_model_metrics
     
-    def cross_validation(self,n_folds,model):
+    def cross_validation(self,n_folds: int,model: Model):
         if n_folds>self.X_test.shape[0] or n_folds<0:
             raise ValueError("Invalid number of folds")
 
@@ -310,7 +314,7 @@ class ModelImplementation(Model):
         
         return cv_results
 
-    def _calculate_average(self,results,new_results):
+    def _calculate_average(self,results: Dict[str,float],new_results: Dict[str,float]):
         toret={}
         if len(results)==0:
             toret=new_results
@@ -345,7 +349,7 @@ class ModelImplementation(Model):
             plt.title("Model precision graph")
             return plt
         
-    def _generate_ensemble_model(self,input_size,y):
+    def _generate_ensemble_model(self,input_size: int,y: ArrayLike):
         n=len(self.submodels)
         if n!=0:
             inputs=np.zeros((input_size,n))
@@ -372,7 +376,7 @@ class ModelImplementation(Model):
             self.ensembled_model=None
             self.ensembled_model_metrics=0.0
 
-    def _fit_prediction_model(self,input,target,cv=False,subsets=10,gridSearch=False):
+    def _fit_prediction_model(self,input: ArrayLike,target: ArrayLike,cv: bool=False,subsets: int=10,gridSearch: bool=False):
         scorer=""
         if self.estimator_type=="regressor":
             scorer="r2"
@@ -404,7 +408,7 @@ class ModelImplementation(Model):
             self.training_scores=self.get_score(input,target)
             self.test_scores=self.get_score(self.X_test,self.y_test)
         
-    def predict(self,input,submodel=None):
+    def predict(self,input: ArrayLike,submodel: Dict[str,Union[str,int,float,Model]]=None):
         if self.rule_generator and self.estimator_type=="regressor":
             model=self.submodels[submodel['submodel']]['model']
             return model.predict(input)
@@ -414,13 +418,13 @@ class ModelImplementation(Model):
     def get_params(self):
         return {'params':self.model.get_params(),'grid_search':self.grid_search}
     
-    def set_params(self, dict):
+    def set_params(self, dict:Dict[str,Union[str,int,float]]):
         self.model.set_params(dict)
         
     def get_info(self):
         print(self.model)
 
-    def get_score(self,X,y):
+    def get_score(self,X: ArrayLike,y: ArrayLike):
         tmp={}
         y_pred=self.model.predict(X)
         if self.estimator_type=="regressor": 
@@ -445,7 +449,7 @@ class ModelImplementation(Model):
     def report(self):
         return {'test_validation':self.test_scores,'training_validation':self.training_scores}
 
-    def save(self, filename):
+    def save(self, filename: str):
         try:
             pickle.dump(self.model, open(filename, 'wb'))
             return True
@@ -496,7 +500,7 @@ class ModelImplementation(Model):
         return report
         
 
-    def _dict_to_text(self,dict,sep,tabs):
+    def _dict_to_text(self,dict:Dict[str,any],sep: str,tabs: str):
         toret=""
         for elemn in dict:
             for i in range(tabs):

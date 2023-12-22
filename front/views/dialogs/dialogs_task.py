@@ -103,7 +103,7 @@ class DetailsDialog(wx.Dialog):
         self.Layout()
 
 ##
-# Dialog to configure the rule rule generating task
+# Dialog to configure the model rule generating task
 ##
 class RuleGeneratinglDialog(wx.Dialog):
     def __init__(self,parent):
@@ -132,6 +132,8 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.regression_vars=[]
         self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
 
+        self.classification_params={'criterion':'gini','splitter':'best','max_depth':None}
+        self.regression_params={'max_inputs':0,'mf_inputs':2,'mf_outputs':2,'autpo':True,'learning_rate':0.05}
         response=self.controller.get_target_process_type().get_response()
 
         if response['status']==Status.OK:
@@ -141,10 +143,12 @@ class RuleGeneratinglDialog(wx.Dialog):
                 self.names.append(variable)
                 self.display_list.append(variable+" - "+response['data'][variable])
                 model="DecisionTree"
+                params=self.classification_params
                 if response['data'][variable]=="regression":
                     self.regression_vars.append(variable)
                     model="Neurofuzzy"
-                self.model_selection[variable]={'model':[model],'params':''}
+                    params=self.regression_params
+                self.model_selection[variable]={'model':[model],'params':params}
                 
         else:
             wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
@@ -170,10 +174,81 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.notebook_regression = wx.Panel(self.notebook_type, wx.ID_ANY)
         self.notebook_type.AddPage(self.notebook_regression, "Regression")
 
-        
+        ## regresion notebook
+
+        sizer_rg_1 = wx.BoxSizer(wx.HORIZONTAL)
+
+        sizer_rg_2 = wx.BoxSizer(wx.VERTICAL)
+        sizer_rg_1.Add(sizer_rg_2, 1, wx.EXPAND, 0)
+
+        sizer_rg_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_rg_2.Add(sizer_rg_3, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        sizer_rg_4 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Max inputs"), wx.VERTICAL)
+        sizer_rg_3.Add(sizer_rg_4, 0, wx.ALL, 20)
+
+        self.spin_max_inputs = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=1, max=3)
+        sizer_rg_4.Add(self.spin_max_inputs, 0, wx.ALL, 5)
+
+        sizer_rg_5 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Input membership functions"), wx.VERTICAL)
+        sizer_rg_3.Add(sizer_rg_5, 0, wx.ALL, 20)
+
+        self.spin_input_mf = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=2, max=3)
+        sizer_rg_5.Add(self.spin_input_mf, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        sizer_rg_6 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_rg_2.Add(sizer_rg_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 0)
+
+        sizer_rg_7 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Learning rate"), wx.VERTICAL)
+        sizer_rg_6.Add(sizer_rg_7, 0, wx.ALL, 20)
+
+        self.spin_learning_rate = wx.SpinCtrlDouble(self.notebook_regression, wx.ID_ANY, initial=0.05, inc=0.05,min=0.0, max=10.0)
+        self.spin_learning_rate.SetDigits(2)
+        sizer_rg_7.Add(self.spin_learning_rate, 0, wx.ALL, 5)
+
+        sizer_rg_8 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Output membership functions"), wx.VERTICAL)
+        sizer_rg_6.Add(sizer_rg_8, 0, wx.ALL, 20)
+
+        self.spin_output_mf = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=2, max=3)
+        sizer_rg_8.Add(self.spin_output_mf, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        sizer_rg_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_rg_2.Add(sizer_rg_9, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+
+        self.checkbox_automatic = wx.CheckBox(self.notebook_regression, wx.ID_ANY, "Auto")
+        sizer_rg_9.Add(self.checkbox_automatic, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        ##
+
         self.notebook_classification = wx.Panel(self.notebook_type, wx.ID_ANY)
         self.notebook_type.AddPage(self.notebook_classification, "Classification")
 
+        ## clasification notebook
+
+        sizer_cls_1 = wx.BoxSizer(wx.VERTICAL)
+
+        sizer_cls_2 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_cls_1.Add(sizer_cls_2, 1, wx.EXPAND, 0)
+
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Criterion"), wx.VERTICAL)
+        sizer_cls_2.Add(sizer_6, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        self.cb_criterion = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["Gini","Entropy","Log loss"])
+        self.cb_criterion.SetSelection(0)
+        sizer_6.Add(self.cb_criterion, 0, wx.ALL | wx.EXPAND, 5)
+
+        sizer_cls__3 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Splitter"), wx.VERTICAL)
+        sizer_cls_2.Add(sizer_cls__3, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        self.cb_splitter = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["Best","Random"])
+        self.cb_splitter.SetSelection(0)
+        sizer_cls__3.Add(self.cb_splitter, 0, wx.ALL | wx.EXPAND, 5)
+
+        sizer_cls__4 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Max depth"), wx.VERTICAL)
+        sizer_cls_2.Add(sizer_cls__4, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+
+        self.spin_max_depth = wx.SpinCtrl(self.notebook_classification, wx.ID_ANY, "0", min=0, max=100)
+        sizer_cls__4.Add(self.spin_max_depth, 0, wx.ALL | wx.EXPAND, 5)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -190,6 +265,8 @@ class RuleGeneratinglDialog(wx.Dialog):
 
         sizer_2.Realize()
 
+        self.notebook_classification.SetSizer(sizer_cls_1)
+        self.notebook_regression.SetSizer(sizer_rg_1)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
@@ -198,9 +275,9 @@ class RuleGeneratinglDialog(wx.Dialog):
         #self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
         #self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_classification)
         #self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_regression)
+        self.Bind(wx.EVT_CHECKBOX,self.OnSelectAuto,self.checkbox_automatic)
         
         self.SetEscapeId(self.button_CANCEL.GetId())
-
 
         self.Center()
         self.Layout()
@@ -228,6 +305,13 @@ class RuleGeneratinglDialog(wx.Dialog):
             else:
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
+    def OnSelectAuto(self,event):
+        value=self.checkbox_automatic.IsChecked()
+        self.spin_output_mf.Enable(not value)
+        self.spin_input_mf.Enable(not value)
+        self.spin_max_depth.Enable(not value)
+        self.spin_learning_rate.Enable(not value)
+        self.classification_params['auto']=value
 ##
 # Dialog for predicting, it shows the fields to the input variables and displays the output obtained
 ##
@@ -1205,7 +1289,7 @@ class PredictionModelDialog(wx.Dialog):
                 self.display_list.append(variable+" - "+response['data'][variable])
                 if response['data'][variable]=="regression":
                     self.regression_vars.append(variable)
-                self.model_selection[variable]={'model':'','params':''}
+                self.model_selection[variable]={'model':'','params':None}
                 
         else:
             wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
