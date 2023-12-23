@@ -5,6 +5,9 @@ from .process import substitute_outliers,susbstitute_missing,remove_missing,remo
 from ..statistic.statistic import StatisticTest
 import copy
 from ..saver import Saver 
+from numpy.typing import ArrayLike
+from typing import Union
+
 class ContextData():
     """
     Class that represents de data to use in a workload
@@ -18,7 +21,7 @@ class ContextData():
     
     """
 
-    def __init__(self, dataFrame=pd.DataFrame(),dict=None):    
+    def __init__(self, dataFrame=pd.DataFrame(),dict: {}=None):    
         
 
         ## ADD ASSERTIONS        
@@ -28,21 +31,21 @@ class ContextData():
         else:
             self.data=dataFrame
             
-        self.state=True
-        self.floatValues=[]
-        self.characterValues=[]
-        self.integerValues=[]
+        self.state: bool=True
+        self.floatValues: list[str]=[]
+        self.characterValues: list[str]=[]
+        self.integerValues: list[str]=[]
         self._get_types()
 
         self.toDel=set()
         self.values=self.data.to_numpy()
 
-        self.variables=[]
-        self.targets=[]
-        self.variables_index=[]
-        self.targets_index=[]
+        self.variables: list[str]=[]
+        self.targets: list[str]=[]
+        self.variables_index: list[int]=[]
+        self.targets_index: list[int]=[]
         
-        self.identifier_cols=[]
+        self.identifier_cols: list[str]=[]
 
         self.data_cleanse={} # 'lubricant':{'delete_missing':0,'substitute_missing':'Mean','delete_outliers':0,'substitute_outliers':'Mean'}
         self.data_preprocess={} # 'lubricant':{'preprocess':'normalization'}
@@ -51,10 +54,10 @@ class ContextData():
         self.set_initial_cleanse()
         self.set_initial_preprocess()
 
-        self.COV_THRESHOLD=1
-        self.COR_THRESHOLD=0.8
-        self.NORMALITY_THRESHOLD=0.05
-        self.DIFFERENCE_THRESHOLD=0.05
+        self.COV_THRESHOLD:float=1.0
+        self.COR_THRESHOLD:float=0.8
+        self.NORMALITY_THRESHOLD:float=0.05
+        self.DIFFERENCE_THRESHOLD:float=0.05
     
     def set_initial_cleanse(self):
         for variable in self.data.columns:
@@ -76,7 +79,7 @@ class ContextData():
     def get_values_inputs(self):
         return self.values[:,self.variables_index],self.data[self.variables].dtypes
     
-    def get_values_output(self,output):
+    def get_values_output(self,output: str):
         index=list(self.data.columns).index(output)
         return self.values[:,index]
     
@@ -109,7 +112,7 @@ class ContextData():
             else:
                 self.characterValues.append(col)
                 
-    def add_columns(self,dict):
+    def add_columns(self,dict:{}):
        
         new_cols=pd.DataFrame(columns=dict.keys())
         new_cols = new_cols.astype(dict)
@@ -124,7 +127,7 @@ class ContextData():
     def get_types(self):
         return self.floatValues,self.integerValues,self.characterValues
 
-    def update_position(self,i,j,value):
+    def update_position(self,i: int,j: int,value):
         
         if i < self.data.shape[0] and j < self.data.shape[1]:
             
@@ -176,14 +179,14 @@ class ContextData():
 
         return True
         
-    def add_identifier_col(self,name):
+    def add_identifier_col(self,name:str):
         
         if not name in self.get_names():
             raise ValueError("Col name do not exists on the data.")
         if not name in self.identifier_cols:
             self.identifier_cols.append(name)
         
-    def remove_identifier_col(self,name):
+    def remove_identifier_col(self,name:str):
         
         if not name in self.get_names():
             raise ValueError("Col name do not exists on the data.")
@@ -294,13 +297,13 @@ class ContextData():
         
         return toret
 
-    def get_position(self,row,col):
+    def get_position(self,row:int,col:int):
         if row < self.data.shape[0] and col < self.data.shape[1]:
             return self.data.iloc[row,col]
         else:
             raise ValueError("Invalid coordenates.")
 
-    def _validate_update(self,col_name,value):
+    def _validate_update(self,col_name:str,value):
         toret=True
         if col_name in self.floatValues:
             toret=Validator.check_float(float(value))         
@@ -340,7 +343,7 @@ class ContextData():
     def get_shape(self):
         return self.data.shape
     
-    def _check_bounds(self,fil=None,col=None):
+    def _check_bounds(self,fil:int=None,col:int=None):
         toret=True
 
         if not (fil == None) and fil > self.data.shape[0]:
@@ -351,7 +354,7 @@ class ContextData():
         
         return toret
 
-    def get_column(self,index):
+    def get_column(self,index:int):
         if self._check_bounds(col=index):
             return self.values[:,index]
         else:
@@ -366,7 +369,7 @@ class ContextData():
         else:
             return None
         
-    def set_variables(self,indexes):
+    def set_variables(self,indexes:list[int]):
         names=self.data.columns
         self.variables=names[indexes]
         self.variables_index=indexes
@@ -374,7 +377,7 @@ class ContextData():
         #     self.variables=[]
         #     self.variables_index=[]
 
-    def set_target(self,indexes):
+    def set_target(self,indexes:list[int]):
         names=self.data.columns[indexes]
         self.targets=names
         self.targets_index=indexes
@@ -405,7 +408,7 @@ class ContextData():
         toret=selection.describe()
         return toret
     
-    def get_variable_summary(self,variable,group=None):
+    def get_variable_summary(self,variable: str,group: str=None):
 
     
         if not variable in self.data.columns:
@@ -420,7 +423,7 @@ class ContextData():
             return self.data.groupby(group)[variable].describe()
 
     
-    def apply_preprocess(self,variable):
+    def apply_preprocess(self,variable: str):
     
         settings=self.data_preprocess[variable]
 
@@ -518,7 +521,7 @@ class ContextData():
             else:
                 self.transformers[variable]=None
                             
-    def _map_variable(self,ranges,names,variable):
+    def _map_variable(self,ranges,names:list[str],variable: ArrayLike):
         mapped_variable=np.empty(shape=(variable.shape[0],1),dtype=object)
 
         for i in range(mapped_variable.shape[0]):
@@ -550,13 +553,12 @@ class ContextData():
         return False
     
             
-    def _create_bins(self,bins,variable,names=None):
+    def _create_bins(self,bins,variable: str,names: list[str]=None):
         
         var_name=variable+'_binned'
         
         current_names=self.get_names()
-        
-        
+    
         if var_name in current_names:
             i=1
             while var_name in current_names:
@@ -564,11 +566,9 @@ class ContextData():
                 i+=1
         
         if names!=None:
-            
             self.data[var_name] = pd.cut(self.data[variable], bins,labels=names,include_lowest=True)
         else:
             self.data[var_name] = pd.cut(self.data[variable], bins,include_lowest=True)
-        
         
         self.data_cleanse[var_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
         self.data_preprocess[var_name]={'transformation':'None','keep_original':True,'params':None}
@@ -576,22 +576,19 @@ class ContextData():
         self.values=self.data.values
         
 
-    def apply_transform(self,variable,input):
+    def apply_transform(self,variable: str,input: ArrayLike):
         
         numeric=self.get_numeric_variables()
         value=input
-       
-        
         if variable in numeric and Validator().check_parse_float(value):
             value=np.float64(input)
-            
         transformer=self.transformers[variable]
         if transformer!=None and transformer!="Discretize":
             value=transformer.transform(value)
         
         return value
     
-    def apply_cleanse(self,variable):
+    def apply_cleanse(self,variable: str):
         settings=self.data_cleanse[variable]
 
         modified_rows=0
@@ -602,20 +599,14 @@ class ContextData():
         else:
             if settings['substitute_missing']!="None":
                 self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])
-
         if not variable in self.characterValues:
-            
             if settings['delete_outliers']:
-            
                 result=remove_outliers(self.data,variable,settings['upper_bound'],settings['lower_bound'])
-
                 for index in result:
                     if not index in self.toDel:
                         removed_row+=1
                     self.toDel.add(index)
-                    
                 #self.data=result
-                
             else:
                 if settings['substitute_outliers']!="None":
                     
@@ -635,7 +626,7 @@ class ContextData():
         self.data=self.data.reset_index(drop=True)
         self.values=self.data.to_numpy()
 
-    def delete_row(self,rows):
+    def delete_row(self,rows: list[int]):
        
         rows=self._list_validation(rows,self.data.shape[0],0)   
         self.data=self.data.drop(rows,axis=0)
@@ -645,17 +636,16 @@ class ContextData():
             
         return True
     
-    def _list_validation(self,list,upper_bound,lower_bound):
+    def _list_validation(self,list:[],upper_bound,lower_bound):
         toDel=[]
         for row in list:   
             if not (upper_bound>row and row >= lower_bound):
                 toDel.append(row)
         for val in toDel:
             list.remove(val)
-        
         return list
     
-    def delete_column(self,cols):
+    def delete_column(self,cols:list[int]):
         
         cols=self._list_validation(cols,self.data.shape[1],0)
         names=self.get_names()
@@ -701,25 +691,21 @@ class ContextData():
 
         return toret
 
-    def set_cleanse(self,variable,options):
+    def set_cleanse(self,variable: str,options:{}):
         if variable in self.data.columns:
             self.data_cleanse[variable]=options
-           
             return True
         else:
             raise ValueError("Not a valid variable")
         
-    def set_preprocess(self,variable,options):
+    def set_preprocess(self,variable: str,options:{}):
         if variable in self.data.columns or variable=="All":
-            
             self.data_preprocess[variable]=options
-
-
             return True
         else:
             raise ValueError("Not a valid variable")
 
-    def rename_col(self,new_name,old_name):
+    def rename_col(self,new_name: str,old_name: str):
         
         if not old_name in list(self.data.columns):
             raise ValueError("Old name not found in current data")
@@ -734,7 +720,7 @@ class ContextData():
         return True
 
 
-    def save(self,pathname):
+    def save(self,pathname: str):
         saver=Saver(pathname,self.data)
         saver.save()
         

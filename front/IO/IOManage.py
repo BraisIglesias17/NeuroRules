@@ -7,7 +7,7 @@ class IOManage():
     """ Class that provides with static methods to obtain 
     file and folders from UI and to create frames"""
     @staticmethod
-    def GetPath(window,message,wildcard,default_folder="",default_name=""):
+    def GetPath(window,message:str,wildcard:str,default_folder:str="",default_name:str=""):
         """
          Function to obtain a path to store a file
          Args:  
@@ -25,7 +25,7 @@ class IOManage():
             pathname = file_dialog.GetPath()
             return Response(data=pathname,status=Status.OK)
     @staticmethod 
-    def get_path_folder(window,message):
+    def get_path_folder(window,message:str):
         """
          Function to obtain a path to a folder
          Args:  
@@ -39,7 +39,7 @@ class IOManage():
             pathname = file_dialog.GetPath()
             return Response(data=pathname,status=Status.OK) 
     @staticmethod
-    def get_path_import(window,message,wildcard,default_name=""):
+    def get_path_import(window,message:str,wildcard:str,default_name:str=""):
         """
          Function to obtain a path to store a file
          Args:  

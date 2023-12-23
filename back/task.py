@@ -3,8 +3,10 @@
 import pickle
 import datetime
 import numpy as np
+from numpy.typing import ArrayLike
 from sklearn.model_selection import train_test_split
 from .ML.model import ModelImplementation
+
 
 class Task():
     """ Class that defines a task """
@@ -62,7 +64,7 @@ class Task():
         self.executed=False
     
     @staticmethod
-    def load(path):
+    def load(path: str):
         """
         Static function that loads a task serialized object from a file.
 
@@ -121,7 +123,7 @@ class Task():
         return {'name':self.task_name,'date':self.date.strftime("%Y-%m-%d")
                 ,'path':self.path,'saved':self.saved}
     
-    def save(self,pathname):
+    def save(self,pathname: str):
         """
             Function that saves the task on a file
         """
@@ -204,7 +206,7 @@ class Task():
             toret[model.modelname]=model.get_text_report()
         return toret
 
-    def get_model_plot(self,variable,model):
+    def get_model_plot(self,variable: str,model:str):
         """
         Method to get the plot of a trained model
 
@@ -245,7 +247,7 @@ class Task():
                 message=message+"\n\n"
         return message
     
-    def get_prediction(self,output_variable,model,input,submodel=None):
+    def get_prediction(self,output_variable:str,model:str,input: ArrayLike,submodel:{}=None):
         """
         Method that returns the correspondent prediction of the specified model.
 
@@ -261,14 +263,9 @@ class Task():
         prediction=None
         if submodel!=None and len(input)!=len(self.input_names):
             input=self._transform_input(submodel['inputs'],input)
-            # for variable in submodel['inputs']:
-            #     input[i]=self.context_data.apply_transform(variable,input[i])
-            #     i+=1
         else:
             input=self._transform_input(self.input_names,input)
-            # for variable in self.input_names:
-            #     input[i]=self.context_data.apply_transform(variable,input[i])
-            #     i+=1
+            
         for mod in self.models[output_variable]:
             if mod.modelname==model:
                 prediction=mod.predict(np.array(input,dtype=np.float64).reshape(1,-1),submodel=submodel)

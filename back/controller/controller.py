@@ -1,15 +1,11 @@
 from back.data.contextData import ContextData
 from back.respuestas import Response,Status
-from back.ML.neurofuzzy import NeuroFuzzy
-from sklearn.metrics import confusion_matrix, classification_report
-import numpy as np
-from sklearn.model_selection import train_test_split
-from ..statistic.statistic import StatisticTest
 from ..ML.model import Model
 from ..task import Task
-import traceback
 from ..saver import Saver
 from ..tracer import Trace
+from numpy.typing import ArrayLike
+from pandas import DataFrame
 
 class Controller():
 
@@ -18,8 +14,8 @@ class Controller():
             Inicializar objetos 
 
         """
-        self.contextData=None
-        self.currentTask=None
+        self.contextData: ContextData=None
+        self.currentTask: Task=None
         self.trace=Trace()
 
     def template_method(function):
@@ -34,7 +30,7 @@ class Controller():
         return wrapper
 
     @template_method
-    def load_content(self,df,filename):
+    def load_content(self,df: DataFrame,filename):
         self.contextData=ContextData(df)
         info={'data':self.contextData.data,'file':filename}
         Trace().log("Content loaded from file: "+filename)
@@ -62,7 +58,7 @@ class Controller():
     
     
     @template_method
-    def update_data_position(self,row,col,value):
+    def update_data_position(self,row:int,col:int,value):
         if self.contextData!=None:
             self.contextData.update_position(row,col,value)
         Trace().log(f"Position ({row},{col}) updated manually with new value {value}")
@@ -114,13 +110,13 @@ class Controller():
         
     
     @template_method
-    def get_variable_summary(self,variable,group):
+    def get_variable_summary(self,variable:str,group:str):
         data=self.contextData.get_variable_summary(variable,group)    
         return Response(data=data,status=Status.OK)
         
         
     @template_method
-    def set_independent_variables(self,indexes):
+    def set_independent_variables(self,indexes:list[int]):
         self.contextData.set_variables(indexes)
         return Response(data={},status=Status.OK)
         
@@ -132,19 +128,19 @@ class Controller():
        
     
     @template_method
-    def set_targets(self,indexes):
+    def set_targets(self,indexes:list[int]):
         self.contextData.set_target(indexes)
         return Response(data="",status=Status.OK)
         
 
     @template_method
-    def get_position(self,row,col):
+    def get_position(self,row:int,col:int):
         value=self.contextData.get_position(row,col)
         return Response(data=value,status=Status.OK)
         
         
     @template_method
-    def get_column(self,col):
+    def get_column(self,col:int):
         value=self.contextData.get_column(col)
         return Response(data=value,status=Status.OK)
         
@@ -166,7 +162,7 @@ class Controller():
          
 
     @template_method
-    def save_data(self,pathname):
+    def save_data(self,pathname: str):
         if self.contextData!=None:
             self.contextData.save(pathname)
             self.trace.log(f"Data saved on "+pathname)
@@ -174,7 +170,7 @@ class Controller():
         
     
     @template_method
-    def set_cleanse_option(self,variable,options):
+    def set_cleanse_option(self,variable:str,options):
         self.contextData.set_cleanse(variable,options)
         self.trace.log(f"Cleanse applied to "+variable)
         return Response(data="",status=Status.OK)
@@ -182,7 +178,7 @@ class Controller():
         
     
     @template_method
-    def set_preprocess_option(self,variable,options):
+    def set_preprocess_option(self,variable:str,options):
         self.contextData.set_preprocess(variable,options)
         return Response(data="",status=Status.OK)
         
@@ -207,13 +203,13 @@ class Controller():
      
     
     @template_method 
-    def apply_cleanse(self,variable):
+    def apply_cleanse(self,variable:str):
         result=self.contextData.apply_cleanse(variable)    
         return Response(data={'deleted_rows':result[0],'modified_rows':result[1]},status=Status.OK)
         
         
     @template_method
-    def apply_preprocess(self,variable):
+    def apply_preprocess(self,variable:str):
         result=self.contextData.apply_preprocess(variable)
         return Response(data={result},status=Status.OK)
         
@@ -225,19 +221,19 @@ class Controller():
         
 
     @template_method
-    def delete_row(self,row):
+    def delete_row(self,row:int):
         value=self.contextData.delete_row(row)
         return Response(data={value},status=Status.OK)
         
     
     @template_method
-    def delete_col(self,col):
+    def delete_col(self,col:int):
         value=self.contextData.delete_column(col)
         return Response(data={value},status=Status.OK)
 
 
     @template_method
-    def set_col_as_id(self,name,remove=False):
+    def set_col_as_id(self,name:str,remove:bool=False):
         if remove:
             self.contextData.remove_identifier_col(name)
         else:
@@ -246,7 +242,7 @@ class Controller():
         
 
     @template_method
-    def rename_col(self,new_name,old_name):
+    def rename_col(self,new_name: str,old_name:str):
         res=self.contextData.rename_col(new_name,old_name)
         if res:
             return Response(data={},status=Status.OK)
@@ -277,7 +273,7 @@ class Controller():
 
  
     @template_method
-    def create_task(self,taskname,models,validation,rules):
+    def create_task(self,taskname:str,models,validation,rules):
         self.currentTask=Task(taskname,self.contextData,models,validation,rules)
         return Response(data={},status=Status.OK)
  
@@ -301,13 +297,13 @@ class Controller():
 
   
     @template_method
-    def get_output_info(self,variable):    
+    def get_output_info(self,variable:str):    
         return Response(data=self.currentTask.get_report(variable),status=Status.OK)
   
         
     
     @template_method
-    def get_text_reports(self,variable):    
+    def get_text_reports(self,variable:str):    
         return Response(data=self.currentTask.get_text_reports(variable),status=Status.OK)
  
     
@@ -337,7 +333,7 @@ class Controller():
         
 
     @template_method
-    def save_task(self,path):
+    def save_task(self,path:str):
         if self.currentTask==None:
             raise ValueError("Non existing task")
         self.currentTask.save(path)
@@ -348,17 +344,15 @@ class Controller():
     def get_inputs_task(self):
         return Response(data=self.currentTask.input_names,status=Status.OK)
 
-        
-
     @template_method
-    def import_task(self,path):
+    def import_task(self,path: str):
         self.currentTask=Task.load(path)
         self.contextData=self.currentTask.context_data    
         return Response(data={},status=Status.OK)
         
   
     @template_method
-    def get_prediction(self,variable,model,input,submodel=None):
+    def get_prediction(self,variable:str,model:str,input,submodel:{}=None):
         prediction=self.currentTask.get_prediction(variable,model,input,submodel)
         return Response(data=prediction,status=Status.OK)
    
@@ -373,14 +367,14 @@ class Controller():
         
 
     @template_method
-    def save_file(self,content,path):
+    def save_file(self,content,path: str):
         saver=Saver(path=path,content=content)
         saver.save()
         return Response(data={},status=Status.OK)
 
            
     @template_method
-    def get_model_plot(self,variable,model):
+    def get_model_plot(self,variable:str,model:str):
         figure=self.currentTask.get_model_plot(variable,model)
         return Response(data=figure,status=Status.OK)
 
