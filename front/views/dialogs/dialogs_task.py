@@ -185,13 +185,13 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_rg_2.Add(sizer_rg_3, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
 
         sizer_rg_4 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Max inputs"), wx.VERTICAL)
-        sizer_rg_3.Add(sizer_rg_4, 0, wx.ALL, 20)
+        sizer_rg_3.Add(sizer_rg_4, 0, wx.ALL, 10)
 
         self.spin_max_inputs = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=1, max=3)
         sizer_rg_4.Add(self.spin_max_inputs, 0, wx.ALL, 5)
 
         sizer_rg_5 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Input membership functions"), wx.VERTICAL)
-        sizer_rg_3.Add(sizer_rg_5, 0, wx.ALL, 20)
+        sizer_rg_3.Add(sizer_rg_5, 0, wx.ALL, 10)
 
         self.spin_input_mf = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=2, max=3)
         sizer_rg_5.Add(self.spin_input_mf, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
@@ -200,20 +200,20 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_rg_2.Add(sizer_rg_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 0)
 
         sizer_rg_7 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Learning rate"), wx.VERTICAL)
-        sizer_rg_6.Add(sizer_rg_7, 0, wx.ALL, 20)
+        sizer_rg_6.Add(sizer_rg_7, 0, wx.ALL, 10)
 
         self.spin_learning_rate = wx.SpinCtrlDouble(self.notebook_regression, wx.ID_ANY, initial=0.05, inc=0.05,min=0.0, max=10.0)
         self.spin_learning_rate.SetDigits(2)
         sizer_rg_7.Add(self.spin_learning_rate, 0, wx.ALL, 5)
 
         sizer_rg_8 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Output membership functions"), wx.VERTICAL)
-        sizer_rg_6.Add(sizer_rg_8, 0, wx.ALL, 20)
+        sizer_rg_6.Add(sizer_rg_8, 0, wx.ALL, 10)
 
         self.spin_output_mf = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=2, max=3)
         sizer_rg_8.Add(self.spin_output_mf, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         sizer_rg_9 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_rg_2.Add(sizer_rg_9, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+        sizer_rg_2.Add(sizer_rg_9, 0, wx.ALIGN_CENTER_HORIZONTAL, 20)
 
         self.checkbox_automatic = wx.CheckBox(self.notebook_regression, wx.ID_ANY, "Auto")
         sizer_rg_9.Add(self.checkbox_automatic, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
