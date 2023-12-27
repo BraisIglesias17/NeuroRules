@@ -131,13 +131,11 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.model_selection={}
         self.regression_vars=[]
         self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
-
-        self.classification_params={'criterion':'gini','splitter':'best','max_depth':None}
-        self.regression_params={'max_inputs':0,'mf_inputs':2,'mf_outputs':2,'autpo':True,'learning_rate':0.05}
+        self.classification_params={'criterion':'gini','splitter':'best'}
+        self.regression_params={'max_inputs':2,'mf_inputs':2,'mf_outputs':2,'autpo':True,'learning_rate':0.01}
         response=self.controller.get_target_process_type().get_response()
 
         if response['status']==Status.OK:
-            
             self.type_list=response['data']
             for variable in response['data']:
                 self.names.append(variable)
@@ -148,8 +146,7 @@ class RuleGeneratinglDialog(wx.Dialog):
                     self.regression_vars.append(variable)
                     model="Neurofuzzy"
                     params=self.regression_params
-                self.model_selection[variable]={'model':[model],'params':params}
-                
+                self.model_selection[variable]={'model':[model],'params':params}  
         else:
             wx.MessageBox("An error has occurred: "+response['data'],"Error",wx.OK|wx.ICON_ERROR)
 
@@ -202,7 +199,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_rg_7 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Learning rate"), wx.VERTICAL)
         sizer_rg_6.Add(sizer_rg_7, 0, wx.ALL, 10)
 
-        self.spin_learning_rate = wx.SpinCtrlDouble(self.notebook_regression, wx.ID_ANY, initial=0.05, inc=0.05,min=0.0, max=10.0)
+        self.spin_learning_rate = wx.SpinCtrlDouble(self.notebook_regression, wx.ID_ANY, initial=0.01, inc=0.01,min=0.0, max=10.0)
         self.spin_learning_rate.SetDigits(2)
         sizer_rg_7.Add(self.spin_learning_rate, 0, wx.ALL, 5)
 
@@ -233,22 +230,22 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Criterion"), wx.VERTICAL)
         sizer_cls_2.Add(sizer_6, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
-        self.cb_criterion = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["Gini","Entropy","Log loss"])
+        self.cb_criterion = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["gini","entropy","log_loss"])
         self.cb_criterion.SetSelection(0)
         sizer_6.Add(self.cb_criterion, 0, wx.ALL | wx.EXPAND, 5)
 
         sizer_cls__3 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Splitter"), wx.VERTICAL)
         sizer_cls_2.Add(sizer_cls__3, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
-        self.cb_splitter = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["Best","Random"])
+        self.cb_splitter = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["best","random"])
         self.cb_splitter.SetSelection(0)
         sizer_cls__3.Add(self.cb_splitter, 0, wx.ALL | wx.EXPAND, 5)
 
-        sizer_cls__4 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Max depth"), wx.VERTICAL)
-        sizer_cls_2.Add(sizer_cls__4, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+        # sizer_cls__4 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Max depth"), wx.VERTICAL)
+        # sizer_cls_2.Add(sizer_cls__4, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
-        self.spin_max_depth = wx.SpinCtrl(self.notebook_classification, wx.ID_ANY, "0", min=0, max=100)
-        sizer_cls__4.Add(self.spin_max_depth, 0, wx.ALL | wx.EXPAND, 5)
+        # self.spin_max_depth = wx.SpinCtrl(self.notebook_classification, wx.ID_ANY, "0", min=0, max=100)
+        # sizer_cls__4.Add(self.spin_max_depth, 0, wx.ALL | wx.EXPAND, 5)
 
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
@@ -271,22 +268,72 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_1.Fit(self)
 
         self.Bind(wx.EVT_BUTTON,self.OnContinue,self.button_OK)
-        #self.Bind(wx.EVT_COMBOBOX,self.OnChangeValidation,self.combo_box_validation)
-        #self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
-        #self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_classification)
-        #self.Bind(wx.EVT_LISTBOX,self.OnSelectModel,self.list_box_models_regression)
+        self.Bind(wx.EVT_SPINCTRL,self.OnChangeRegressionParameter,self.spin_max_inputs)
+        self.Bind(wx.EVT_SPINCTRL,self.OnChangeRegressionParameter,self.spin_input_mf)
+        self.Bind(wx.EVT_SPINCTRL,self.OnChangeRegressionParameter,self.spin_output_mf)
+        self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeRegressionParameter,self.spin_learning_rate)
+        self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_criterion)
+        self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_splitter)
         self.Bind(wx.EVT_CHECKBOX,self.OnSelectAuto,self.checkbox_automatic)
-        
+       
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
         self.Layout()
 
-    def OnContinue(self,evt):
-        
-        name,cancel=get_task_name(self)
+    def _check_bounds(self,value,min=0,max=3):
+        return (value<min or value>max)
+    
+    def OnChangeRegressionParameter(self,evt):
+        learning_rate=self.spin_learning_rate.GetValue()
+        max_inputs=self.spin_max_inputs.GetValue()
+        input_mf=self.spin_input_mf.GetValue()
+        output_mf=self.spin_output_mf.GetValue()
+        target=self.combo_box_targets.GetValue()
 
+        if learning_rate<0 or learning_rate>1:
+            wx.MessageBox("The learning rate must be between 0 and 1", "Error",wx.ICON_ERROR)
+        elif self._check_bounds(input_mf,2) or self._check_bounds(output_mf,2) or self._check_bounds(max_inputs,1):
+            wx.MessageBox("The value must be between 1 and 3", "Error",wx.ICON_ERROR)
+        else:
+
+            params={'max_inputs':max_inputs,
+                    'mf_inputs':input_mf,
+                    'mf_outputs':output_mf,
+                    'auto':self.checkbox_automatic.IsChecked(),
+                    'learning_rate':learning_rate}
+            
+            if target=="All":
+                for output in self.display_list:
+                    if output!='All':
+                        self.updateParams(output,"regression",params)
+            else:
+                self.updateParams(target,"regression",params)
+        
+    
+    def updateParams(self,target,desired_type,params):
+        parts=target.split(" - ")
+        variable=parts[0]
+        type=parts[1]
+        if type==desired_type:
+            self.model_selection[variable]['params']=params
+        
+    def OnChangeClassificationParameter(self,evt):
+        splitter=self.cb_splitter.GetString(self.cb_splitter.GetCurrentSelection())
+        criterion=self.cb_criterion.GetString(self.cb_criterion.GetCurrentSelection())
+        target=self.combo_box_targets.GetValue()
+        params={'criterion':criterion,'splitter':splitter}
+        if target=="All":
+           for output in self.display_list:
+               if output!='All':
+                   self.updateParams(output,"classification",params)
+        else:
+            self.uptadeParams(output,"classification",params)
+    
+    def OnContinue(self,evt):
+        name,cancel=get_task_name(self)
         if not cancel:
+            print(self.model_selection)
             response=self.controller.create_task(name,self.model_selection,self.validation,True).get_response()
         
             if response['status']==Status.OK:        
@@ -309,7 +356,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         value=self.checkbox_automatic.IsChecked()
         self.spin_output_mf.Enable(not value)
         self.spin_input_mf.Enable(not value)
-        self.spin_max_depth.Enable(not value)
+        self.spin_max_inputs.Enable(not value)
         self.spin_learning_rate.Enable(not value)
         self.classification_params['auto']=value
 ##

@@ -225,17 +225,18 @@ class ModelImplementation(Model):
         X_test=np.delete(X_test,toDel,axis=1)
        
         r2=-100
-        combs=names_input+list(combinations(names_input,2))
+        combs=names_input+list(combinations(names_input,self.params['max_inputs']))
         
-        n_membership_input=2
-        n_membership_output=2
+        n_membership_input=self.params['mf_inputs']
+        n_membership_output=self.params['mf_outputs']
         name="submodel_"
         i=1
+        
         for combination in combs:
             name_=name+str(i)
             indexes=[]
             names=[]
-            
+                
             if isinstance(combination,str):
                 names.append(combination)
                 indexes=names_input.index(combination)
@@ -243,31 +244,32 @@ class ModelImplementation(Model):
                 for element in combination:
                     indexes.append(names_input.index(element))
                     names.append(element)
-            
+                
             X=input[:,indexes]    
             X_test_tmp=X_test[:,indexes]
 
             if len(names)==1:
                 X=X.reshape(-1,1)
 
+                
             self.model=NeuroFuzzy(input=X,output=target,types=types,n_membership_input=n_membership_input,n_membership_output=n_membership_output,output_name=name_output,input_names=names)
-            
-            self.model.fit()
+                
+            self.model.fit(self.params['learning_rate'])
 
             scores=self.get_score(X=X,y=target)
-            
+               
             if len(X_test_tmp.shape)==1:
                 X_test_tmp=X_test_tmp.reshape(-1,1)
 
             test_scores=self.get_score(X=X_test_tmp,y=self.y_test)
-            
+               
             bestmodel=False
             if scores['r2']>r2:
                 bestmodel=True
             self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}            
             i+=1
         #submodel pruning
-        self.submodels=self.SRM(self.submodels)
+        # self.submodels=self.SRM(self.submodels)
         self._generate_ensemble_model(input.shape[0],target)
 
     def SRM(self,submodels:{}):
@@ -281,7 +283,6 @@ class ModelImplementation(Model):
             average_metric=(0.7*submodels[submodel]['test_score']['r2']+0.3*submodels[submodel]['training_score']['r2'])/len(submodels[submodel]['inputs'])
             if average_metric>max_score:
                 max_score=average_metric
-
         i=1
         #segundo bucle para quedarse unicamente con los modelos que no empeoran mucho al mejor
         for submodel in submodels:
