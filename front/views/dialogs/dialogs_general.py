@@ -297,13 +297,13 @@ class PickDialog(wx.Dialog):
     def OnAdd(self,listbox,variables,check_strings=False):
         selection=self.list_box_all_variables.GetSelections()
         
-        
         tmp_all=copy.deepcopy(self.all_variables)
         
         for pos in selection:
             do=True
 
             if check_strings:
+                
                 if tmp_all[pos] in self.string_variables:
                     wx.MessageBox(tmp_all[pos]+" is a nominal variable, it can not be used as input.","Warning",wx.ICON_WARNING)
                     do=False

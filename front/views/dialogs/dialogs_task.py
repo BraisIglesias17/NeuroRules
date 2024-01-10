@@ -132,7 +132,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.regression_vars=[]
         self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
         self.classification_params={'criterion':'gini','splitter':'best'}
-        self.regression_params={'max_inputs':2,'mf_inputs':2,'mf_outputs':2,'autpo':True,'learning_rate':0.01}
+        self.regression_params={'max_inputs':2,'mf_inputs':2,'mf_outputs':2,'auto':True,'learning_rate':0.01}
         response=self.controller.get_target_process_type().get_response()
 
         if response['status']==Status.OK:
@@ -212,8 +212,8 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_rg_9 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_rg_2.Add(sizer_rg_9, 0, wx.ALIGN_CENTER_HORIZONTAL, 20)
 
-        self.checkbox_automatic = wx.CheckBox(self.notebook_regression, wx.ID_ANY, "Auto")
-        sizer_rg_9.Add(self.checkbox_automatic, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+        #self.checkbox_automatic = wx.CheckBox(self.notebook_regression, wx.ID_ANY, "Auto")
+        #sizer_rg_9.Add(self.checkbox_automatic, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
         ##
 
@@ -274,7 +274,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeRegressionParameter,self.spin_learning_rate)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_criterion)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_splitter)
-        self.Bind(wx.EVT_CHECKBOX,self.OnSelectAuto,self.checkbox_automatic)
+        #self.Bind(wx.EVT_CHECKBOX,self.OnSelectAuto,self.checkbox_automatic)
        
         self.SetEscapeId(self.button_CANCEL.GetId())
 
@@ -300,7 +300,7 @@ class RuleGeneratinglDialog(wx.Dialog):
             params={'max_inputs':max_inputs,
                     'mf_inputs':input_mf,
                     'mf_outputs':output_mf,
-                    'auto':self.checkbox_automatic.IsChecked(),
+                    'auto':False,#self.checkbox_automatic.IsChecked(),
                     'learning_rate':learning_rate}
             
             if target=="All":
@@ -353,7 +353,8 @@ class RuleGeneratinglDialog(wx.Dialog):
                 wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
 
     def OnSelectAuto(self,event):
-        value=self.checkbox_automatic.IsChecked()
+        #value=self.checkbox_automatic.IsChecked()
+        value=False
         self.spin_output_mf.Enable(not value)
         self.spin_input_mf.Enable(not value)
         self.spin_max_inputs.Enable(not value)

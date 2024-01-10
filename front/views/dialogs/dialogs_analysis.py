@@ -20,7 +20,7 @@ class MappingDialog(wx.Dialog):
     def __init__(self,parent, bins,variable):
         
         wx.Dialog.__init__(self,parent)
-        self.SetTitle("Mapping dialog - BETA")
+        self.SetTitle("Mapping dialog")
 
         self.bins=bins
         self.variable=variable

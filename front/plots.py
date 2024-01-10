@@ -26,9 +26,8 @@ def plot_2d(data):
         ax1.scatter(x, y_left, color=color,marker='o')
         ax1.tick_params(axis='y', labelcolor=color)
 
-    
-    ax2 = ax1.twinx()
     if data['y_right']['name']!="":
+        ax2 = ax1.twinx()
         color = 'tab:red'
         ax2.set_ylabel(data['y_right']['name'], color=color)
         ax2.scatter(x, y_right, color=color,marker='v')
@@ -36,24 +35,7 @@ def plot_2d(data):
 
     fig.tight_layout()
     plt.show()
-    # x=data['x']['data']
-    # y_left=data['y']['data']
-    # y_right=data['y_right']['data']
-    # fig, ax1 = plt.subplots()
-    # if data['y']['name']!="":
-    #     color = 'tab:blue'
-    #     ax1.set_xlabel(data['x']['name'])
-    #     ax1.set_ylabel(data['y']['name'], color=color)
-    #     ax1.scatter(x, y_left, color=color,marker='o')
-    #     ax1.tick_params(axis='y', labelcolor=color)
-    # ax2 = ax1.twinx()
-    # if data['y_right']['name']!="":
-    #     color = 'tab:red'
-    #     ax2.set_ylabel(data['y_right']['name'], color=color)
-    #     ax2.scatter(x, y_right, color=color,marker='v')
-    #     ax2.tick_params(axis='y', labelcolor=color)
-    # fig.tight_layout()
-    # plt.show()
+
 
 def plot_3d(data):
     """

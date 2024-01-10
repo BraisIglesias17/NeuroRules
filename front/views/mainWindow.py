@@ -199,7 +199,7 @@ class MainWindow(wx.Frame):
                 dialog=ResultsDialog(self)
                 code=dialog.ShowModal() 
     
-    def OnManageCurrentTask(self,check_strings=False):
+    def OnManageCurrentTask(self,check_strings=True):
         response=self.controller.task_state().get_response()
         status=response['status']
         
@@ -214,7 +214,7 @@ class MainWindow(wx.Frame):
             
             if code!=wx.CANCEL:
                 if code == wx.YES:
-                    dialog=PickDialog(self)
+                    dialog=PickDialog(self,check_strings=True)
                     code=dialog.ShowModal()
                     return code
                 else:
@@ -229,7 +229,7 @@ class MainWindow(wx.Frame):
                 if code == wx.YES:
                     self.saveTask()
                 
-                dialog=PickDialog(self)
+                dialog=PickDialog(self,check_strings=True)
                 code=dialog.ShowModal()
                 return code
             
