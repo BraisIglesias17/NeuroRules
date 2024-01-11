@@ -5,6 +5,7 @@ import pandas as pd
 from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
 from back.saver import Saver
+from front.IO.IOManage import IOManage
 from ...plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
@@ -13,7 +14,7 @@ import threading
 import time
 import re
 from ..functions import validate_name,validate_range
-from ...constants import WILDCARD_DATA_FILE
+from ...constants import WILDCARD_DATA_FILE,WILDCARD_TEXT_FILE
 from ..dialogs.dialogs_general import HelpDialog
 
 class MappingDialog(wx.Dialog):
@@ -685,7 +686,7 @@ class AutomaticTest(wx.Dialog):
         super(AutomaticTest, self).__init__(parent)
         self.SetFont(parent.GetFont())
         self.SetTitle("Automatic test result")
-        
+        self.controller=parent.controller
         result=parent.controller.automatic_statistic_test().get_response()
 
         normal_variables=["None"]
@@ -730,6 +731,7 @@ class AutomaticTest(wx.Dialog):
         sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Normality"), wx.HORIZONTAL)
         sizer_3.Add(sizer_4, 0, wx.ALL | wx.EXPAND, margin)
 
+        self.normal_variables=normal_variables
         self.list_box_normal = wx.ListBox(self, wx.ID_ANY, choices=normal_variables)
         sizer_4.Add(self.list_box_normal, 1, wx.ALL | wx.EXPAND, 10)
 
@@ -773,12 +775,41 @@ class AutomaticTest(wx.Dialog):
         sizer_1.Fit(self)
 
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeCovarianceFilter,self.combobox_filter_covariance)
+        self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         self.SetAffirmativeId(self.button_SAVE.GetId())
         self.SetEscapeId(self.button_CLOSE.GetId())
 
         self.Center()
         self.Layout()
+
+    def OnSave(self,evt):
+        content="Results:\n"
+        content+="Normal variables:"
+
+        for elem in self.normal_variables:
+            content+=str(elem)
+            if elem!=self.normal_variables[-1]:  
+                content+=','
         
+        content+="\n\nCorrelations: \n"
+        for elem in self.covariance_list:
+            content+=elem+"\n"
+        content+="\n\nStatistical differences: \n"
+        for elem in self.grouped_different_variables:
+            content+=elem+"\n"
+
+        response=IOManage.GetPath(self,"Save file",wildcard=WILDCARD_TEXT_FILE,default_name="statistics").get_response()
+        
+        if response['status']==Status.OK:
+            path=response['data']
+            response=self.controller.save_file(content,path).get_response()
+
+            if response['status']==Status.OK:
+                wx.MessageBox("File Succesfully saved in "+path,"Info")
+            else:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+        
+
     def OnChangeCovarianceFilter(self,evt):
         filter=self.combobox_filter_covariance.GetValue()
         filtered=[value for value in self.covariance_list if (str(filter) in value)]
