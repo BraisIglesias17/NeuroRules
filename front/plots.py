@@ -189,6 +189,7 @@ def plot_barplot_object(data,xtitle,ytitle,title=""):
           xtitle - X axis wanted title
           ytitle - Y axis wanted title
     """
+    plt.close('all')
     plt.figure(title)
     labels = list(data.keys())
     values = list(data.values())

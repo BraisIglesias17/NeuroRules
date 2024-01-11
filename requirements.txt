@@ -1,7 +1,9 @@
 pandas
 scipy
 sklearn
-wx
+wxPython
 matplotlib
 mpl_toolkits
 skfuzzy
+graphviz
+pydotplus

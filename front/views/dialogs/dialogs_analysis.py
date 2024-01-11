@@ -1250,10 +1250,18 @@ class StatisticDialog(wx.Dialog):
         self.combo_box_test.Enable(val)
 
     def OnChangeCorrCov(self,evt):
-        if self.checkbox_corr.GetValue() or self.checkbox_covariance.GetValue() or self.checkbox_automatic_tests.GetValue():
+        if self.checkbox_automatic_tests.GetValue():
             self.EnableComponents(False)
+            self.checkbox_corr.Enable(False)
+            self.checkbox_covariance.Enable(False)
+        elif self.checkbox_corr.GetValue() or self.checkbox_covariance.GetValue():
+            self.EnableComponents(False)
+            self.checkbox_corr.Enable(True)
+            self.checkbox_covariance.Enable(True)
         else:
             self.EnableComponents(True)
+            self.checkbox_corr.Enable(True)
+            self.checkbox_covariance.Enable(True)
 
     def validate_choice(self,val):
         if val=="":

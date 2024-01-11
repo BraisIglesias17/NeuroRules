@@ -831,7 +831,7 @@ class MainWindow(wx.Frame):
         #aboutInfo.SetLicense("https://www.gnu.org/licenses/gpl-2.0.html")
         aboutInfo.AddDeveloper("Brais Iglesias Otero")
         #aboutInfo.AddDocWriter("Brais Iglesias Otero")
-        #aboutInfo.SetWebSite('https://es.linkedin.com/in/brais-iglesias-otero-475897214')
+        aboutInfo.SetWebSite('https://neurorule.com')
         wx.adv.AboutBox(aboutInfo)
         #dialog=AboutUsDialog(self)
         #dialog.ShowModal()

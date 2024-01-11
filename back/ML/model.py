@@ -63,7 +63,7 @@ class ParamsMapper():
         return {
                     'Linear Regression': {
                         'fit_intercept': [True, False],
-                        'normalize': [True, False],
+                        
                     },
                     'Random Forest Classifier': {
                         'n_estimators': [10, 50, 100],
@@ -230,6 +230,7 @@ class ModelImplementation(Model):
         for n in range(1,self.params['max_inputs']):
             combs.extend(combinations(names_input,n))
         
+        
         n_membership_input=self.params['mf_inputs']
         n_membership_output=self.params['mf_outputs']
         name="submodel_"
@@ -395,13 +396,13 @@ class ModelImplementation(Model):
         if gridSearch:
             self.grid_search=gridSearch
             grid=ParamsMapper.model_params()
-
             crf=GridSearchCV(self.model,param_grid=grid[self.modelname],cv=subsets,scoring=scorer)
             crf.fit(input,target)
             self.training_scores={scorer:crf.best_score_}
             self.model=crf.best_estimator_
+            self.test_scores=self.get_score(self.X_test,self.y_test)
+            self.training_scores=self.get_score(input,target)
         elif cv:
-
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
@@ -409,7 +410,8 @@ class ModelImplementation(Model):
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
             self.model.fit(input,target)
             self.test_scores=self.get_score(self.X_test,self.y_test)
-            self.training_scores={'average_'+scorer:np.mean(scores),'folds_'+scorer:scores}
+            self.training_scores={'folds_'+scorer:scores} | self.get_score(input,target)
+            #self.training_scores={'folds_'+scorer:scores,'average_'+scorer:np.mean(scores)} | self.get_score(input,target)
         else:
             self.model.fit(input,target)
             self.training_scores=self.get_score(input,target)

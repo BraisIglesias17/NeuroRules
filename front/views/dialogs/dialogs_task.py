@@ -184,7 +184,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_rg_4 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Max inputs"), wx.VERTICAL)
         sizer_rg_3.Add(sizer_rg_4, 0, wx.ALL, 10)
 
-        self.spin_max_inputs = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=1, max=3)
+        self.spin_max_inputs = wx.SpinCtrl(self.notebook_regression, wx.ID_ANY, "2", min=1, max=2)
         sizer_rg_4.Add(self.spin_max_inputs, 0, wx.ALL, 5)
 
         sizer_rg_5 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Input membership functions"), wx.VERTICAL)
@@ -293,8 +293,10 @@ class RuleGeneratinglDialog(wx.Dialog):
 
         if learning_rate<0 or learning_rate>1:
             wx.MessageBox("The learning rate must be between 0 and 1", "Error",wx.ICON_ERROR)
-        elif self._check_bounds(input_mf,2) or self._check_bounds(output_mf,2) or self._check_bounds(max_inputs,1):
+        elif self._check_bounds(input_mf,2) or self._check_bounds(output_mf,2):
             wx.MessageBox("The value must be between 1 and 3", "Error",wx.ICON_ERROR)
+        elif self._check_bounds(max_inputs,1,2):
+            wx.MessageBox("The value must be between 1 and 2", "Error",wx.ICON_ERROR)
         else:
 
             params={'max_inputs':max_inputs,
@@ -870,8 +872,6 @@ class CrossValidationDialog(wx.Dialog):
 
         sizer_figure.Add(self.canvas, 1, wx.EXPAND, 0)
 
-
-
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
@@ -883,9 +883,14 @@ class CrossValidationDialog(wx.Dialog):
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
+        self.Bind(wx.EVT_CLOSE,self.OnClose)
         self.SetEscapeId(self.button_CLOSE.GetId())
 
         self.Layout()
+    
+    def OnClose(self,evt):
+        
+        self.Destroy()
 ##
 # Shows the result of predicting model
 ## 
@@ -1138,17 +1143,13 @@ class ResultsDialog(wx.Dialog):
         title=variable+" prediction with "+model+" training"
 
         if self.currentValidation=="Cross Validation":
-
             #DISPLAY NEW WINDOW
-            
             title=variable+" prediction with "+model+" cross validation"
-
             keys=list(self.currentMetrics['training_validation'].keys())
-            
             metric=keys[0].split("_")[1]
             data={}
-            for i in range(len(self.currentMetrics['training_validation'][keys[1]])):
-                data['fold'+str(i)]=self.currentMetrics['training_validation'][keys[1]][i]
+            for i in range(len(self.currentMetrics['training_validation']['folds_'+metric])):
+                data['fold'+str(i)]=self.currentMetrics['training_validation']['folds_'+metric][i]
             
             dialog=CrossValidationDialog(self,data,metric)
             dialog.ShowModal()
@@ -1200,31 +1201,22 @@ class ResultsDialog(wx.Dialog):
     def OnSelectModel(self,evt):
         model=evt.GetString()
         output=self.lb_outputs.GetString(self.lb_outputs.GetSelection())
-        
         response=self.controller.get_output_info(output).get_response()
-        
         if model!="":
-            
             self._enableButtons(True)
         else:
-            
             self._enableButtons(False)
-
         if response['status']==Status.OK:
-            
             self._enableButtons(True)
-
             tmp=response['data'][model]
-
             metrics=tmp['metrics']
             model_info=tmp['options']['params']
             grid_search=tmp['options']['grid_search']
             validation=tmp['validation']
-
+            
             self.currentMetrics=tmp['metrics']
             self.currentModel=model_info
             self.currentValidation=validation
-            formated_metrics=""
             
             j=0
             for phase in metrics:
@@ -1232,24 +1224,30 @@ class ResultsDialog(wx.Dialog):
                 for metric in metrics[phase]:
                     name='r2'
                     metric_name=metric
-                    if validation=="Cross Validation" and phase=='training_validation' and metric=="average_r2":
-                        name='average_r2'
-                        metric_name="r2"
+                    
+                    if 'folds' in metric:
+                        continue
+                    # if validation=="Cross Validation" and phase=='training_validation' and metric=="average_r2":
+                    #     name='average_r2'
+                    #     metric_name="r2"
+                    #     self.button_plot_metrics_trainings.SetLabelText("View CV results")
+                    # elif validation=="Cross Validation" and phase=='training_validation' and metric=="average_accuracy":
+                    #     metric_name="accuracy"
+                    #     self.button_plot_metrics_trainings.SetLabelText("View CV results")
+                    # elif validation=="Cross Validation" and phase=='training_validation':
+                    #     self.button_plot_metrics_trainings.SetLabelText("View CV results")
+                    #     break
+                    # else: 
+                    #     self.button_plot_metrics_trainings.SetLabelText("Plot training metrics")
+                    if validation=="Cross Validation":
                         self.button_plot_metrics_trainings.SetLabelText("View CV results")
-                    elif validation=="Cross Validation" and phase=='training_validation' and metric=="average_accuracy":
-                        metric_name="accuracy"
-                        self.button_plot_metrics_trainings.SetLabelText("View CV results")
-
-                    elif validation=="Cross Validation" and phase=='training_validation':
-                        self.button_plot_metrics_trainings.SetLabelText("View CV results")
-                        break
                     else:
-                        
                         self.button_plot_metrics_trainings.SetLabelText("Plot training metrics")
 
                     self.validation_grid.SetRowLabelValue(i,metric_name)
 
                     value=np.round(metrics[phase][metric],3)
+
                     if metric==name:
                         if value < 0.5:
                             colour=wx.Colour('#e07453')
@@ -1470,10 +1468,8 @@ class PredictionModelDialog(wx.Dialog):
         #self.SetAffirmativeId(self.button_OK.GetId())
         self.SetEscapeId(self.button_CANCEL.GetId())
 
-
         self.Center()
         self.Layout()
-
 
     def OnHelp(self,evt):
         dialog=HelpDialog(self,file="./front/resources/help/prediction_dialog_help.json",title="Prediction Model")
@@ -1498,6 +1494,9 @@ class PredictionModelDialog(wx.Dialog):
         return ok
     
     def OnCheckGrid(self,evt):
+        if evt.IsChecked():
+            wx.MessageBox("Notice that activating the grid search will slow down the training.","Warning",wx.ICON_WARNING)
+
         variable=self.combo_box_targets.GetString(self.combo_box_targets.GetSelection())
         variable=variable.split(" - ")[0]
 
