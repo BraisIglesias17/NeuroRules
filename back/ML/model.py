@@ -208,6 +208,7 @@ class ModelImplementation(Model):
         self.discarded={}
         for i in range(input.shape[1]):
             col=input[:,i]
+            
             pvalue=pearsonr(col,target).pvalue
                 
             if pvalue>0.5:
@@ -225,13 +226,16 @@ class ModelImplementation(Model):
         X_test=np.delete(X_test,toDel,axis=1)
        
         r2=-100
-        combs=names_input+list(combinations(names_input,self.params['max_inputs']))
+        combs=[]
+        for n in range(1,self.params['max_inputs']):
+            combs.extend(combinations(names_input,n))
         
         n_membership_input=self.params['mf_inputs']
         n_membership_output=self.params['mf_outputs']
         name="submodel_"
         i=1
-        
+
+        print(combs)
         for combination in combs:
             name_=name+str(i)
             indexes=[]
@@ -257,7 +261,8 @@ class ModelImplementation(Model):
             self.model.fit(self.params['learning_rate'])
 
             scores=self.get_score(X=X,y=target)
-               
+            
+            
             if len(X_test_tmp.shape)==1:
                 X_test_tmp=X_test_tmp.reshape(-1,1)
 
@@ -268,6 +273,7 @@ class ModelImplementation(Model):
                 bestmodel=True
             self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}            
             i+=1
+        
         #submodel pruning
         # self.submodels=self.SRM(self.submodels)
         self._generate_ensemble_model(input.shape[0],target)
