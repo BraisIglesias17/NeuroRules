@@ -595,7 +595,9 @@ class ContextData():
         removed_row=0
 
         if settings['delete_missing']:
+            size_before=self.data.shape[0]
             self.data=remove_missing(self.data,variable)
+            removed_row+=size_before-self.data.shape[0]
         else:
             if settings['substitute_missing']!="None":
                 self.data=susbstitute_missing(self.data,variable,settings['substitute_missing'])

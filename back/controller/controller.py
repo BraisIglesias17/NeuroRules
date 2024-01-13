@@ -6,6 +6,7 @@ from ..saver import Saver
 from ..tracer import Trace
 from numpy.typing import ArrayLike
 from pandas import DataFrame
+import traceback
 
 class Controller():
 
@@ -24,6 +25,7 @@ class Controller():
                 response = function(*args, **kwargs)
                 return response
             except Exception as exc:
+                traceback.print_exc()
                 trace=Trace()
                 trace.log(message=str(exc),level=Trace.ERROR)
                 return Response(data=str(exc),status=Status.GENERAL_ERROR)
@@ -172,7 +174,6 @@ class Controller():
     @template_method
     def set_cleanse_option(self,variable:str,options):
         self.contextData.set_cleanse(variable,options)
-        self.trace.log(f"Cleanse applied to "+variable)
         return Response(data="",status=Status.OK)
         
         
@@ -204,7 +205,8 @@ class Controller():
     
     @template_method 
     def apply_cleanse(self,variable:str):
-        result=self.contextData.apply_cleanse(variable)    
+        result=self.contextData.apply_cleanse(variable) 
+        Trace().log(f"Cleanse applied to {variable} with {result[0]} deleted and {result[1]} modified")
         return Response(data={'deleted_rows':result[0],'modified_rows':result[1]},status=Status.OK)
         
         
@@ -245,6 +247,7 @@ class Controller():
     def rename_col(self,new_name: str,old_name:str):
         res=self.contextData.rename_col(new_name,old_name)
         if res:
+            Trace().log(f"Variable {old_name} renamed to {new_name}")
             return Response(data={},status=Status.OK)
         
 
@@ -275,6 +278,7 @@ class Controller():
     @template_method
     def create_task(self,taskname:str,models,validation,rules):
         self.currentTask=Task(taskname,self.contextData,models,validation,rules)
+        Trace().log(f"Created task {taskname}")
         return Response(data={},status=Status.OK)
  
   
@@ -286,7 +290,8 @@ class Controller():
    
     @template_method
     def execute_task(self,callable,*args):
-        self.currentTask.execute(callable)    
+        self.currentTask.execute(callable) 
+        Trace().log(f"Executed task")   
         return Response(data={},status=Status.OK)
       
    
@@ -306,8 +311,7 @@ class Controller():
     def get_text_reports(self,variable:str):    
         return Response(data=self.currentTask.get_text_reports(variable),status=Status.OK)
  
-    
-  
+ 
     @template_method
     def get_task_name(self): 
         name=""
@@ -337,6 +341,7 @@ class Controller():
         if self.currentTask==None:
             raise ValueError("Non existing task")
         self.currentTask.save(path)
+        Trace().log(f"Task saved in {path}")  
         return Response(data={},status=Status.OK)
         
 
@@ -347,7 +352,8 @@ class Controller():
     @template_method
     def import_task(self,path: str):
         self.currentTask=Task.load(path)
-        self.contextData=self.currentTask.context_data    
+        self.contextData=self.currentTask.context_data  
+        Trace().log(f"Task imported from {path}")    
         return Response(data={},status=Status.OK)
         
   
@@ -370,6 +376,7 @@ class Controller():
     def save_file(self,content,path: str):
         saver=Saver(path=path,content=content)
         saver.save()
+        Trace().log(f"File saved in {path}")  
         return Response(data={},status=Status.OK)
 
            

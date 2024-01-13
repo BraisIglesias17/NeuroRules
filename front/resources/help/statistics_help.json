@@ -48,7 +48,7 @@
     },
     "Automatic Test":{
         "content":{
-            "file":"./front/resources/html/createset_help.html"
+            "file":"./front/resources/html/automaticTest_help.html"
         },
         "child":false
     }

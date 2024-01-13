@@ -1,3 +1,4 @@
+import os
 import wx
 import wx.grid as gridlib
 import wx.adv
@@ -859,7 +860,7 @@ class MainWindow(wx.Frame):
 
     def OnFileSaveAsMenu(self,evt):
         
-        path=self.filename
+        path=os.path.normpath(self.filename)
         arr=self.filename.split("\\")
         name=arr[len(arr)-1]
         response=self.IO.GetPath(self,message="Save summary",wildcard=WILDCARD_DATA_FILE,default_folder=path,default_name=name).get_response()

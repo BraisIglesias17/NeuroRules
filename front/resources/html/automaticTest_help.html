@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Automatic test</title>
+    <style>
+        body{
+           text-align: justify;
+        }
+    </style>
+</head>
+<body>
+    <h1>Automatic Test</h1>
+
+    <p>In order to run an automatic test you have to follow the next steps<p>
+        <ul>
+            <li> Check the <b>Run automatic test</b> box in the options.</li>
+            <li> Press <b>Run</b></li>
+        </ul>
+    
+    <b>What is it that it does?</b>
+    <p> This option performs several statistic methods so that the user doesn't have to
+        go one by one in the data. <br>First of all, a shapiro normality test is run in every numerical variable,
+        indicating in the final results those who have passed the test and follow a normal distribution.
+        <br>Then the correlations between numerical variables are obtained and determined as relevant if they are over 0.8
+        (straight correlation) or under -0.8 (inverse correlation).
+        <br>Finally, if there is any nominal variable, a test of difference between groups (in pairs) is executed and 
+        displayed the results if there is actual differences. This test execute ANOVA for those variables who have 
+        a normal distribution and Wilcoxon (Mann-Whitney U) if they do not. 
+    </p>
+    <b>Note:</b> the program launches a warning in case the number of categorical groups is too high, because this could
+    cause a very slow execution. Be careful with the number of variables and groups in your data.
+
+</body>
+</html>

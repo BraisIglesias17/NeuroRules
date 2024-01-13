@@ -82,7 +82,7 @@ class Settings():
         """
             Function that returns the path that is currently setted as defaultt
         """
-        return Path(self.default_path).name
+        return os.path.normpath(self.default_path)
     
     def _build_xml(self):
         """

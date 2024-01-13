@@ -338,7 +338,7 @@ class ModelImplementation(Model):
             y_pred = self.model.predict(self.X_test)
 
             cm = confusion_matrix(self.y_test, y_pred)
-
+            plt.close("all")
             plt.figure(figsize=(8, 6))
             sns.heatmap(cm, annot=True, fmt="d", cmap=sns.color_palette("vlag", as_cmap=True), cbar=False,
                         xticklabels=self.class_names, yticklabels=self.class_names)
