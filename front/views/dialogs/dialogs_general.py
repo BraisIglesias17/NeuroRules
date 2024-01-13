@@ -659,9 +659,9 @@ class HelpDialog(wx.Dialog):
         sizer_4 = wx.BoxSizer(wx.VERTICAL)
         sizer_3.Add(sizer_4, 0, wx.EXPAND, 0)
 
-        self.text_ctrl_1 = wx.SearchCtrl(self, wx.ID_ANY, "")
-        self.text_ctrl_1.ShowCancelButton(True)
-        sizer_4.Add(self.text_ctrl_1, 0, wx.ALL, 10)
+        self.text_search = wx.SearchCtrl(self, wx.ID_ANY, "")
+        self.text_search.ShowCancelButton(True)
+        sizer_4.Add(self.text_search, 0, wx.ALL, 10)
 
         self.tree = wx.TreeCtrl(self, wx.ID_ANY, style=wx.BORDER_SUNKEN | wx.TR_HAS_BUTTONS | wx.TR_NO_BUTTONS | wx.TR_SINGLE)
         sizer_4.Add(self.tree, 1, wx.ALL | wx.EXPAND, 10)
@@ -698,12 +698,51 @@ class HelpDialog(wx.Dialog):
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
 
+        self.Bind(wx.EVT_SEARCH,self.OnSearchOnFiles,self.text_search)
         self.Bind(wx.EVT_TREE_SEL_CHANGED,self.OnChangeTreeSelection,self.tree)
         self.SetAffirmativeId(self.button_OK.GetId())
         self.SetSize(900,800)
         self.Center()
         self.Layout()
     
+
+    def OnSearchOnFiles(self,evt):
+        pattern=evt.GetString()
+        if pattern!='':
+            self.location_file=""
+            
+            if self._explore_tree(self.content,pattern):
+                with open(self.location_file, 'r') as file:
+                    content = file.read()
+                self.browser.SetPage(content, "")
+
+            self.location_file=""
+
+    def _explore_tree(self,tree,pattern):
+        keys=list(tree.keys())
+        for key in keys:
+            if isinstance(tree[key]['content'],bool):
+                self._explore_tree(tree[key]['child'],pattern)
+            else:
+                if self._findPattern(pattern,tree[key]['content']):
+                    return True
+                
+        if self.location_file!='':
+            return True
+        
+        return False
+
+    def _findPattern(self,pattern:str,leaf):
+        file=leaf['file']
+        with open(file, 'r') as file:
+            content = file.read()
+        if pattern in content:
+            self.location_file=leaf['file']
+            return True
+        return False
+    
+
+
     def OnChangeTreeSelection(self,evt):
         try:
             itemId=self.tree.GetSelection()
@@ -711,28 +750,25 @@ class HelpDialog(wx.Dialog):
                 selection=self.tree.GetItemText(itemId)
                 parent_item=self.tree.GetItemParent(self.tree.GetSelection())
                 parent=self.tree.GetItemText(parent_item)
+                path=''
                 if parent_item==self.root:
-                    path=self.content[selection]['content']['file']
+                    if not isinstance(self.content[selection]['content'],bool):
+                        path=self.content[selection]['content']['file']
                 else:
                     path=self.content[parent]['child'][selection]['content']['file']
                 
-                with open(path, 'r') as file:
-                    content = file.read()
+                if path!='':
+                    with open(path, 'r') as file:
+                        content = file.read()
 
-                #self.browser.LoadURL("file:///"+file)
-                self.browser.SetPage(content, "")
-
+                    self.browser.SetPage(content, "")
         except Exception as exc:
             print(exc)
         
 
     def _build_tree(self,content):
-        
-
         self.root = self.tree.AddRoot(self.title)
-
         self._create_layers(content,self.root)
-
         self.tree.Expand(self.root)
     
     def _create_layers(self,layer,parent):
