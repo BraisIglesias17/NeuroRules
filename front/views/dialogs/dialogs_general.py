@@ -891,8 +891,8 @@ class TraceDialog(wx.Dialog):
 
         
         self.settings=parent.setting
-        content=self._fill_text("all")
-        
+        self.controller=parent.controller
+
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
         sizer_filter = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Filter by level"), wx.HORIZONTAL)
@@ -905,9 +905,12 @@ class TraceDialog(wx.Dialog):
         sizer_3 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Logs"), wx.HORIZONTAL)
         sizer_1.Add(sizer_3, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
-        self.text_logs = wx.TextCtrl(self, wx.ID_ANY,content, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.text_logs = wx.TextCtrl(self, wx.ID_ANY,"", style=wx.TE_MULTILINE | wx.TE_READONLY)
         sizer_3.Add(self.text_logs, 1, wx.ALL | wx.EXPAND, 10)
 
+        for log in self._fill_text("all"):
+            self.text_logs.AppendText(log)
+        
         sizer_2 = wx.StdDialogButtonSizer()
         sizer_1.Add(sizer_2, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
@@ -933,24 +936,24 @@ class TraceDialog(wx.Dialog):
     def OnChangeFilter(self,evt):
         level=self.cb_level.GetValue()
         logs=self._fill_text(level)
-        self.text_logs.SetLabelText(logs)
+        self.text_logs.SetLabelText("")
+        for log in logs:
+            self.text_logs.AppendText(log)
 
     def _fill_text(self,level):
-        logs=""
+        logs=[]
         trace=Trace()
         history=trace.get_log_history()
         for log in history:
             if level!="all":
                 if log['level']==level:
-                    logs=logs+str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n"
+                    logs.append(str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n")
             else:
-                logs=logs+str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n"
-        
+                logs.append(str(log['time'])+" - "+str(log['level'])+" - "+log['message']+"\n")
         return logs
 
     def OnSave(self,evt):
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.settings.GetPath()).get_response()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.settings.get_default_path()).get_response()
         if path['status']==Status.OK: 
-            saver=Saver(path['data'],content=self.text_logs.GetLabelText())
-            saver.save()
+            self.controller.save_file(path['data'],self.text_logs.GetLabelText())
             wx.MessageBox("File saved succesfully in "+path['data'],"Info")

@@ -191,7 +191,7 @@ class ModelImplementation(Model):
     def _fit_rule_generating_classifier(self,input: ArrayLike,target: ArrayLike,input_names:list[str],class_names: list[str]):
         
         self.model=NeuroClassifier(input_names,class_names,self.params)
-
+        
         self.model.fit(X=input,y=target)
         self.n_classes=len(class_names)
         self.class_names=class_names
@@ -448,13 +448,13 @@ class ModelImplementation(Model):
             avg="binary"
             if self.n_classes>2:
                 avg="weighted"
-                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg)
-                tmp['precision']=precision_score(y,y_pred,average=avg)
-                tmp['recall']=recall_score(y_pred,y,average=avg)
+                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,zero_division=1.0)
+                tmp['precision']=precision_score(y,y_pred,average=avg,zero_division=1.0)
+                tmp['recall']=recall_score(y_pred,y,average=avg,zero_division=1.0)
             else:
-                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0])
-                tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg)
-                tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg)
+                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0],zero_division=1.0)
+                tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg,zero_division=1.0)
+                tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg,zero_division=1.0)
                 
             tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y)
             

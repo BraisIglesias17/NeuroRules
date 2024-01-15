@@ -623,8 +623,8 @@ class ContextData():
 
 
     def delete_marked(self):
-        
         self.data.drop(list(self.toDel),axis=0,inplace=True)
+        self.toDel=set()
         self.data=self.data.reset_index(drop=True)
         self.values=self.data.to_numpy()
 
