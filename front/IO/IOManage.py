@@ -63,11 +63,11 @@ class IOManage():
         """
         pathname=conf['pathname']
         if str(pathname).endswith(".csv"):
-            with open(pathname, 'r',encoding="utf-8") as file:
+            with open(pathname, 'r') as file:
                 data = pd.read_csv(file,sep=conf['sep'],decimal=conf['dec'])
                 name=file.name
         elif str(pathname).endswith(".xlsx"):
-            with open(pathname, 'r',encoding="utf-8") as file:
+            with open(pathname, 'r') as file:
                 data = pd.read_excel(file.name,decimal=conf['dec'])
                 name=file.name
         else:

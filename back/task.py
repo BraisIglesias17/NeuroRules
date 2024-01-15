@@ -163,9 +163,11 @@ class Task():
                             ,names_input=self.input_names
                             ,name_output=self.output_name
                             ,types=self.types,X_test=self.X_test,y_test=y_test)
+                
+                i+=inc/n_models
                 if callable_function is not None:
                     callable_function(int(i))       
-                i+=inc/n_models
+                
             print(f"\tfinishing {variable}...")
         self.executed=True
         print("Training finished")

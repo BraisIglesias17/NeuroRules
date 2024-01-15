@@ -920,6 +920,7 @@ class SingleSummaryDialog(wx.Dialog):
                     wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
                 else:
                     g=response['data']
+                    
                     plot_histogram_grouped(pd.DataFrame({self.variable:x,self.group:g}),self.variable,self.group)
             else:
                 plot_countplot(x)
@@ -1301,11 +1302,13 @@ class StatisticDialog(wx.Dialog):
             df=self.controller.get_data().get_response()['data']
             
             df=df.drop(self.identifier_cols,axis=1)
-            if self.checkbox_corr.GetValue():
-                plot_correlation_matrix(df)
-            if self.checkbox_covariance.GetValue():
-                plot_covariance_matrix(df)
-
+            if df.shape[1]>0:
+                if self.checkbox_corr.GetValue():
+                    plot_correlation_matrix(df)
+                if self.checkbox_covariance.GetValue():
+                    plot_covariance_matrix(df)
+            else:
+                wx.MessageBox("There is no available data to represent","Info")
             other_option=True
         else:
 
@@ -1397,21 +1400,24 @@ class StatisticDialog(wx.Dialog):
 
     def OnLaunchResulDialog(self,test,test_name,variables,names,condition=True,msg=""):
         
-        title=""
-        message=""
-        if len(variables)==2:
-            result=test(variables[0],variables[1])
-            a=names[0]
-            b=names[1]
-            title=str("Test "+test_name+" on "+a+" and "+b)
-            message=str(msg+a+" and "+b)
-        else:
-            result=test(variables[0])
-            title="Test "+test_name+" on "+names[0]
-            message=msg
+        try:
+            title=""
+            message=""
+            if len(variables)==2:
+                result=test(variables[0],variables[1])
+                a=names[0]
+                b=names[1]
+                title=str("Test "+test_name+" on "+a+" and "+b)
+                message=str(msg+a+" and "+b)
+            else:
+                result=test(variables[0])
+                title="Test "+test_name+" on "+names[0]
+                message=msg
 
-        dialog=TestResultDialog(self,title,{'pvalue':[result.pvalue]},message,condition)
-        dialog.ShowModal()
+            dialog=TestResultDialog(self,title,{'pvalue':[result.pvalue]},message,condition)
+            dialog.ShowModal()
+        except Exception as exc:
+            wx.MessageBox(str(exc),"Error",wx.ICON_ERROR)
         
     def OnChangeTest(self,event):
         test=self.combo_box_test.GetValue()

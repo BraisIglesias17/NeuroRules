@@ -863,7 +863,7 @@ class MainWindow(wx.Frame):
         path=os.path.normpath(self.filename)
         arr=self.filename.split("\\")
         name=arr[len(arr)-1]
-        response=self.IO.GetPath(self,message="Save summary",wildcard=WILDCARD_DATA_FILE,default_folder=path,default_name=name).get_response()
+        response=self.IO.GetPath(self,message="Save as",wildcard=WILDCARD_DATA_FILE,default_folder=path,default_name=name).get_response()
 
         if response['status']==Status.OK:
             pathname=response['data']
@@ -874,7 +874,7 @@ class MainWindow(wx.Frame):
     def OnFileSaveMenu(self,evt):
         code=wx.YES
         if self.override_warning and self.filename!="":
-            code=wx.MessageBox("Are you sure you want to override "+self.filename,"Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
+            code=wx.MessageBox("Are you sure you want to override "+self.filename+'?',"Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
             self.override_warning=False
         
         file=self.filename

@@ -448,10 +448,16 @@ class ModelImplementation(Model):
             avg="binary"
             if self.n_classes>2:
                 avg="weighted"
+                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg)
+                tmp['precision']=precision_score(y,y_pred,average=avg)
+                tmp['recall']=recall_score(y_pred,y,average=avg)
+            else:
+                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0])
+                tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg)
+                tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg)
+                
             tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y)
-            tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0])
-            tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg)
-            tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg)
+            
 
         return tmp
 

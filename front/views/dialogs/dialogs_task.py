@@ -230,14 +230,16 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Criterion"), wx.VERTICAL)
         sizer_cls_2.Add(sizer_6, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
-        self.cb_criterion = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["gini","entropy","log_loss"])
+        self.criterion_choices=["gini","entropy","log_loss"]
+        self.cb_criterion = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=self.criterion_choices)
         self.cb_criterion.SetSelection(0)
         sizer_6.Add(self.cb_criterion, 0, wx.ALL | wx.EXPAND, 5)
 
         sizer_cls__3 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_classification, wx.ID_ANY, "Splitter"), wx.VERTICAL)
         sizer_cls_2.Add(sizer_cls__3, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
-        self.cb_splitter = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=["best","random"])
+        self.splitter_choices=["best","random"]
+        self.cb_splitter = wx.Choice(self.notebook_classification, wx.ID_ANY, choices=self.splitter_choices)
         self.cb_splitter.SetSelection(0)
         sizer_cls__3.Add(self.cb_splitter, 0, wx.ALL | wx.EXPAND, 5)
 
@@ -274,12 +276,32 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeRegressionParameter,self.spin_learning_rate)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_criterion)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_splitter)
+        self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
         #self.Bind(wx.EVT_CHECKBOX,self.OnSelectAuto,self.checkbox_automatic)
        
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
         self.Layout()
+
+    def OnChangeOutput(self,evt):
+        variable=evt.GetString().split(' - ')[0]
+        if variable!='All':
+            prblm=evt.GetString().split(' - ')[1]
+
+            current_conf=self.model_selection[variable]['params']
+            
+            if prblm=="regression":
+                self.spin_learning_rate.SetValue(current_conf['learning_rate'])
+                self.spin_max_inputs.SetValue(current_conf['max_inputs'])
+                self.spin_input_mf.SetValue(current_conf['mf_inputs'])
+                self.spin_output_mf.SetValue(current_conf['mf_outputs'])
+            else:
+
+                self.cb_splitter.SetSelection(self.splitter_choices.index(current_conf['splitter']))
+                self.cb_criterion.SetSelection(self.criterion_choices.index(current_conf['criterion']))
+
+        
 
     def _check_bounds(self,value,min=0,max=3):
         return (value<min or value>max)
@@ -330,7 +352,7 @@ class RuleGeneratinglDialog(wx.Dialog):
                if output!='All':
                    self.updateParams(output,"classification",params)
         else:
-            self.uptadeParams(output,"classification",params)
+            self.updateParams(target,"classification",params)
     
     def OnContinue(self,evt):
         name,cancel=get_task_name(self)
@@ -423,22 +445,26 @@ class PredictDialog(wx.Dialog):
 
 
     def OnPredict(self,evt):
-        values=[]
-        for row in range(self.n_inputs):
-            values.append(self.grid_inputs.GetCellValue(row,1))
 
-        response=self.controller.get_prediction(self.variable,self.model,values,self.submodel).get_response()
+        try:
+            values=[]
+            for row in range(self.n_inputs):
+                values.append(self.grid_inputs.GetCellValue(row,1))
 
-        if response['status']!=Status.OK:
-            wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
-        elif response['status']==Status.OK:
-            
-            if Validator.check_parse_float(response['data'][0]):
-                value=np.round(response['data'],3)[0]
-            else:
-                value=response['data'][0]
+            response=self.controller.get_prediction(self.variable,self.model,values,self.submodel).get_response()
 
-            self.output_field.SetLabelText(str(value))
+            if response['status']!=Status.OK:
+                wx.MessageBox(response['data'],"Error",wx.ICON_ERROR)
+            elif response['status']==Status.OK:
+                
+                if Validator.check_parse_float(response['data'][0]):
+                    value=np.round(response['data'],3)[0]
+                else:
+                    value=response['data'][0]
+
+                self.output_field.SetLabelText(str(value))
+        except Exception:
+            wx.MessageBox("An unexpected error has ocurred while predicting","Error",wx.ICON_ERROR)
 
     def fillInputs(self):
         
@@ -1722,13 +1748,18 @@ class TaskReportDialog(wx.Dialog):
 
     def OnApply(self,event):
         targets=self.controller.get_target_indexes().get_response()['data']
+        size=self.controller.get_data_shape().get_response()['data']
+        code=wx.YES
+        if size[0]>10000:
+            code=wx.MessageBox("The dataset is quite big, this could take a while. You may consider training the models in background. Continue anyway?","Warning",wx.ICON_WARNING|wx.YES|wx.YES_DEFAULT|wx.NO)
         maximum=len(targets)*100
-        print(maximum)
-        self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_AUTO_HIDE)
-        #self.progressbar.Update(10,"Training in progress...")
-        #self.execute_thread()
-        thread = threading.Thread(target=self.execute_thread)
-        thread.start()
+        
+        if code==wx.YES:
+            self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_AUTO_HIDE)
+            #self.progressbar.Update(10,"Training in progress...")
+            #self.execute_thread()
+            thread = threading.Thread(target=self.execute_thread)
+            thread.start()
     
     def OnApplyBg(self,evt):
         from plyer import notification
@@ -1755,6 +1786,7 @@ class TaskReportDialog(wx.Dialog):
 
     def execute_thread(self):
         self._activate_training(False)
+
         response=self.controller.execute_task(self.update_progress).get_response()
      
         #wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
