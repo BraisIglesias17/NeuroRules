@@ -421,6 +421,7 @@ class NeuroFuzzy():
         
         batch=int(np.ceil(training_size/2))
         god=False
+
         iterations=epochs*int(np.ceil((training_size/batch)))
 
         if training_size%batch==0:

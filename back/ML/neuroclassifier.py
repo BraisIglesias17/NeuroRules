@@ -8,7 +8,6 @@ class NeuroClassifier():
 
     def __init__(self,names: list[str],classes: list[str],params: {}):
         
-        
         self.tree=DecisionTreeClassifier(max_depth=len(names),**params)
         self.class_names=classes
         self.names=names
@@ -38,45 +37,34 @@ class NeuroClassifier():
 
     def _get_rules(self):
         tree_ = self.tree.tree_
-        feature_name = [ self.names[i] if i != _tree.TREE_UNDEFINED else "undefined!" for i in tree_.feature ]
+        feature_names = [ self.names[i] if i != _tree.TREE_UNDEFINED else "undefined!" for i in tree_.feature ]
         paths = []
         path = []
-        
-        def recurse(node, path, paths):
-            
-            if tree_.feature[node] != _tree.TREE_UNDEFINED:
-                name = feature_name[node]
-                threshold = tree_.threshold[node]
-                p1, p2 = list(path), list(path)
-                p1 += [f"({name} <= {np.round(threshold, 3)})"]
-                recurse(tree_.children_left[node], p1, paths)
-                p2 += [f"({name} > {np.round(threshold, 3)})"]
-                recurse(tree_.children_right[node], p2, paths)
-            else:
-                path += [(tree_.value[node], tree_.n_node_samples[node])]
-                paths += [path]
-                
-        recurse(0, path, paths)
-
-        samples_count = [p[-1][1] for p in paths]
-        ii = list(np.argsort(samples_count))
-        paths = [paths[i] for i in reversed(ii)]
-        
+        self.recorrer_arbol(tree_,0, path, paths,feature_names)
         rules = []
         for path in paths:
             rule = "IF "
-            
             for p in path[:-1]:
                 if rule != "IF ":
                     rule += " AND "
                 rule += str(p)
             rule += " THEN "
-            if self.class_names is None:
-                rule += "response: "+str(np.round(path[-1][0][0][0],3))
-            else:
-                classes = path[-1][0][0]
-                l = np.argmax(classes)
-                rule += f" {self.class_names[l]} ({np.round(classes[l]/np.sum(classes),2)})"
+            classes = path[-1][0][0]
+            l = np.argmax(classes)
+            rule += f" {self.class_names[l]} ({np.round(classes[l]/np.sum(classes),2)})"
             rules += [rule]
             
         return rules
+
+    def recorrer_arbol(self,tree,node, path, paths,feature_names):
+        if tree.feature[node] != _tree.TREE_UNDEFINED:
+            name = feature_names[node]
+            threshold = tree.threshold[node]
+            p1, p2 = list(path), list(path)
+            p1 += [f"({name} <= {np.round(threshold, 3)})"]
+            self.recorrer_arbol(tree,tree.children_left[node], p1, paths,feature_names)
+            p2 += [f"({name} > {np.round(threshold, 3)})"]
+            self.recorrer_arbol(tree,tree.children_right[node], p2, paths, feature_names)
+        else:
+            path += [(tree.value[node], tree.n_node_samples[node])]
+            paths += [path]
