@@ -125,7 +125,10 @@ class Controller():
         
     @template_method
     def get_names(self):
-        data=self.contextData.get_names()
+        if self.contextData!=None:
+            data=self.contextData.get_names()
+        else:
+            data=[]
         return Response(data=data,status=Status.OK)
        
     

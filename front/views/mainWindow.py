@@ -859,37 +859,44 @@ class MainWindow(wx.Frame):
             self.updateColors()
 
     def OnFileSaveAsMenu(self,evt):
-        
-        path=os.path.normpath(self.filename)
-        arr=self.filename.split("\\")
-        name=arr[len(arr)-1]
-        response=self.IO.GetPath(self,message="Save as",wildcard=WILDCARD_DATA_FILE,default_folder=path,default_name=name).get_response()
+        if self.controller.contextData!=None:
+            path=os.path.normpath(self.filename)
+            arr=self.filename.split("\\")
+            name=arr[len(arr)-1]
+            response=self.IO.GetPath(self,message="Save as",wildcard=WILDCARD_DATA_FILE,default_folder=path,default_name=name).get_response()
 
-        if response['status']==Status.OK:
-            pathname=response['data']
-            response=self.controller.save_data(pathname).get_response()
             if response['status']==Status.OK:
-                wx.MessageBox("Filed saved on "+pathname,"Info")
+                pathname=response['data']
+                response=self.controller.save_data(pathname).get_response()
+                if response['status']==Status.OK:
+                    wx.MessageBox("Filed saved on "+pathname,"Info")
+        else:
+            wx.MessageBox("There is no data to save","Error",wx.ICON_ERROR)
+        
 
     def OnFileSaveMenu(self,evt):
-        code=wx.YES
-        if self.override_warning and self.filename!="":
-            code=wx.MessageBox("Are you sure you want to override "+self.filename+'?',"Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
-            self.override_warning=False
         
-        file=self.filename
-        if self.filename=="":
-            response=self.IO.GetPath(self,message="Save as new file",wildcard=WILDCARD_DATA_FILE).get_response()
-            if response['status']==Status.OK:
-                file=response['data']
-                code==wx.YES
-            else:
-                code=wx.NO
+        if self.controller.contextData!=None:
+            code=wx.YES
+            if self.override_warning and self.filename!="":
+                code=wx.MessageBox("Are you sure you want to override "+self.filename+'?',"Info",wx.YES|wx.NO|wx.NO_DEFAULT|wx.ICON_WARNING)
+                self.override_warning=False
+            
+            file=self.filename
+            if self.filename=="":
+                response=self.IO.GetPath(self,message="Save as new file",wildcard=WILDCARD_DATA_FILE).get_response()
+                if response['status']==Status.OK:
+                    file=response['data']
+                    code==wx.YES
+                else:
+                    code=wx.NO
 
-        if code==wx.YES:
-            self.controller.save_data(file)
-            self.filename=file
-            self.updateStatusFile(file)
+            if code==wx.YES:
+                self.controller.save_data(file)
+                self.filename=file
+                self.updateStatusFile(file)
+        else:
+             wx.MessageBox("There is no data to save","Error",wx.ICON_ERROR)
 
     def OnShowHideOptions(self,evt):
         self.sizer_task.ShowItems(not self.showPredictionOptions.IsChecked())

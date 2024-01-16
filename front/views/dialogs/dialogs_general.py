@@ -501,6 +501,7 @@ class CreateSetDialog(wx.Dialog):
 
         self.new_set=parent.new_set
         self.controller=parent.controller
+        self.current_names=self.controller.get_names().get_response()['data']
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -603,8 +604,7 @@ class CreateSetDialog(wx.Dialog):
             wx.MessageBox("Not valid name for variable","Error",wx.ICON_ERROR)
         else:
             
-            current_names=list(self.new_set.keys())
-            if name in current_names:
+            if name in self.current_names:
                 wx.MessageBox("There is already a variable with this name.","Warning",wx.ICON_WARNING)
             else:
 

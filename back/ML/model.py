@@ -208,9 +208,7 @@ class ModelImplementation(Model):
         self.discarded={}
         for i in range(input.shape[1]):
             col=input[:,i]
-            
             pvalue=pearsonr(col,target).pvalue
-                
             if pvalue>0.5:
                 toDel.append(i)
                 self.discarded[names_input[i]]=pvalue
@@ -227,7 +225,8 @@ class ModelImplementation(Model):
        
         r2=-100
         combs=[]
-        for n in range(1,self.params['max_inputs']):
+        for n in range(1,self.params['max_inputs']+1):
+            print(n)
             combs.extend(combinations(names_input,n))
         
         
@@ -255,14 +254,10 @@ class ModelImplementation(Model):
 
             if len(names)==1:
                 X=X.reshape(-1,1)
-
-                
+    
             self.model=NeuroFuzzy(input=X,output=target,types=types,n_membership_input=n_membership_input,n_membership_output=n_membership_output,output_name=name_output,input_names=names)
-                
             self.model.fit(self.params['learning_rate'])
-
             scores=self.get_score(X=X,y=target)
-            
             
             if len(X_test_tmp.shape)==1:
                 X_test_tmp=X_test_tmp.reshape(-1,1)

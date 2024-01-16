@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.stats import chi2,pearsonr,shapiro,kruskal,kstest,f_oneway,mannwhitneyu,ttest_ind
 from numpy.typing import ArrayLike
+
 class StatisticTest():
     """
         Class that encapsulates the statistics test

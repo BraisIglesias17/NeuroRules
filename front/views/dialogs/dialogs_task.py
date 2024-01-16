@@ -313,8 +313,8 @@ class RuleGeneratinglDialog(wx.Dialog):
         output_mf=self.spin_output_mf.GetValue()
         target=self.combo_box_targets.GetValue()
 
-        if learning_rate<0 or learning_rate>1:
-            wx.MessageBox("The learning rate must be between 0 and 1", "Error",wx.ICON_ERROR)
+        if learning_rate<0 or learning_rate>10:
+            wx.MessageBox("The learning rate must be between 0 and 10", "Error",wx.ICON_ERROR)
         elif self._check_bounds(input_mf,2) or self._check_bounds(output_mf,2):
             wx.MessageBox("The value must be between 1 and 3", "Error",wx.ICON_ERROR)
         elif self._check_bounds(max_inputs,1,2):
