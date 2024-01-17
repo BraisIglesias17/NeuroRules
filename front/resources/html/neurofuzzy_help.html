@@ -1,15 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rule generating task</title>
+    <style>
+        body{
+            text-align: justify;
+            padding: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
     <h1>Rule generating task</h1>
 
-    <p>This kind of task trains a neurofuzzy or neuroclassifier network with your data.
+    <p>This kind of task trains a neurofuzzy or neuroclassifier network with your data. The aim is to obtain human readable rules from
+    the data.
     For each output, a combination of submodels given by the inputs is trained. Each submodel has its own 
     performance metrics and rules generated.
     </p>
 
+    <p>In order use a rule generating model follow the next steps: <p>
+        <ul>
+            <li> Select which variables will be the inputs.</li>
+            <li> Select which variables will be the outputs, a neurofuzzy or neuroclassifier system 
+                will be generated for each of them.
+            </li>
+            <li>
+                Select the options desired for the neural network, they can be seen in the following tables..
+            </li>
+            <li>
+                Name the task
+            </li>
+            <li>
+                Check on the report if the task is the desired and press train or train background if wanted.
+            </li>
+        </ul>
+
+
+        <br>
+    
+        <table>
+            <caption>Options for regression</caption>
+            <tr>
+                <th>Parameter</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>Max inputs</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Input membership functions</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Output membership functions</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Learning rate</td>
+                <td></td>
+            </tr>
+            </tr>
+        </table>
+        <br>
+
+        <table>
+            <caption>Options for classification</caption>
+            <tr>
+                <th>Parameter</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>Criterion</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Splitter</td>
+                <td></td>
+            </tr>
+            </tr>
+        </table>
 </body>
 </html>

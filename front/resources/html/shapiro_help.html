@@ -4,21 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shapiro-Wilk Test</title>
+    <style>
+        body{
+            text-align: justify;
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
     <h1>Shapiro-Wilk Test</h1>
 
-    <p><strong>Description:</strong> The Shapiro-Wilk test is a normality test used to determine if a sample follows a normal distribution.</p>
+    The Shapiro-Wilk test is a statistical test used to assess the normality of a dataset. 
+    It is commonly employed to check whether a sample comes from a normally distributed population. 
+    Here's a step-by-step explanation of the Shapiro-Wilk test:
 
-    <p><strong>Preconditions:</strong></p>
     <ul>
-        <li>The sample must be random.</li>
-        <li>The sample must be independent and identically distributed (iid).</li>
+        <li>
+            Null Hypothesis: The null hypothesis of the Shapiro-Wilk test assumes that
+            the data follows a normal distribution.
+        </li>
+        
+        <li>
+            Assumption: The data should be a random sample from a population, and the sample
+             size should not be too small (typically, the test is considered reliable for samples of about 5 to 50 observations).
+        </li>
+        
+        <li>
+            Calculating Test Statistic: The test statistic is computed based on the
+            covariance of the ordered sample values and the expected values under the assumption of normality.
+             The formula for the test statistic is relatively complex and involves the covariance matrix.
+        </li>
+        
+        <li>
+            Comparing to Critical Value or P-value: The calculated test statistic is compared to
+            critical values from the Shapiro-Wilk distribution table or, more commonly, to a significance level (e.g., 0.05)
+            to determine whether to reject the null hypothesis.
+            Alternatively, statistical software can be used to obtain the p-value associated with the test statistic.
+        </li>
+        
+        <li>
+            Decision Rule: If the p-value is less than the chosen significance level set to 0.05,
+            you reject the null hypothesis. This suggests that the data significantly deviates from a normal distribution.
+        </li>
     </ul>
-
-    <p><strong>Implications and Consequences:</strong></p>
-    <ul>
-        <li>If the p-value is less than the chosen significance level (e.g., 0.05), the null hypothesis of normality is rejected.</li>
-    </ul>
+    
+    In summary, the Shapiro-Wilk test is a useful tool for assessing the normality of a dataset. 
+    It is particularly sensitive to deviations from normality in the tails of the distribution, 
+    making it a popular choice for normality testing. However, it's important to note that for large sample sizes, 
+    the test may be overly sensitive and may detect minor departures from normality that are not practically significant.
 </body>
 </html>

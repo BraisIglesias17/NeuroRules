@@ -4,20 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wilcoxon Signed-Rank Test</title>
+    <style>
+        body{
+            padding: 10px;
+            text-align: justify;
+        }
+    </style>
 </head>
 <body>
     <h1>Wilcoxon Signed-Rank Test</h1>
 
-    <p><strong>Description:</strong> The Wilcoxon signed-rank test is used to compare two paired samples.</p>
+    The Wilcoxon signed-rank test is a non-parametric statistical test used to determine if
+    there is a significant difference between paired observations. It is particularly useful 
+    when the data is not normally distributed or when the scale of measurement is ordinal.
 
-    <p><strong>Preconditions:</strong></p>
+    Here's a step-by-step explanation of how the Wilcoxon signed-rank test works:
     <ul>
-        <li>Samples must be paired (matched data).</li>
-    </ul>
+        <li>
+            Assumption: The data should be paired, meaning you have two sets of 
+            observations that are related in some way (e.g., before and after measurements on the same subjects).
+        </li>
+        <li>
+            Null Hypothesis (H0): The null hypothesis in the Wilcoxon signed-rank test states that there is no difference between the paired observations. 
+            In other words, the median difference is zero.
+        </li>
+        <li>
+            Ranking the Differences: Calculate the differences between the pairs of observations and rank the absolute values of these 
+            differences from smallest to largest. Ignore the signs (i.e., consider only the magnitudes of the differences).
+        </li>
+        <li>
+            Assigning Ranks: Assign ranks to the absolute differences, starting from 1 for the smallest absolute difference. 
+            Ties (i.e., identical absolute differences) receive the average of the ranks they would have gotten.
 
-    <p><strong>Implications and Consequences:</strong></p>
-    <ul>
-        <li>If the p-value is less than the chosen significance level, the null hypothesis of equal medians is rejected.</li>
+        </li>
+        <li>
+            Calculating the Test Statistic (W): Sum the ranks of the positive differences. The test statistic (W) is the smaller 
+            of the sum of ranks of the positive differences or the sum of ranks of the negative differences. 
+            The test statistic helps you decide whether to reject the null hypothesis.
+
+        </li>
+        <li>
+            Determining Significance: Compare the test statistic (W) to critical values from the Wilcoxon signed-rank distribution
+             table or use statistical software to find the p-value associated with W. If the p-value is smaller than the chosen
+              significance level (commonly 0.05), you reject the null hypothesis.
+
+        </li>
     </ul>
+    In summary, the Wilcoxon signed-rank test is a useful method when dealing with paired data and non-normally distributed differences.
+     It allows you to assess whether there is a significant difference between paired observations, 
+     and it is especially valuable in situations where assumptions of parametric tests (like the t-test) are not met.
+
 </body>
 </html>

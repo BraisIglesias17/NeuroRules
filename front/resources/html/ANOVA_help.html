@@ -4,21 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analysis of Variance (ANOVA)</title>
+    <style>
+        body{
+            text-align: justify;
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
     <h1>Analysis of Variance (ANOVA)</h1>
 
-    <p><strong>Description:</strong> Analysis of Variance (ANOVA) is used to compare means of more than two groups to determine if there are significant differences among them.</p>
+    ANOVA, or Analysis of Variance, is a statistical test used to determine if there are any statistically significant
+     differences between the means of three or more independent (unrelated) groups.
+     ANOVA tests the null hypothesis that all group means are equal. 
 
-    <p><strong>Preconditions:</strong></p>
+    Assumptions and Considerations:
     <ul>
-        <li>Samples must be independent.</li>
-        <li>Samples must be random.</li>
+        <li>It's important to check the assumptions of normality and homogeneity of variances.</li>
+        <li>ANOVA is sensitive to outliers, so it's essential to inspect the data for extreme values.</li>
+        <li>If assumptions are violated, alternative non-parametric tests like the Kruskal-Wallis test may be considered.</li>
     </ul>
-
-    <p><strong>Implications and Consequences:</strong></p>
-    <ul>
-        <li>If the p-value is less than the chosen significance level, the null hypothesis of equal means is rejected.</li>
-    </ul>
+    
+    <br>
+    One-way ANOVA is a powerful tool for comparing means across multiple groups.It allows researchers to determine whether 
+    there are significant differences among group means and provides valuable information for further post-hoc analysis when necessary.
 </body>
 </html>

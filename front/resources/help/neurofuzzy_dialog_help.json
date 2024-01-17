@@ -1,0 +1,8 @@
+{
+    "Rule generating task":{
+        "content":{
+            "file":"./front/resources/html/neurofuzzy_help.html"
+        },
+        "child":false
+    }
+}
