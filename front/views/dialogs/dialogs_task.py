@@ -277,12 +277,19 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_criterion)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_splitter)
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
+        self.Bind(wx.EVT_BUTTON,self.OnHelp,self.button_HELP)
         #self.Bind(wx.EVT_CHECKBOX,self.OnSelectAuto,self.checkbox_automatic)
        
         self.SetEscapeId(self.button_CANCEL.GetId())
 
         self.Center()
         self.Layout()
+
+
+    def OnHelp(self,evt):
+        dialog=HelpDialog(self,file="./front/resources/help/neurofuzzy_dialog_help.json",title="Rule generating task")
+        dialog.ShowModal()
+       
 
     def OnChangeOutput(self,evt):
         variable=evt.GetString().split(' - ')[0]
@@ -867,7 +874,7 @@ class CrossValidationDialog(wx.Dialog):
         
         wx.Dialog.__init__(self, parent)
         self.SetTitle("Cross validation")
-        
+        self.SetFont(parent.GetFont())
 
         figure=plot_barplot_object(cross_validation,xtitle="Folds",ytitle=metric).gcf()
         self.canvas = FigureCanvas(self, -1, figure)
@@ -1714,7 +1721,7 @@ class TaskReportDialog(wx.Dialog):
 
         sizer_2.AddButton(self.button_SAVE)
 
-        self.button_CANCEL = wx.Button(self, wx.ID_HELP, "")
+        self.button_CANCEL = wx.Button(self, wx.ID_HELP, "Cancel")
         sizer_2.AddButton(self.button_CANCEL)
 
         sizer_2.Realize()
@@ -1727,6 +1734,7 @@ class TaskReportDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON,self.OnApplyBg,self.button_train_background)
         self.Bind(wx.EVT_BUTTON,self.OnSave,self.button_SAVE)
         self.SetEscapeId(self.button_CANCEL.GetId())
+        
 
         self.Center()
         self.Layout()

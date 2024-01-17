@@ -22,7 +22,7 @@ class MappingDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Mapping dialog")
-
+        self.SetFont(parent.GetFont())
         self.bins=bins
         self.variable=variable
         self.bins[self.variable]={'auto':True,'custom':False,'n_bins':None,'names_bins':[],'ranges':[]}

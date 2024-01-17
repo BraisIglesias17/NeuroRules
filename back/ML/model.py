@@ -63,7 +63,6 @@ class ParamsMapper():
         return {
                     'Linear Regression': {
                         'fit_intercept': [True, False],
-                        
                     },
                     'Random Forest Classifier': {
                         'n_estimators': [10, 50, 100],
@@ -71,23 +70,23 @@ class ParamsMapper():
                         'max_depth': [None, 10, 20],
                         'min_samples_split': [2, 5, 10],
                         'min_samples_leaf': [1, 2, 4],
-                        'max_features': ['auto', 'sqrt', 'log2'],
+                        'max_features': ['sqrt', 'log2'],
                     },
                     'Random Forest Regressor': {
                         'n_estimators': [10, 50, 100],
-                        'criterion': ['mse', 'mae'],
+                        'criterion': ['squared_error','absolute_error'],
                         'max_depth': [None, 10, 20],
                         'min_samples_split': [2, 5, 10],
                         'min_samples_leaf': [1, 2, 4],
-                        'max_features': ['auto', 'sqrt', 'log2'],
+                        'max_features': [ 'sqrt', 'log2'],
                     },
-                    'MLP Classifier': {
+                    'Multiple Layer Perceptron': {
                         'hidden_layer_sizes': [(50, 50), (100,)],
                         'activation': ['relu', 'logistic', 'tanh'],
                         'solver': ['sgd', 'adam'],
                         'alpha': [0.0001, 0.05],
                     },
-                    'MLP Regressor': {
+                    'Multiple Layer Perceptron Regressor': {
                         'hidden_layer_sizes': [(50, 50), (100,)],
                         'activation': ['relu', 'logistic', 'tanh'],
                         'solver': ['sgd', 'adam'],
@@ -103,6 +102,9 @@ class ParamsMapper():
                         'kernel': ['linear', 'rbf', 'poly'],
                         'gamma': ['scale', 'auto'],
                     },
+                    "K-Nearest Neighbours":{
+
+                    }
                 }
 
     
