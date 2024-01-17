@@ -498,7 +498,7 @@ class CreateSetDialog(wx.Dialog):
         
         wx.Dialog.__init__(self,parent)
         self.SetTitle(title)
-
+        self.SetFont(parent.GetFont())
         self.new_set=parent.new_set
         self.controller=parent.controller
         self.current_names=self.controller.get_names().get_response()['data']
@@ -646,6 +646,7 @@ class HelpDialog(wx.Dialog):
     
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Help dialog")
+        self.SetFont(parent.GetFont())
         self.title=title
         f = open(file)
         self.content=json.load(f)
@@ -789,7 +790,7 @@ class LoadFileDialog(wx.Dialog):
         super(LoadFileDialog, self).__init__(parent)
         
         self.SetTitle("Load file")
-
+        self.SetFont(parent.GetFont())
         self.conf=conf
 
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -889,7 +890,7 @@ class TraceDialog(wx.Dialog):
         wx.Dialog.__init__(self,parent)
         self.SetTitle("Trace dialog")
 
-        
+        self.SetFont(parent.GetFont())
         self.settings=parent.setting
         self.controller=parent.controller
 
