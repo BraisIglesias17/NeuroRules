@@ -1,6 +1,6 @@
-#Release 1
+# Release 1
 
 Primera versión BETA de Nuerorule 1.0.0.
 
-Notas:
+**Notas:**
 - No está implementado el model prunning, todos los submodelos son mostrados (se deja fuera del TFM).
