@@ -102,8 +102,7 @@ def plot_regression(data):
 
     x=x.reshape(-1,1)
     
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
-    
+    x_line = np.linspace(min(x), max(x), 100).reshape(-1, 1)
     plt.figure("Fitted regression line",figsize=(8, 6))
     plt.scatter(x, y, label='Data points', color='blue')
     plt.title('Regression Fit Line')
@@ -112,14 +111,14 @@ def plot_regression(data):
     plt.grid(True)
     regression=linear_model.LinearRegression()
    
-    regression.fit(X_train,y_train)
-    fit_line=regression.predict(X_test)
+    regression.fit(x,y)
 
-    R2=r2_score(X_test,fit_line)
-
+    fit_line=regression.predict(x_line)
+    R2=r2_score(x_line,fit_line)
+    
     plt.annotate('R2 = (%.2f)'%(R2), xy=(sum(x)/len(x),max(y)-5),xytext =(2,2),textcoords ='offset points',fontsize=13,ha='center')
 
-    plt.plot(X_test,fit_line, color='red')
+    plt.plot(x_line,fit_line, color='red')
     plt.legend()
     plt.show()
 
