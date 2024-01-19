@@ -28,7 +28,7 @@
             },
             "models":{
                 "content":{
-                    "file":"./front/resources/html/regression_help.html"
+                    "file":"./front/resources/html/classification_model_help.html"
                 },
                 "child":false
             }
