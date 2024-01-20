@@ -9,3 +9,4 @@ graphviz
 pydotplus
 pickle
 seaborn
+plyer
