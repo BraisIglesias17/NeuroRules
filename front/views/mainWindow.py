@@ -569,12 +569,11 @@ class MainWindow(wx.Frame):
                         self.grid.SetCellBackgroundColour(j, i, self.setting.nan_color)
                         self.highlighted_cells.append([i,j])
 
-                    elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
+                    elif Validator.check_float(df.loc[j][i]) and not str(df.dtypes[i]).find("int") != -1:
                         align=False
                         value=str(np.round(df.loc[j][i],2))
             
-                    elif Validator.check_integer(df.loc[j][i]):
-                    
+                    elif Validator.check_parse_int(df.loc[j][i]):
                         value=str(int(df.loc[j][i]))
                         align=False
                     
