@@ -954,7 +954,18 @@ class TraceDialog(wx.Dialog):
         return logs
 
     def OnSave(self,evt):
-        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.settings.get_default_path()).get_response()
+        path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_name="logs.txt",default_folder=self.settings.get_default_path()).get_response()
+        
         if path['status']==Status.OK: 
-            self.controller.save_file(path['data'],self.text_logs.GetLabelText())
-            wx.MessageBox("File saved succesfully in "+path['data'],"Info")
+            fullPath=path['data']
+            content=""
+
+            for i in range(self.text_logs.GetNumberOfLines()):
+                content+=self.text_logs.GetLineText(i)+"\n"
+
+            response=self.controller.save_file(content,path=fullPath).get_response()
+            
+            if response['status']==Status.OK:
+                wx.MessageBox("File saved succesfully in "+fullPath,"Info")
+            else:
+                wx.MessageBox("An unexpected error has ocurred.","Error",wx.ICON_ERROR)
