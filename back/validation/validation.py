@@ -86,4 +86,3 @@ class Validator():
             return False
         return re.match(r'^[a-zA-Z0-9_/]*$', val)
     
-

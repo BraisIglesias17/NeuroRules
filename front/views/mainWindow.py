@@ -527,7 +527,6 @@ class MainWindow(wx.Frame):
 
     def updateGrid(self,df,updater=None):
         
-        
         i=0 
         rows,cols = df.shape
         self.updateStatus(rows,cols)
@@ -543,14 +542,12 @@ class MainWindow(wx.Frame):
             if self.start:
                 self.initial_col_names.append(self.grid.GetColLabelValue(i))
             type=df.dtypes[i]
-            if str(type).find("int") != -1:
-                
-                self.grid.SetColFormatNumber(i)
-            elif str(type).find("float") != -1  :
-                
+            # if str(type).find("int") != -1:
+            #     print(column)
+            #     self.grid.SetColFormatNumber(i)
+            if str(type).find("float") != -1  :
                 self.grid.SetColFormatFloat(i,-1,2)
             else:
-               
                 self.grid.SetColFormatCustom(i,gridlib.GRID_VALUE_STRING)
 
             self.grid.SetColLabelValue(i,column)
@@ -575,8 +572,9 @@ class MainWindow(wx.Frame):
                     elif Validator.check_float(df.loc[j][i]) and not Validator.check_integer(df.loc[j][i]):
                         align=False
                         value=str(np.round(df.loc[j][i],2))
-                        
+            
                     elif Validator.check_integer(df.loc[j][i]):
+                    
                         value=str(int(df.loc[j][i]))
                         align=False
                     
