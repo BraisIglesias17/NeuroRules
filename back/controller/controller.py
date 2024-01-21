@@ -216,6 +216,7 @@ class Controller():
     @template_method
     def apply_preprocess(self,variable:str):
         result=self.contextData.apply_preprocess(variable)
+        Trace().log(f"Transformation applied to {variable} ")
         return Response(data={result},status=Status.OK)
         
     
@@ -228,12 +229,14 @@ class Controller():
     @template_method
     def delete_row(self,row:int):
         value=self.contextData.delete_row(row)
+        Trace().log(f"Row {row} deleted")
         return Response(data={value},status=Status.OK)
         
     
     @template_method
     def delete_col(self,col:int):
         value=self.contextData.delete_column(col)
+        Trace().log(f"Column {col} deleted")
         return Response(data={value},status=Status.OK)
 
 
@@ -241,8 +244,11 @@ class Controller():
     def set_col_as_id(self,name:str,remove:bool=False):
         if remove:
             self.contextData.remove_identifier_col(name)
+            print("HOLSSS")
+            Trace().log(f"Removed {name} from identifier list")
         else:
             self.contextData.add_identifier_col(name)
+            Trace().log(f"Added {name} to identifier list")
         return Response(data={},status=Status.OK)
         
 

@@ -149,6 +149,7 @@ class ShowIdentifierColsDialog(wx.Dialog):
             else: 
                 for var in choices:
                     self.parent.identifier_cols.remove(self.names[var])
+                    self.parent.controller.set_col_as_id(self.names[var],remove=True)
                 
                 self.EndModal(wx.OK)
                 self.Destroy()
