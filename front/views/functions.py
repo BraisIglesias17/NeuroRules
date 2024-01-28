@@ -27,6 +27,6 @@ def validate_name(name):
     return ok
 
 def validate_range(range):
-    patron = r'^[\(\]]-?\d+(\.\d+)?,-?\d+(\.\d+)?[\)\]]+$'
+    patron = r'^[\(\[]-?\d+(\.\d+)?,-?\d+(\.\d+)?[\)\]]+$'
     ok=bool(re.match(patron, range))
     return ok

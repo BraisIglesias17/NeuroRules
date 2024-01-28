@@ -240,9 +240,6 @@ class MappingDialog(wx.Dialog):
             if right<min_val:
                 sorted
 
-            
-            
-
     def _enable_custom_bins(self,value):
         self.ctrl_number_bins.Enable(value)
         self.button_add_name.Enable(value)
@@ -292,7 +289,7 @@ class MappingDialog(wx.Dialog):
         range=self.ctrl_range.GetValue()
 
         if validate_name(name) and validate_range(range):
-            rule=" range("+range+") -> new value("+name+")"
+            rule=" range ("+range+") -> new value ("+name+")"
             
             self.names.append(name)
             self.ranges.append(range)
@@ -313,7 +310,7 @@ class MappingDialog(wx.Dialog):
             toDel.append(rules[sel])
             
         pattern = r"range\((.*?)\) -> new value\((.*?)\)"
-
+       
 
         for element in toDel:
 
