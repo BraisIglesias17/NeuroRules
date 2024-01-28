@@ -289,7 +289,7 @@ class MappingDialog(wx.Dialog):
         range=self.ctrl_range.GetValue()
 
         if validate_name(name) and validate_range(range):
-            rule=" range ("+range+") -> new value ("+name+")"
+            rule=" range "+range+" -> new value "+name+""
             
             self.names.append(name)
             self.ranges.append(range)
@@ -309,7 +309,8 @@ class MappingDialog(wx.Dialog):
         for sel in selections:
             toDel.append(rules[sel])
             
-        pattern = r"range\((.*?)\) -> new value\((.*?)\)"
+        #pattern = r"range\((.*?)\) -> new value\((.*?)\)"
+        pattern = r"range (.*?) -> new value (.*?)"
        
 
         for element in toDel:
