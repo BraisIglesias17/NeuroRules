@@ -69,11 +69,11 @@ class StatisticTest():
         """
         return mannwhitneyu(np.array(x).astype(float),np.array(y).astype(float))
     @staticmethod
-    def kruskal_wallis(x:ArrayLike,y:ArrayLike):
+    def kruskal_wallis(*groups:ArrayLike):
         """
             Return the result of KRUSKAL WALLIS test
         """
-        return kruskal(x,y)
+        return kruskal(*groups)
     @staticmethod
     def kolmorov_smirnov(x:ArrayLike,y:ArrayLike):
         """

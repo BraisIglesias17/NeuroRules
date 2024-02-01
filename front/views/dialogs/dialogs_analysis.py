@@ -1340,7 +1340,7 @@ class StatisticDialog(wx.Dialog):
                         self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.t_student)
                     elif 'Kruskal Wallis' in test and complete:
                         
-                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.kruskal_wallis)
+                        self._differencesGroupTemplateMultigroup(y,x,a,b,test,StatisticTest.kruskal_wallis)
                     elif 'Wilcoxon' in test and complete:
                         
                         self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.wilcoxon)
@@ -1348,6 +1348,20 @@ class StatisticDialog(wx.Dialog):
                     elif 'Pearson' in test and complete:
                         self.OnLaunchResulDialog(StatisticTest.pearson,test,variables=[x,y],names=[a,b],condition=False,msg="to determine that there is correlation between ")
                     
+    def _differencesGroupTemplateMultigroup(self,y,x,a,b,test,method):
+        grouping_values=np.unique(y)
+        if len(grouping_values)<5:
+            title=test+" test on "+str(a)+" grouped by "+str(b)
+            groups=[]
+            for group in grouping_values:
+                groups.append(x[y==group])
+
+            result=method(*groups)
+            dialog=TestResultDialog(self,title,{'pvalue':[result.pvalue]},"to determine that there is differences between the groups",False)
+            dialog.ShowModal()
+        else:
+            wx.MessageBox("There is too many groups to perform the test.","Warning",wx.ICON_WARNING)
+
     def _differencesGroupTemplate(self,y,x,a,b,test,method):
         grouping_values=np.unique(y)
 
@@ -1485,7 +1499,7 @@ class CleanDataDialog(wx.Dialog):
         sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_6.Add(sizer_8, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.label_2 = wx.StaticText(self, wx.ID_ANY, "Sustitution strategy")
+        self.label_2 = wx.StaticText(self, wx.ID_ANY, "Substitution strategy")
         sizer_8.Add(self.label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         
         self.combo_box_missing_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median"],style=wx.CB_READONLY,value="None")
@@ -1516,7 +1530,7 @@ class CleanDataDialog(wx.Dialog):
         sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_9.Add(sizer_10, 1, wx.ALL | wx.EXPAND, 5)
 
-        self.label_3 = wx.StaticText(self, wx.ID_ANY, "Sustitution strategy")
+        self.label_3 = wx.StaticText(self, wx.ID_ANY, "Substitution strategy")
         sizer_10.Add(self.label_3, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         self.combo_box_outlier_sustitution = wx.ComboBox(self, wx.ID_ANY, choices=["None","Mean", "Median","Adjust closer"],style=wx.CB_READONLY,value="None")
