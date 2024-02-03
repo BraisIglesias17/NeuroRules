@@ -388,7 +388,7 @@ class SettingsDialog(wx.Dialog):
         self.default_path_ctrl = wx.TextCtrl(self, wx.ID_ANY,self.currentSettings.default_path,style=wx.TE_READONLY,size=(300,-1))
         sizer_6.Add(self.default_path_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/guardar.png", wx.BITMAP_TYPE_ANY))
+        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("./front/resources/img/guardar.png", wx.BITMAP_TYPE_ANY))
         sizer_6.Add(self.icon_folder_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         sizer_colors = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Colors"), wx.HORIZONTAL)
@@ -646,6 +646,7 @@ class HelpDialog(wx.Dialog):
     def __init__(self,parent,file,title):
     
         wx.Dialog.__init__(self,parent)
+        
         self.SetTitle("Help dialog")
         self.SetFont(parent.GetFont())
         self.title=title
@@ -703,7 +704,7 @@ class HelpDialog(wx.Dialog):
         self.Bind(wx.EVT_SEARCH,self.OnSearchOnFiles,self.text_search)
         self.Bind(wx.EVT_TREE_SEL_CHANGED,self.OnChangeTreeSelection,self.tree)
         self.SetAffirmativeId(self.button_OK.GetId())
-        self.SetSize(900,800)
+        self.SetSize(700,600)
         self.Center()
         self.Layout()
     
