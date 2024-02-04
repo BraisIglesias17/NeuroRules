@@ -465,7 +465,8 @@ class SettingsDialog(wx.Dialog):
             self.restart=True
     
     def OnChooseFolder(self,evt):
-        response=IOManage.get_path_folder(self,"Select a new path").get_response()
+        path=self.currentSettings.get_default_path()
+        response=IOManage.get_path_folder(self,"Select a new path",default_path=path).get_response()
         if response['status']==Status.OK:
             self.default_path_ctrl.SetLabelText(response['data'])
 

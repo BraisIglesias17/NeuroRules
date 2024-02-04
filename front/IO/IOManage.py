@@ -25,14 +25,14 @@ class IOManage():
             pathname = file_dialog.GetPath()
             return Response(data=pathname,status=Status.OK)
     @staticmethod 
-    def get_path_folder(window,message:str):
+    def get_path_folder(window,message:str,default_path:str=''):
         """
          Function to obtain a path to a folder
          Args:  
                 - Window: parent window
                 - message: message to display
         """
-        with wx.DirDialog(window, message,
+        with wx.DirDialog(window, message,defaultPath=default_path,
                         style=wx.DD_DIR_MUST_EXIST) as file_dialog:
             if file_dialog.ShowModal() == wx.ID_CANCEL:
                 return  Response(data="",status=Status.CANCEL)
