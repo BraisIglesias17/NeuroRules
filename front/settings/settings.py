@@ -25,9 +25,9 @@ class Settings():
             user_path=str(os.path.expanduser("~"))
             sistema = platform.system()
             if sistema=="Windows":
-                neurorule_path=user_path+"\\NeuroRule"
+                neurorule_path=user_path+"\\Desktop\\NeuroRule"
             else:
-                neurorule_path=user_path+"/NeuroRule"
+                neurorule_path=user_path+"/Desktop/NeuroRule"
             settings={'height_cell_size':19,'width_cell_size':80,'font_size':10
                   ,'initial_rows':20,'pvalue_threshold':0.05,'default_path':neurorule_path
                   ,'target_color':wx.Colour("#ad9e72"),'independent_color':wx.Colour("#5a8f68")
