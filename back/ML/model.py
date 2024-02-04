@@ -103,7 +103,7 @@ class ParamsMapper():
                         'gamma': ['scale', 'auto'],
                     },
                     "K-Nearest Neighbours":{
-
+                        'n_neighbors':[3,4,5,6,7]
                     }
                 }
 
@@ -228,7 +228,6 @@ class ModelImplementation(Model):
         r2=-100
         combs=[]
         for n in range(1,self.params['max_inputs']+1):
-            print(n)
             combs.extend(combinations(names_input,n))
         
         
@@ -237,7 +236,6 @@ class ModelImplementation(Model):
         name="submodel_"
         i=1
 
-        print(combs)
         for combination in combs:
             name_=name+str(i)
             indexes=[]
@@ -279,7 +277,6 @@ class ModelImplementation(Model):
     def SRM(self,submodels:{}):
         print("---------------------------------------------")
         print("IMPLEMENTACION DE STRUCTURAL RISK MINIMIZATION")
-        print(self.submodels)
         worth_submodels={}
         max_score=-np.inf
         #primer bucle para determinar la mejor medicion
@@ -298,7 +295,7 @@ class ModelImplementation(Model):
         return worth_submodels
 
     def _submodels_pruning(self):
-        print("delete worsts models")
+        pass
 
     def get_enssemble_metrics(self):
         return self.ensembled_model_metrics
@@ -374,7 +371,6 @@ class ModelImplementation(Model):
             self.ensembled_model=ensemble
             #METRICAS CON VALIDACION TEST
             self.ensembled_model_metrics=ensemble.score(X_test,self.y_test)
-            print(self.ensembled_model_metrics)
             #METRICAS CON VALIDACION TRAIN
             #self.ensembled_model_metrics=ensemble.score(inputs,y)
         else:
@@ -397,13 +393,22 @@ class ModelImplementation(Model):
             crf.fit(input,target)
             self.training_scores={scorer:crf.best_score_}
             self.model=crf.best_estimator_
+
+            if cv:
+                self.cv=True
+                kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
+                self.folds=kf
+                scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
+                self.model.fit(input,target)
+                self.training_scores={'folds_'+scorer:scores} | self.get_score(input,target)
+            else:            
+                self.training_scores=self.get_score(input,target)
+                
             self.test_scores=self.get_score(self.X_test,self.y_test)
-            self.training_scores=self.get_score(input,target)
         elif cv:
             self.cv=True
             kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
-            #print(f' CV RESULTS {self.cross_validation(subsets,self.model)}')
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
             self.model.fit(input,target)
             self.test_scores=self.get_score(self.X_test,self.y_test)
@@ -426,9 +431,6 @@ class ModelImplementation(Model):
     
     def set_params(self, dict:Dict[str,Union[str,int,float]]):
         self.model.set_params(dict)
-        
-    def get_info(self):
-        print(self.model)
 
     def get_score(self,X: ArrayLike,y: ArrayLike):
         tmp={}

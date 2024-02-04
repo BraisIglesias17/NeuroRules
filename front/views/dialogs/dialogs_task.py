@@ -364,7 +364,6 @@ class RuleGeneratinglDialog(wx.Dialog):
     def OnContinue(self,evt):
         name,cancel=get_task_name(self)
         if not cancel:
-            print(self.model_selection)
             response=self.controller.create_task(name,self.model_selection,self.validation,True).get_response()
         
             if response['status']==Status.OK:        

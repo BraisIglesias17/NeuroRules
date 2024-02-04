@@ -427,7 +427,6 @@ class MainWindow(wx.Frame):
     
         shape=self.controller.get_data_shape().get_response()['data']
         
-        print(shape)
         if shape==None:
             wx.MessageBox("You must create a set or import a file first.\n Go to menu Data -> Create Set or File/Import file.")
             self.grid.SetCellValue(row,col,"")

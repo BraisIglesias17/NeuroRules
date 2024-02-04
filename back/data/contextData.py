@@ -175,7 +175,7 @@ class ContextData():
 
         elif j == self.data.shape[1]:
             # Nueva columna
-            print(" -- Crear nueva columna en proceso (no funciona aún) ...")
+            print(" -- Crear nueva columna en proceso")
 
         return True
         
@@ -482,7 +482,6 @@ class ContextData():
                 original=self.values[:,index]
 
                 if auto:
-                    print("Auto bin create")
                     # Calcular el ancho de bin según la regla de Freedman-Diaconis
                     IQR = np.percentile(original, 75) - np.percentile(original, 25)
                     h_fd = (2 * IQR) / (original.shape[0] ** (1/3))

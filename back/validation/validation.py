@@ -71,8 +71,8 @@ class Validator():
         """
         Function used to validate strings
         """
-        print(val)
         return True
+    
     @staticmethod
     def validate_name(val):
         """

@@ -244,7 +244,6 @@ class Controller():
     def set_col_as_id(self,name:str,remove:bool=False):
         if remove:
             self.contextData.remove_identifier_col(name)
-            print("HOLSSS")
             Trace().log(f"Removed {name} from identifier list")
         else:
             self.contextData.add_identifier_col(name)
