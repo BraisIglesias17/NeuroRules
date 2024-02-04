@@ -1,0 +1,37 @@
+Licencia Propietaria para Neurorule
+
+**NOTA IMPORTANTE: LEA DETENIDAMENTE ANTES DE INSTALAR O UTILIZAR ESTE SOFTWARE.**
+
+Este documento es un contrato legal entre usted (en adelante, "Usuario") y Brais Iglesias Otero (en adelante, "Licenciante") para el uso del software Neurorule (en adelante, el "Software").
+
+1. **Concesión de Licencia:**
+   - Licenciante otorga al Usuario una licencia no exclusiva, no transferible y limitada para usar el Software de acuerdo con los términos y condiciones de esta licencia.
+
+2. **Restricciones:**
+   - El Usuario no tiene derecho a modificar, adaptar, traducir, realizar ingeniería inversa, descompilar, desensamblar o crear obras derivadas basadas en el Software sin el consentimiento previo por escrito del Licenciante.
+
+3. **Propiedad Intelectual:**
+   - El Software y toda la propiedad intelectual asociada son propiedad exclusiva del Licenciante y están protegidos por las leyes de derechos de autor y otras leyes de propiedad intelectual.
+
+4. **Distribución:**
+   - La distribución no autorizada del Software está estrictamente prohibida. El Usuario no tiene derecho a sublicenciar, arrendar, alquilar ni distribuir de ninguna manera el Software sin el consentimiento expreso por escrito del Licenciante.
+
+5. **Actualizaciones y Soporte:**
+   - El Licenciante puede proporcionar actualizaciones y soporte para el Software a su discreción. El Usuario puede estar sujeto a términos adicionales para estas actualizaciones.
+
+6. **Limitación de Responsabilidad:**
+   - En ningún caso el Licenciante será responsable por daños directos, indirectos, incidentales, especiales o consecuentes que surjan del uso o la incapacidad de utilizar el Software.
+
+7. **Duración y Terminación:**
+   - Esta licencia tiene una duración indefinida, pero puede ser terminada por el Licenciante si el Usuario viola alguno de los términos establecidos. Al terminar, el Usuario debe dejar de utilizar el Software y destruir todas las copias.
+
+8. **Ley Aplicable:**
+   - Esta licencia se rige por las leyes de España. Cualquier disputa que surja de esta licencia se resolverá en los tribunales de España.
+
+Al instalar o utilizar el Software, el Usuario indica que ha leído, comprendido y aceptado los términos de esta licencia.
+
+Fecha de la última actualización de la licencia: 04/02/2024
+
+Firmado:
+
+Brais Iglesias Otero
