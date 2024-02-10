@@ -277,6 +277,7 @@ class Controller():
         correlation_pairs=self.contextData.get_correlation_pairs()
         covariance_pairs=self.contextData.get_covariance_pairs()
         difference_in_groups=self.contextData.get_differences_in_groups()
+        
         covariance={'directly':covariance_pairs[0],'inverse':covariance_pairs[1]}
         correlation={'directly':correlation_pairs[0],'inverse':correlation_pairs[1]}
         return Response(data={'normal_variables':normal_variables,'correlation':correlation

@@ -710,11 +710,12 @@ class AutomaticTest(wx.Dialog):
                 inverse.append(str(pair['variables'] +" - "+" inverse"))
 
             self.covariance_list=directly+inverse
+            self.grouped_different_variables=[]
 
             for entry in differences_in_groups:
-                self.grouped_different_variables=[]
-                self.grouped_different_variables.append(str(entry['variable']+" shows differences in "+entry['groupby']+" between "+entry['pair']))
-            
+                text=str(entry['variable']+" shows differences in "+entry['groupby']+" between "+entry['pair'])
+                self.grouped_different_variables.append(text)
+                
         else:
             wx.MessageBox(result['data'],"Error",wx.OK|wx.ICON_ERROR)
             self.Destroy()

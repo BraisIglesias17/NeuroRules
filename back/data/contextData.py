@@ -286,7 +286,7 @@ class ContextData():
                                 
                                 if result.pvalue>self.NORMALITY_THRESHOLD:
                                     result=StatisticTest.ANOVA(a,b)
-                                    
+
                                     if result.pvalue<self.DIFFERENCE_THRESHOLD:
                                         toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
                                 else:
