@@ -1,5 +1,6 @@
 import wx
 import re
+import pandas as pd
 
 def get_task_name(window):
     ok=False
@@ -30,3 +31,17 @@ def validate_range(range):
     patron = r'^[\(\[]-?\d+(\.\d+)?,-?\d+(\.\d+)?[\)\]]+$'
     ok=bool(re.match(patron, range))
     return ok
+
+
+def clipboard_to_pd(content):
+    lines=content.splitlines()
+    
+    if len(lines)==1:
+        return lines[0]
+    elif len(lines)>1:
+        
+        data=[line.split('\t') for line in lines]
+        return pd.DataFrame(data)
+    
+    else:
+        return None

@@ -456,7 +456,6 @@ class ModelImplementation(Model):
                 tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg,zero_division=1.0)
                 
             tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y)
-            
 
         return tmp
 

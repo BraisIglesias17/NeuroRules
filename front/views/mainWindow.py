@@ -5,6 +5,7 @@ import wx.adv
 import numpy as np
 import sys
 import traceback
+from front.views.functions import clipboard_to_pd
 from front.settings.settings import Settings 
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
@@ -470,6 +471,9 @@ class MainWindow(wx.Frame):
 
         for coords in self.highlighted_outliers_cells:
             self.grid.SetCellBackgroundColour(coords[0], coords[1], wx.WHITE)
+
+        for hidden in self.hidden_columns:
+            self.grid.ShowCol(hidden)
 
         self.hidden_columns=[]
         self.identifier_cols=[]
@@ -972,6 +976,17 @@ class MainWindow(wx.Frame):
                 
                 self.updateGrid(response['data'])
                 self.enableButtons(True)
+
+    def OnPaste(self,evt):
+        
+        wx.MessageBox("This functionality soon will be ready!")
+        text_data = wx.TextDataObject()
+        if wx.TheClipboard.Open():
+            success = wx.TheClipboard.GetData(text_data)
+            wx.TheClipboard.Close()
+        if success:
+            content=text_data.GetText()
+            clipboard_to_pd(content)
             
             
     def createMenuBar(self):
@@ -1009,6 +1024,7 @@ class MainWindow(wx.Frame):
         createSetOption=dataMenu.Append(wx.ID_ANY,"&Create set")
         addColumnsOption=dataMenu.Append(wx.ID_ANY,"&Add Columns")
         clearDataOptiondata=dataMenu.Append(wx.ID_ANY,"&Clear data")
+        pasteDataOption=dataMenu.Append(wx.ID_ANY,"&Paste clipboard\tCtrl+V")
         helpDataOption=dataMenu.Append(wx.ID_ANY,"&Help")
         #dataMenu.AppendSubMenu(preprocessSubmenu,"Data processing")
         #dataMenu.AppendSubMenu(analyzeSubmenu,"Data analysis")
@@ -1037,11 +1053,12 @@ class MainWindow(wx.Frame):
 
 
         #Key events
-        entries = [wx.AcceleratorEntry() for i in range(3)]
+        entries = [wx.AcceleratorEntry() for i in range(4)]
 
         entries[0].Set(wx.ACCEL_CTRL, ord('D'), importTaskOption.GetId())
         entries[1].Set(wx.ACCEL_CTRL, ord('A'), fileAsSaveMenu.GetId())
         entries[2].Set(wx.ACCEL_CTRL, ord('S'), fileSaveMenu.GetId())
+        entries[3].Set(wx.ACCEL_CTRL, ord('V'), pasteDataOption.GetId())
 
         accel = wx.AcceleratorTable(entries)
         self.SetAcceleratorTable(accel)
@@ -1054,6 +1071,7 @@ class MainWindow(wx.Frame):
         menubar.Append(settingsMenu,'&Settings') 
         menubar.Append(helpMenu, '&Help')
 
+        self.Bind(wx.EVT_MENU,self.OnPaste,pasteDataOption)
         self.Bind(wx.EVT_MENU,self.OnShowHidden,showHidden)
         self.Bind(wx.EVT_MENU,self.OnAboutUs,aboutUsOption)
         self.Bind(wx.EVT_MENU,self.OnShowIdentifierCols,showIdentifier)

@@ -130,7 +130,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.classification_models=[]
         self.model_selection={}
         self.regression_vars=[]
-        self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
+        self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.3}}
         self.classification_params={'criterion':'gini','splitter':'best'}
         self.regression_params={'max_inputs':2,'mf_inputs':2,'mf_outputs':2,'auto':True,'learning_rate':0.01}
         response=self.controller.get_target_process_type().get_response()
