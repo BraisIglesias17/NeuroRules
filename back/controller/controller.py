@@ -7,6 +7,7 @@ from ..tracer import Trace
 from numpy.typing import ArrayLike
 from pandas import DataFrame
 import traceback
+from datetime import datetime
 
 class Controller():
 
@@ -38,6 +39,12 @@ class Controller():
         Trace().log("Content loaded from file: "+filename)
         return Response(data=info,status=Status.OK)
 
+    @template_method
+    def load_content_from_clipboard(self,df: DataFrame):
+        self.contextData=ContextData(df)
+        info={'data':self.contextData.data,'file':'data'+str(datetime.now())}
+        Trace().log("Content loadeded from clipboard")
+        return Response(data=info,status=Status.OK)
            
     @template_method
     def create_empty_set(self,dict):

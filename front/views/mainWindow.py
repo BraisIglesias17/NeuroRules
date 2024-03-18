@@ -978,15 +978,22 @@ class MainWindow(wx.Frame):
                 self.enableButtons(True)
 
     def OnPaste(self,evt):
-        
-        wx.MessageBox("This functionality soon will be ready!")
         text_data = wx.TextDataObject()
         if wx.TheClipboard.Open():
             success = wx.TheClipboard.GetData(text_data)
             wx.TheClipboard.Close()
         if success:
-            content=text_data.GetText()
-            clipboard_to_pd(content)
+            try:
+                content=text_data.GetText()
+                dataFrame,isDf=clipboard_to_pd(content)
+                if isDf:
+                    self.ClearGrid()
+                    self.controller.load_content_from_clipboard(dataFrame)
+                    self.updateGrid(dataFrame)
+                else:
+                    raise ("Invalid data frame")
+            except:
+                wx.MessageBox("The content of the clipboard could not be imported into a data frame.","Error",wx.ICON_ERROR)
             
             
     def createMenuBar(self):

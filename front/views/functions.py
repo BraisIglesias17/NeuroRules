@@ -1,6 +1,7 @@
 import wx
 import re
 import pandas as pd
+import numpy as np
 
 def get_task_name(window):
     ok=False
@@ -37,11 +38,32 @@ def clipboard_to_pd(content):
     lines=content.splitlines()
     
     if len(lines)==1:
-        return lines[0]
-    elif len(lines)>1:
-        
-        data=[line.split('\t') for line in lines]
-        return pd.DataFrame(data)
+        return lines[0],False
     
+    elif len(lines)>1:
+        data=[line.split('\t') for line in lines]
+        names=[]
+        numeric_cols=[]
+        row=data[0]
+        names=[]
+        for n in range(len(row)):
+            names.append("variable_"+str(n))
+
+        index=0
+        for col in row:
+            try:
+                np.float(str(col).replace(',','.'))
+                numeric_cols.append(index)
+            except:
+                pass
+            index+=1
+
+        df=pd.DataFrame(data,columns=names)
+
+        for index in numeric_cols:
+            name = df.columns[index]
+            df[name] = pd.to_numeric(df[name].str.replace(',','.'),errors='coerce').astype(np.float64)
+
+        return df,True
     else:
-        return None
+        return None,False
