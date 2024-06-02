@@ -1084,28 +1084,31 @@ class TestResultDialog(wx.Dialog):
 
         self.image="./front/resources/img/x.png"
         self.header="Unsuccesful"
-        pvalues=self.result['pvalue']
+        pvalues=self.result['pvalue'] if self.result is not None else []
         self.single_result=len(pvalues)==1
 
-        if self.single_result:
-            pvalue=np.round(self.result['pvalue'][0],5)
-            
-            if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
-                self.image="./front/resources/img/ok.png"
-                self.header="Succesful"
-
-                explanation="\nThere is significicant statistical evidence "+explanation
-            else:
-                explanation="\nThere is NO significicant statistical evidence "+explanation
+        if result==None:
+            explanation="The preconditions of this statistical did not match the assumptions, the result can not be taken into account."
         else:
-            
-            for pvalue in pvalues:
+            if self.single_result:
+                pvalue=np.round(self.result['pvalue'][0],5)
+                
                 if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
                     self.image="./front/resources/img/ok.png"
-                    self.header="Succesful"                    
-                    break
-            
-            explanation="\nThere is significicant statistical evidence "+explanation
+                    self.header="Succesful"
+
+                    explanation="\nThere is significicant statistical evidence "+explanation
+                else:
+                    explanation="\nThere is NO significicant statistical evidence "+explanation
+            else:
+                
+                for pvalue in pvalues:
+                    if (lower and pvalue>0.05) or (lower==False and pvalue<0.05):
+                        self.image="./front/resources/img/ok.png"
+                        self.header="Succesful"                    
+                        break
+                
+                explanation="\nThere is significicant statistical evidence "+explanation
         
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
@@ -1128,7 +1131,7 @@ class TestResultDialog(wx.Dialog):
         sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_5.Add(sizer_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 0)
 
-        if self.single_result:
+        if self.single_result and self.result!=None:
             label_2 = wx.StaticText(self, wx.ID_ANY, "p-value")
             sizer_6.Add(label_2, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.LEFT | wx.TOP, 10)
 
@@ -1371,13 +1374,17 @@ class StatisticDialog(wx.Dialog):
         for i in range(0,len(groups)-1):
             for j in range(i+1,len(groups)):
                 
-                result=test(dict_y[groups[i]],dict_y[groups[j]])
-                pvalues.append(np.round(result.pvalue,4))
-                if result.pvalue<0.05:
-                    different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,4))+")"))
-                else:
-                    not_different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,4))+")"))
-
+                try:
+                    result=test(dict_y[groups[i]],dict_y[groups[j]])
+                except:
+                    wx.MessageBox("The test could not be performed. The minimum number of samples for group is 3.","Warning",wx.ICON_WARNING)
+                
+                if result is not None:
+                    pvalues.append(np.round(result.pvalue,4))
+                    if result.pvalue<0.05:
+                        different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,4))+")"))
+                    else:
+                        not_different_pairs.append(str(groups[i]+" and "+groups[j]+" p-value ("+str(np.round(result.pvalue,4))+")"))
 
         message=""
         title=test_name+" test on "+str(names[0])+" grouped by "+str(names[1])
@@ -1394,8 +1401,12 @@ class StatisticDialog(wx.Dialog):
                 for pair in not_different_pairs:
                     message=message+"\t"+pair+"\n "
         
-       
-        dialog=TestResultDialog(self,title,{'pvalue':pvalues},message,False)
+        params=None
+        if (len(pvalues)>0):
+            params={'pvalue':pvalues}
+
+        print(params)
+        dialog=TestResultDialog(self,title,params,message,False)
         dialog.ShowModal()
 
     def OnLaunchResulDialog(self,test,test_name,variables,names,condition=True,msg=""):
@@ -1414,7 +1425,10 @@ class StatisticDialog(wx.Dialog):
                 title="Test "+test_name+" on "+names[0]
                 message=msg
 
-            dialog=TestResultDialog(self,title,{'pvalue':[result.pvalue]},message,condition)
+            params=None
+            if not result==None:
+                params={'pvalue':[result.pvalue]}
+            dialog=TestResultDialog(self,title,params,message,condition)
             dialog.ShowModal()
         except Exception as exc:
             wx.MessageBox(str(exc),"Error",wx.ICON_ERROR)

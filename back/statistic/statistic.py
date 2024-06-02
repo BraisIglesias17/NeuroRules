@@ -2,6 +2,8 @@
 import numpy as np
 from scipy.stats import chi2,pearsonr,shapiro,kruskal,kstest,f_oneway,mannwhitneyu,ttest_ind
 from numpy.typing import ArrayLike
+import scipy.stats as stats
+import pandas as pd
 
 class StatisticTest():
     """
@@ -49,43 +51,61 @@ class StatisticTest():
         """
             Return the result of T Student test
         """
-        return ttest_ind(np.array(x).astype(float),np.array(y).astype(float))
+        if StatisticTest.check_normality(x) and StatisticTest.check_normality(y) and StatisticTest.check_homogeneity(x,y):
+            return ttest_ind(np.array(x).astype(float),np.array(y).astype(float))
+        else:
+            
+            return None
+        
     @staticmethod
     def ANOVA(x:ArrayLike,y:ArrayLike):
         """
             Return the result of ANOVA test
         """
-        return f_oneway(x,y)
+        if StatisticTest.check_normality(x) and StatisticTest.check_normality(y) and StatisticTest.check_homogeneity(x,y):
+            return f_oneway(x,y)
+        else:
+            return None
+        
     @staticmethod
     def chi_squared(x:ArrayLike):
         """
             Return the result of CHI SQUARED test
         """
         return chi2(x)
+    
     @staticmethod
     def wilcoxon(x:ArrayLike,y:ArrayLike):
         """
             Return the result of MANNWHITNEY test
         """
         return mannwhitneyu(np.array(x).astype(float),np.array(y).astype(float))
+    
     @staticmethod
     def kruskal_wallis(x:ArrayLike,y:ArrayLike):
         """
             Return the result of KRUSKAL WALLIS test
         """
         return kruskal(x,y)
+    
     @staticmethod
     def kolmorov_smirnov(x:ArrayLike,y:ArrayLike):
         """
             Return the result of KOLMOROV test
         """
-        return kstest(x,y)
+        if StatisticTest.check_normality(x) and StatisticTest.check_normality(y):
+            return kstest(x,y)
+        else:
+            return None
+        
+    
     @staticmethod
     def shapiro_wilk(x:ArrayLike):
         """
             Return the result of SHAPIRO test
         """
         return shapiro(x)
+    
     @staticmethod
     def pearson(x:ArrayLike,y:ArrayLike):
         """
@@ -93,3 +113,23 @@ class StatisticTest():
         """
         return pearsonr(x,y)
     
+
+    @staticmethod
+    def check_normality(data):
+        stat, p = stats.shapiro(data)
+        
+        return p > 0.05
+
+    @staticmethod
+    def check_homogeneity(*data):
+        stat, p = stats.levene(*data)
+        
+        return p > 0.05
+
+    @staticmethod
+    def check_independence(data1, data2):
+        contingency_table = pd.crosstab(data1, data2)
+        stat, p, dof, expected = stats.chi2_contingency(contingency_table)
+        
+        return p > 0.05
+
