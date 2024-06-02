@@ -274,8 +274,7 @@ class ContextData():
                             for variable in X:
                             
                                 data=self.data[variable]
-                                result=StatisticTest.shapiro_wilk(data)
-
+                            
                                 query=str("`"+nominal+"`=='"+groupA+"'")
                                 a=self.data.query(query)[variable]
                                 query=str("`"+nominal+"`=='"+groupB+"'")
@@ -284,9 +283,8 @@ class ContextData():
                                 if a.shape[0]==1 or b.shape[0]==1:
                                     raise Exception("The test could not be perfomed because there is groups of "+nominal+" with one element only in "+variable)
                                 
-                                if result.pvalue>self.NORMALITY_THRESHOLD:
-                                    result=StatisticTest.ANOVA(a,b)
-                                    
+                                result=StatisticTest.ANOVA(a,b)
+                                if result is not None:
                                     if result.pvalue<self.DIFFERENCE_THRESHOLD:
                                         toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
                                 else:
