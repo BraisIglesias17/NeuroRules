@@ -127,7 +127,7 @@ class Transformer():
             result=result.toarray()
             names=[]
             for name in np.unique(self.x):
-                names.append(self.variable_name+"_"+name)
+                names.append(self.variable_name+"_"+str(name))
             result=pd.DataFrame(columns=names,data=result)
                     
         return result 

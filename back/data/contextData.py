@@ -426,7 +426,7 @@ class ContextData():
     def apply_preprocess(self,variable: str):
     
         settings=self.data_preprocess[variable]
-
+        
         if variable!="All":    
             numerical=False
             
@@ -449,8 +449,7 @@ class ContextData():
 
                 if transformation=="One hot encoding":
                     for col in transformed:
-                        self.data_cleanse[col]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
-                        self.data_preprocess[col]={'transformation':'None','keep_original':True}
+                        self._restore_preprocess_settings(col)
 
                     self.data=self.data.join(transformed)
                     for col in transformed.columns:
@@ -462,6 +461,7 @@ class ContextData():
                         
                     if not keep_original:
                         self.data[variable]=transformed
+                        self._restore_preprocess_settings(variable)
                     else:
                         col_name=variable+"_processed"
                         i=1
@@ -470,8 +470,7 @@ class ContextData():
                             col_name=aux+"_"+str(i)
                             i+=1
                         self.data=pd.concat([self.data,pd.DataFrame(columns=[col_name],data=transformed)],axis=1)
-                        self.data_cleanse[col_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
-                        self.data_preprocess[col_name]={'transformation':'None','keep_original':True} 
+                        self._restore_preprocess_settings(col_name)
                 
                 self.values=self.data.values
             elif transformation=="Discretize":
@@ -514,8 +513,7 @@ class ContextData():
 
                     self.data[var_name] = new_varible
                     self.characterValues.append(var_name)
-                    self.data_cleanse[var_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
-                    self.data_preprocess[var_name]={'transformation':'None','keep_original':True}
+                    self._restore_preprocess_settings(var_name)
                     self.values=self.data.values  
 
             else:
@@ -570,11 +568,14 @@ class ContextData():
         else:
             self.data[var_name] = pd.cut(self.data[variable], bins,include_lowest=True)
         
-        self.data_cleanse[var_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
-        self.data_preprocess[var_name]={'transformation':'None','keep_original':True,'params':None}
+        self._restore_preprocess_settings(var_name)
         self.characterValues.append(var_name)
         self.values=self.data.values
         
+
+    def _restore_preprocess_settings(self,var_name:str):
+        self.data_cleanse[var_name]={'delete_missing':True,'substitute_missing':'None','delete_outliers':False,'highlight_outliers':False,'substitute_outliers':'None','upper_bound':0.75,'lower_bound':0.25}
+        self.data_preprocess[var_name]={'transformation':'None','keep_original':True,'params':None}
 
     def apply_transform(self,variable: str,input: ArrayLike):
         
