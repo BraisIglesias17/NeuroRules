@@ -75,7 +75,8 @@ def plot_hist(data,option):
     """
     x=data['x']['data']
     plt.figure("Histogram",figsize=(8, 6))
-    plt.hist(x, bins=option['bins'], color='blue', alpha=0.7,edgecolor="black")
+    #plt.hist(x, bins=option['bins'], color='blue', alpha=0.7,edgecolor="black")
+    sns.histplot(x,kde=True)
     plt.title('Histogram')
     plt.xlabel(data['x']['name'])
     plt.ylabel('Frequency')

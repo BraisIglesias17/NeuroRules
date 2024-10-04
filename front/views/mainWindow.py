@@ -5,6 +5,8 @@ import wx.adv
 import numpy as np
 import sys
 import traceback
+import pyperclip
+import pandas as pd
 from front.settings.settings import Settings 
 from front.IO.IOManage import IOManage
 from back.controller.controller import Controller
@@ -25,7 +27,7 @@ class MainWindow(wx.Frame):
         wx.Frame.__init__(self, *args, **kwds)
         
         self.ROW_BOUND=500
-        self.COL_BOUND=30
+        self.COL_BOUND=50
 
         self.setting=Settings()
         self.SetFont(self.setting.font)
@@ -130,7 +132,7 @@ class MainWindow(wx.Frame):
         
         sizer_1.Add(self.grid_sizer, 1, wx.ALL| wx.EXPAND, 5)
         self.grid = wx.grid.Grid(self.panel, wx.ID_ANY)
-        self.grid.CreateGrid(self.ROW_BOUND,25)
+        self.grid.CreateGrid(self.ROW_BOUND,self.COL_BOUND)
         self.grid_sizer.Add(self.grid, 1, wx.EXPAND, 0)
         
         self.status_bar=self.CreateStatusBar(3)
@@ -976,7 +978,19 @@ class MainWindow(wx.Frame):
                 
                 self.updateGrid(response['data'])
                 self.enableButtons(True)
+    
+    def OnPasteClipBoard(self,evt):
+        data = pyperclip.paste()
+    
+        try:
+            df=pd.read_clipboard()
+            self.controller.load_content(df,'From clipboard')
+            self.ClearGrid()
+            self.updateGrid(df)
             
+        except:
+            wx.MessageBox("Invalid error format","Error",wx.ICON_ERROR)
+        
             
     def createMenuBar(self):
         menubar = wx.MenuBar()  
@@ -1012,6 +1026,7 @@ class MainWindow(wx.Frame):
         showIdentifier=dataMenu.Append(item)
         createSetOption=dataMenu.Append(wx.ID_ANY,"&Create set")
         addColumnsOption=dataMenu.Append(wx.ID_ANY,"&Add Columns")
+        pasteOptiondata=dataMenu.Append(wx.ID_ANY,"&Paste \tCtrl+v")
         clearDataOptiondata=dataMenu.Append(wx.ID_ANY,"&Clear data")
         helpDataOption=dataMenu.Append(wx.ID_ANY,"&Help")
         #dataMenu.AppendSubMenu(preprocessSubmenu,"Data processing")
@@ -1041,12 +1056,13 @@ class MainWindow(wx.Frame):
 
 
         #Key events
-        entries = [wx.AcceleratorEntry() for i in range(3)]
+        entries = [wx.AcceleratorEntry() for i in range(4)]
 
         entries[0].Set(wx.ACCEL_CTRL, ord('D'), importTaskOption.GetId())
         entries[1].Set(wx.ACCEL_CTRL, ord('A'), fileAsSaveMenu.GetId())
         entries[2].Set(wx.ACCEL_CTRL, ord('S'), fileSaveMenu.GetId())
-
+        entries[3].Set(wx.ACCEL_CTRL, ord('V'), pasteOptiondata.GetId())
+        
         accel = wx.AcceleratorTable(entries)
         self.SetAcceleratorTable(accel)
 
@@ -1077,5 +1093,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU,self.OnHelpData,helpDataOption)
         self.Bind(wx.EVT_MENU,self.OnAddColumns,addColumnsOption)
         self.Bind(wx.EVT_MENU,self.OnShowTrace,traceOption)
+        self.Bind(wx.EVT_MENU,self.OnPasteClipBoard,pasteOptiondata)
        
         self.SetMenuBar(menubar)  
