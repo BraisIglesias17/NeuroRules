@@ -387,7 +387,7 @@ class SettingsDialog(wx.Dialog):
         self.default_path_ctrl = wx.TextCtrl(self, wx.ID_ANY,self.currentSettings.default_path,style=wx.TE_READONLY,size=(300,-1))
         sizer_6.Add(self.default_path_ctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("C:/Users/USUARIO/Desktop/NeuroRule/front/resources/img/guardar.png", wx.BITMAP_TYPE_ANY))
+        self.icon_folder_bitmap = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap("./front/resources/img/guardar.png", wx.BITMAP_TYPE_ANY))
         sizer_6.Add(self.icon_folder_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         sizer_colors = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Colors"), wx.HORIZONTAL)

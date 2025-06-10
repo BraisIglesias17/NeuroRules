@@ -34,6 +34,7 @@ class MainWindow(wx.Frame):
         self.SetTitle("NeuroRule 1.0.0")
         self.createMenuBar()
         self.panel = wx.Panel(self, wx.ID_ANY)
+        
                 
         self.IO=IOManage()
         self.controller=Controller()
