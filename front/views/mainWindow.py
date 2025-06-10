@@ -33,8 +33,7 @@ class MainWindow(wx.Frame):
         self.SetIcon(wx.Icon('./front/resources/img/logo_50x50.png',type=wx.BITMAP_TYPE_PNG))
         self.SetTitle("NeuroRule 1.0.0")
         self.createMenuBar()
-        self.panel = wx.Panel(self, wx.ID_ANY)
-        
+        self.panel = wx.Panel(self, wx.ID_ANY)        
                 
         self.IO=IOManage()
         self.controller=Controller()
@@ -74,7 +73,7 @@ class MainWindow(wx.Frame):
         self.sizer_data = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Data"), wx.HORIZONTAL)
         sizer_3.Add(self.sizer_data, 0, wx.ALL, 10)
 
-        self.import_file_button = wx.Button(self.panel, wx.ID_ANY, "Import data\n")
+        self.import_file_button = wx.Button(self.panel, wx.ID_ANY, "Import data")
         self.sizer_data.Add(self.import_file_button, 0, wx.ALL | wx.EXPAND, 5)
 
         #self.create_set_button = wx.Button(self.panel, wx.ID_ANY, "Create set")
@@ -86,10 +85,10 @@ class MainWindow(wx.Frame):
         self.sizer_preprocess = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Preprocess"), wx.HORIZONTAL)
         sizer_3.Add(self.sizer_preprocess, 0, wx.ALL, 10)
 
-        self.clean_data_button = wx.Button(self.panel, wx.ID_ANY, "Clean data\n")
+        self.clean_data_button = wx.Button(self.panel, wx.ID_ANY, "Clean data")
         self.sizer_preprocess.Add(self.clean_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
-        self.transform_data_button = wx.Button(self.panel, wx.ID_ANY, "Transform data\n")
+        self.transform_data_button = wx.Button(self.panel, wx.ID_ANY, "Transform data")
         self.sizer_preprocess.Add(self.transform_data_button, 1, wx.ALL | wx.EXPAND, 5)
 
         #self.preprocess_data_button = wx.Button(self.panel, wx.ID_ANY, "Preprocess data\n")
@@ -100,13 +99,13 @@ class MainWindow(wx.Frame):
         self.sizer_analysis = wx.StaticBoxSizer(wx.StaticBox(self.panel, wx.ID_ANY, "Analysis"), wx.HORIZONTAL)
         sizer_3.Add(self.sizer_analysis, 0, wx.ALL, 10)
 
-        self.plot_data_button = wx.Button(self.panel, wx.ID_ANY, "Plot\n")
+        self.plot_data_button = wx.Button(self.panel, wx.ID_ANY, "Plot")
         self.sizer_analysis.Add(self.plot_data_button, 1, wx.ALL, 5)
 
-        self.statistics_button = wx.Button(self.panel, wx.ID_ANY, "Statistics\n")
+        self.statistics_button = wx.Button(self.panel, wx.ID_ANY, "Statistics")
         self.sizer_analysis.Add(self.statistics_button, 1, wx.ALL, 5)
 
-        self.summary_button = wx.Button(self.panel, wx.ID_ANY, "Summary\n")
+        self.summary_button = wx.Button(self.panel, wx.ID_ANY, "Summary")
         self.sizer_analysis.Add(self.summary_button, 1, wx.ALL, 5)
 
         
@@ -116,13 +115,13 @@ class MainWindow(wx.Frame):
         #self.next_button = wx.Button(self.panel, wx.ID_ANY, "Select variables\n")
         #sizer_7.Add(self.next_button, 1, wx.ALL, 5)
 
-        self.prediction_button = wx.Button(self.panel, wx.ID_ANY, "Prediction Model\n")
+        self.prediction_button = wx.Button(self.panel, wx.ID_ANY, "Prediction Model")
         self.sizer_task.Add(self.prediction_button, 1, wx.ALL, 5)
 
-        self.neurofuzzy_button = wx.Button(self.panel, wx.ID_ANY, "Neurofuzzy Model\n")
+        self.neurofuzzy_button = wx.Button(self.panel, wx.ID_ANY, "Neurofuzzy Model")
         self.sizer_task.Add(self.neurofuzzy_button, 1, wx.ALL, 5)
 
-        self.results_button = wx.Button(self.panel, wx.ID_ANY, "Results \n")
+        self.results_button = wx.Button(self.panel, wx.ID_ANY, "Results")
         self.sizer_task.Add(self.results_button, 0, wx.ALL, 5)
         #self.train_button.Enable(False)
         
@@ -983,6 +982,7 @@ class MainWindow(wx.Frame):
         menubar = wx.MenuBar()  
         if (sys.platform != 'darwin'):
             menubar.SetFont(self.setting.font)
+
 
         fileMenu = wx.Menu()  
         importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
