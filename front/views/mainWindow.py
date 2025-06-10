@@ -981,7 +981,8 @@ class MainWindow(wx.Frame):
             
     def createMenuBar(self):
         menubar = wx.MenuBar()  
-        menubar.SetFont(self.setting.font)
+        if (sys.platform != 'darwin'):
+            menubar.SetFont(self.setting.font)
 
         fileMenu = wx.Menu()  
         importFileMenu=fileMenu.Append(wx.ID_NEW, '&Import file') 
