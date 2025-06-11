@@ -301,7 +301,7 @@ class MainWindow(wx.Frame):
 
     def OnGraph(self,evt):
         dialog=GraphDialog(self)
-        dialog.ShowModal()
+        dialog.Show()
 
     def OnCleanData(self,evt):
         dialog=CleanDataDialog(self)
