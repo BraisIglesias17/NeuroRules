@@ -981,9 +981,25 @@ class MainWindow(wx.Frame):
     
     def OnPasteClipBoard(self,evt):
         data = pyperclip.paste()
-    
+        print(data)
         try:
-            df=pd.read_clipboard()
+            df=pd.read_clipboard(dtype=str)
+            
+            def is_numeric(column):
+                try:
+                    # Attempt to convert column to float after replacing commas
+                    pd.to_numeric(column.str.replace(',', '.'))
+                    return True
+                except:
+                    return False
+        
+            # Apply the function to each column and get a list of numeric columns
+            numeric_columns = df.columns[df.apply(is_numeric, axis=0)]
+        
+
+            # Convert only numeric columns: replace commas with dots and convert to float
+            df[numeric_columns] = df[numeric_columns].apply(lambda x: x.str.replace(',', '.').astype(float))
+
             self.controller.load_content(df,'From clipboard')
             self.ClearGrid()
             self.updateGrid(df)

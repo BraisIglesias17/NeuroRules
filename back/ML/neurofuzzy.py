@@ -188,15 +188,12 @@ class NeuroFuzzy():
     def get_scores(self,X: ArrayLike,y: ArrayLike):
         y_pred=self.predict(X)
         r2=r2_score(y,y_pred)
-        max=np.max(y)
-        min=np.min(y)
-        
-        #normalize mean squared error
-        mse=mean_squared_error(y,y_pred)/(max-min)
-
+        target_range=np.ptp(y)
+        mse=mean_squared_error(y,y_pred)
         rmse=np.sqrt(mse)
+        nrmse=rmse/target_range if target_range != 0 else np.nan
 
-        return {'r2':r2,'mse':mse,'rmse':rmse}
+        return {'r2':r2,'mse':mse,'rmse':rmse,'nrmse':nrmse}
     
     def to_fuzzy(self,input: ArrayLike):
         """

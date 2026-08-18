@@ -29,7 +29,7 @@ def remove_outliers(dataframe: DataFrame,variable: str,upper_bound:Number,lower_
 def remove_missing(dataframe: DataFrame,variable: str):
     return dataframe.dropna(subset=[variable])
 
-def substitute_outliers(dataframe: DataFrame,variable: str,method: ['Mean','Median','Adjust Closer'],upper_bound: Number,lower_bound: Number):
+def substitute_outliers(dataframe: DataFrame,variable: str,method: ['Mean','Median','Adjust closer'],upper_bound: Number,lower_bound: Number):
     
     if dataframe[variable].dtype != "object":
         higher=0.0
@@ -52,8 +52,8 @@ def substitute_outliers(dataframe: DataFrame,variable: str,method: ['Mean','Medi
             higher=np.median(dataframe[variable])
             lower=higher
         elif method=="Adjust closer":
-            higher=q1
-            lower=q3
+            higher=upper_bound
+            lower=lower_bound
             
         count=np.sum(dataframe[variable].apply(count_outliers, args=(lower_bound, upper_bound)))
         dataframe[variable] = dataframe[variable].apply(replace_outliers, args=(lower_bound, upper_bound,higher,lower))

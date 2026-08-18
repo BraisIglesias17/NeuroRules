@@ -8,6 +8,26 @@ from sklearn.model_selection import train_test_split
 from .ML.model import ModelImplementation
 
 
+class _RestrictedTaskUnpickler(pickle.Unpickler):
+    """Load legacy task files without allowing arbitrary module imports."""
+
+    _ALLOWED_MODULES = {"builtins", "copyreg", "datetime"}
+    _ALLOWED_PACKAGE_PREFIXES = (
+        "back", "collections", "numpy", "pandas", "scipy", "sklearn", "skfuzzy",
+    )
+
+    def find_class(self, module, name):
+        package_allowed = any(
+            module == prefix or module.startswith(prefix + ".")
+            for prefix in self._ALLOWED_PACKAGE_PREFIXES
+        )
+        if module in self._ALLOWED_MODULES or package_allowed:
+            return super().find_class(module, name)
+        raise pickle.UnpicklingError(
+            f"Task file contains a forbidden object: {module}.{name}"
+        )
+
+
 class Task():
     """ Class that defines a task """
 
@@ -75,7 +95,7 @@ class Task():
         """
         print(f"Loading task from {path}")
         with open(path, 'rb') as file:
-            task = pickle.load(file)
+            task = _RestrictedTaskUnpickler(file).load()
             if not isinstance(task,Task):
                 raise ValueError("There is a problem with the task file.")
         return task
@@ -94,8 +114,17 @@ class Task():
         X=tmp[0]
         self.types=tmp[1]
         self.split_test=self.validation['params']['test_size']
+        stratify = None
+        if len(self.context_data.targets) == 1:
+            target_name = self.context_data.targets[0]
+            if target_name in self.context_data.characterValues:
+                target = self.context_data.get_values_output(target_name)
+                _, counts = np.unique(target, return_counts=True)
+                if len(counts) > 1 and np.min(counts) >= 2:
+                    stratify = target
         train_index, test_index= train_test_split(indexes, test_size=self.split_test
-                                                  , random_state=42, shuffle=True)
+                                                  , random_state=42, shuffle=True,
+                                                  stratify=stratify)
         self.train_index=train_index
         self.test_index=test_index
         self.X_train = X[train_index]

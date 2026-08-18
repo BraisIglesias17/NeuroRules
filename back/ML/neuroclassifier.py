@@ -8,7 +8,7 @@ class NeuroClassifier():
 
     def __init__(self,names: list[str],classes: list[str],params: {}):
         
-        self.tree=DecisionTreeClassifier(max_depth=len(names),**params)
+        self.tree=DecisionTreeClassifier(max_depth=len(names),random_state=42,**params)
         self.class_names=classes
         self.names=names
     
@@ -22,7 +22,7 @@ class NeuroClassifier():
         return self.tree.get_params()
 
     def set_params(self,params:{}):
-        self.tree.set_params(params)
+        self.tree.set_params(**params)
 
     def plot_tree(self):
         fig = plt.figure(figsize=(8,8))

@@ -6,7 +6,7 @@ from back.respuestas import Status
 from back.statistic.statistic import StatisticTest
 from back.saver import Saver
 from front.IO.IOManage import IOManage
-from ...plots import plot_2d,plot_3d,plot_hist, plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
+from ...plots import plot_2d,plot_3d,plot_hist,plot_histogram,plot_regression,plot_boxplot,plot_correlation_matrix,plot_countplot,plot_histogram_grouped, plot_general_group,plot_covariance_matrix
 import numpy as np
 import copy
 import math
@@ -890,6 +890,10 @@ class SingleSummaryDialog(wx.Dialog):
             self.button_plot = wx.Button(self, wx.ID_APPLY, "Plot")
             sizer_2.AddButton(self.button_plot)
             self.Bind(wx.EVT_BUTTON,self.plot_histogram,self.button_plot)
+        else:
+            self.button_plot = wx.Button(self, wx.ID_APPLY, "Plot")
+            sizer_2.AddButton(self.button_plot)
+            self.Bind(wx.EVT_BUTTON,self.plot_distribution,self.button_plot)
 
         self.button_OK = wx.Button(self, wx.ID_OK, "")
         self.button_OK.SetDefault()
@@ -924,6 +928,17 @@ class SingleSummaryDialog(wx.Dialog):
                     plot_histogram_grouped(pd.DataFrame({self.variable:x,self.group:g}),self.variable,self.group)
             else:
                 plot_countplot(x)
+    
+    def plot_distribution(self,evt):
+       
+        response=self.parent.controller.get_column(list(self.parent.names).index(self.variable)).get_response()
+        
+        if response['status']!=Status.OK:
+            wx.MessageBox(response['data'],"Error",wx.OK|wx.ICON_ERROR)
+        else:
+            x=response['data']
+            if self.numeric:    
+                plot_histogram(pd.DataFrame({self.variable:x}),self.variable)
                 
 
     def createDataGrid(self,grid,data,variable,group):
@@ -1346,9 +1361,9 @@ class StatisticDialog(wx.Dialog):
                     elif 'Kruskal Wallis' in test and complete:
                         
                         self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.kruskal_wallis)
-                    elif 'Wilcoxon' in test and complete:
+                    elif 'Mann-Whitney U' in test and complete:
                         
-                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.wilcoxon)
+                        self._differencesGroupTemplate(y,x,a,b,test,StatisticTest.mann_whitney_u)
                         
                     elif 'Pearson' in test and complete:
                         self.OnLaunchResulDialog(StatisticTest.pearson,test,variables=[x,y],names=[a,b],condition=False,msg="to determine that there is correlation between ")
@@ -1702,13 +1717,13 @@ class CleanDataDialog(wx.Dialog):
                     deleted+=d
                     modified+=m
                 else:
-                    wx.MessageBox(str("A problem has ocurred with "+variable+" process"),"Error",wx.OK|wx.ICON_ERROR)
+                    wx.CallAfter(wx.MessageBox,str("A problem has ocurred with "+variable+" process"),"Error",wx.OK|wx.ICON_ERROR)
             
             wx.MessageBox(str(str(deleted)+" deleted and "+str(modified)+" modified rows."),"Info")
             self.EndModal(wx.ID_APPLY)
 
         else:
-            wx.MessageBox(options['data'],"Error",wx.OK|wx.ICON_ERROR)
+            wx.CallAfter(wx.MessageBox,options['data'],"Error",wx.OK|wx.ICON_ERROR)
         """
         
             

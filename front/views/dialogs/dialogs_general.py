@@ -956,5 +956,5 @@ class TraceDialog(wx.Dialog):
     def OnSave(self,evt):
         path=IOManage.GetPath(self,"Save file",WILDCARD_TEXT_FILE,default_folder=self.settings.get_default_path()).get_response()
         if path['status']==Status.OK: 
-            self.controller.save_file(path['data'],self.text_logs.GetLabelText())
+            self.controller.save_file(self.text_logs.GetValue(),path['data'])
             wx.MessageBox("File saved succesfully in "+path['data'],"Info")

@@ -62,16 +62,15 @@ class IOManage():
                         file: name, separator character and decimal character.
         """
         pathname=conf['pathname']
-        if str(pathname).endswith(".csv"):
-            with open(pathname, 'r') as file:
+        extension=str(pathname).lower()
+        if extension.endswith(".csv"):
+            with open(pathname, 'r', encoding='utf-8-sig', newline='') as file:
                 data = pd.read_csv(file,sep=conf['sep'],decimal=conf['dec'])
                 name=file.name
-        elif str(pathname).endswith(".xlsx"):
-            with open(pathname, 'r') as file:
-                data = pd.read_excel(file.name,decimal=conf['dec'])
-                name=file.name
+        elif extension.endswith(".xlsx"):
+            data = pd.read_excel(pathname,decimal=conf['dec'])
+            name=pathname
         else:
-            df=None
+            raise ValueError("Unsupported file type. Select a CSV or XLSX file.")
         df = pd.DataFrame(data)
         return df,name
-    

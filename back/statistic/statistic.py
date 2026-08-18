@@ -17,7 +17,7 @@ class StatisticTest():
         return ['T Student - (Difference between groups)'
                 ,'ANOVA - (Difference between groups)'
                 ,'Kruskal Wallis - (Difference between groups)'
-                ,'Wilcoxon - (Difference between groups)']
+                ,'Mann-Whitney U - (Difference between groups)']
     @staticmethod
     def COMPARING_DIFFERENT_VARIABLES():
         """
@@ -35,7 +35,7 @@ class StatisticTest():
         """
             Return the list of all test
         """
-        return ['T Student','ANOVA','Kruskal Wallis','Wilcoxon','Pearson','Shapiro']
+        return ['T Student','ANOVA','Kruskal Wallis','Mann-Whitney U','Pearson','Shapiro']
     @staticmethod
     def get_placeholder():
         """
@@ -44,7 +44,7 @@ class StatisticTest():
         return ['T Student - (Difference between groups)'
                 ,'ANOVA - (Difference between groups)'
                 ,'Kruskal Wallis - (Difference between groups)'
-                ,'Wilcoxon - (Difference between groups)'
+                ,'Mann-Whitney U - (Difference between groups)'
                 ,'Pearson - (Correlation)','Shapiro - (Normality)']
     @staticmethod
     def t_student(x:ArrayLike,y:ArrayLike):
@@ -75,11 +75,14 @@ class StatisticTest():
         return chi2(x)
     
     @staticmethod
-    def wilcoxon(x:ArrayLike,y:ArrayLike):
+    def mann_whitney_u(x:ArrayLike,y:ArrayLike):
         """
             Return the result of MANNWHITNEY test
         """
         return mannwhitneyu(np.array(x).astype(float),np.array(y).astype(float))
+
+    # Backward-compatible alias for tasks saved by older NeuroRule versions.
+    wilcoxon = mann_whitney_u
     
     @staticmethod
     def kruskal_wallis(x:ArrayLike,y:ArrayLike):

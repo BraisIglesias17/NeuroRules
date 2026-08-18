@@ -132,11 +132,11 @@ class ModelImplementation(Model):
             self.estimator_type="regressor"
             
         elif model=="Random Forest Regressor":
-            self.model=RandomForestRegressor()
+            self.model=RandomForestRegressor(random_state=42)
             self.estimator_type="regressor"
 
         elif model=="Multiple Layer Perceptron Regressor":
-            self.model=MLPRegressor()
+            self.model=MLPRegressor(random_state=42)
             self.estimator_type="regressor"
 
         elif model=="Support Vector Machine Regressor":
@@ -148,11 +148,11 @@ class ModelImplementation(Model):
             self.estimator_type="classifier"
 
         elif model=="Random Forest":
-            self.model=RandomForestClassifier()
+            self.model=RandomForestClassifier(random_state=42)
             self.estimator_type="classifier"
 
         elif model=="Multiple Layer Perceptron":
-            self.model=MLPClassifier()
+            self.model=MLPClassifier(random_state=42)
             self.estimator_type="classifier"
 
         elif model=="K-Nearest Neighbours":
@@ -401,7 +401,15 @@ class ModelImplementation(Model):
             self.training_scores=self.get_score(input,target)
         elif cv:
             self.cv=True
-            kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
+            if subsets < 2 or subsets > len(target):
+                raise ValueError("The number of folds must be between 2 and the number of training samples")
+            if self.estimator_type == "classifier":
+                _, class_counts = np.unique(target, return_counts=True)
+                if subsets > np.min(class_counts):
+                    raise ValueError("The number of folds cannot exceed the size of the smallest class")
+                kf = StratifiedKFold(n_splits=subsets, shuffle=True, random_state=42)
+            else:
+                kf = KFold(n_splits=subsets, shuffle=True, random_state=42)
             self.folds=kf
             #print(f' CV RESULTS {self.cross_validation(subsets,self.model)}')
             scores = cross_val_score(self.model,input,target, cv=kf,scoring=scorer)
@@ -424,8 +432,8 @@ class ModelImplementation(Model):
     def get_params(self):
         return {'params':self.model.get_params(),'grid_search':self.grid_search}
     
-    def set_params(self, dict:Dict[str,Union[str,int,float]]):
-        self.model.set_params(dict)
+    def set_params(self, params:Dict[str,Union[str,int,float]]):
+        self.model.set_params(**params)
         
     def get_info(self):
         print(self.model)
@@ -435,23 +443,24 @@ class ModelImplementation(Model):
         y_pred=self.model.predict(X)
         if self.estimator_type=="regressor": 
             tmp['r2']=r2_score(y_pred=y_pred,y_true=y)
-            min=np.min(y)
-            max=np.max(y)
-            tmp['mse']=mean_squared_error(y_pred=y_pred,y_true=y)/(max-min)
-            tmp['rmse']=np.sqrt(tmp['mse'])
+            target_range=np.ptp(y)
+            mse=mean_squared_error(y_pred=y_pred,y_true=y)
+            tmp['mse']=mse
+            tmp['rmse']=np.sqrt(mse)
+            tmp['nrmse']=tmp['rmse']/target_range if target_range != 0 else np.nan
             
         elif self.estimator_type=="classifier":
             
             avg="binary"
             if self.n_classes>2:
                 avg="weighted"
-                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,zero_division=1.0)
-                tmp['precision']=precision_score(y,y_pred,average=avg,zero_division=1.0)
-                tmp['recall']=recall_score(y_pred,y,average=avg,zero_division=1.0)
+                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,zero_division=0)
+                tmp['precision']=precision_score(y,y_pred,average=avg,zero_division=0)
+                tmp['recall']=recall_score(y,y_pred,average=avg,zero_division=0)
             else:
-                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0],zero_division=1.0)
-                tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg,zero_division=1.0)
-                tmp['recall']=recall_score(y_pred,y,pos_label=self.class_names[0],average=avg,zero_division=1.0)
+                tmp['f1']=f1_score(y_pred=y_pred,y_true=y,labels=self.class_names,average=avg,pos_label=self.class_names[0],zero_division=0)
+                tmp['precision']=precision_score(y,y_pred,pos_label=self.class_names[0],average=avg,zero_division=0)
+                tmp['recall']=recall_score(y,y_pred,pos_label=self.class_names[0],average=avg,zero_division=0)
                 
             tmp['accuracy']=accuracy_score(y_pred=y_pred,y_true=y)
             

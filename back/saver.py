@@ -87,12 +87,12 @@ class Saver():
         self.path=path
         self.content=content
         self.index=index
-        pathname=str(path).replace("\\","/")
-        if str(pathname).endswith(".xlsx"):
+        pathname=str(path).replace("\\","/").lower()
+        if pathname.endswith(".xlsx"):
             self.saver=XLSFileSaver()
-        elif str(pathname).endswith(".csv"):
+        elif pathname.endswith(".csv"):
             self.saver=CSVFileSaver()
-        elif str(pathname).endswith(".txt"):
+        elif pathname.endswith(".txt"):
             self.saver=TextFileSaver()
         else:
             raise ValueError("Invalid file type")
@@ -101,4 +101,3 @@ class Saver():
         Save content to file
         """
         self.saver.save(self.path,self.content,self.index)
-            

@@ -1764,6 +1764,7 @@ class TaskReportDialog(wx.Dialog):
         
         if code==wx.YES:
             self.progressBar = wx.ProgressDialog("Training in progress ... ", "Please, wait...",maximum=maximum,parent=self,style=wx.PD_APP_MODAL|wx.PD_SMOOTH|wx.PD_AUTO_HIDE)
+            self._activate_training(False)
             #self.progressbar.Update(10,"Training in progress...")
             #self.execute_thread()
             thread = threading.Thread(target=self.execute_thread)
@@ -1793,12 +1794,10 @@ class TaskReportDialog(wx.Dialog):
             self.controller.save_task(pathname)
 
     def execute_thread(self):
-        self._activate_training(False)
-
         response=self.controller.execute_task(self.update_progress).get_response()
      
         #wx.CallAfter(self.progressbar.Update,self.progressbar.GetRange())
-        self.progressBar.Update(self.progressBar.GetRange())
+        wx.CallAfter(self.progressBar.Update,self.progressBar.GetRange())
         wx.CallAfter(self._callAfter,response)
         
     def _callAfter(self,response):
@@ -1815,8 +1814,7 @@ class TaskReportDialog(wx.Dialog):
             self.Destroy()
 
     def update_progress(self, value):
-        
-        self.progressBar.Update(value,"Training in progress...")
+        wx.CallAfter(self.progressBar.Update,value,"Training in progress...")
 
 
 ##

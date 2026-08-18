@@ -288,7 +288,7 @@ class ContextData():
                                     if result.pvalue<self.DIFFERENCE_THRESHOLD:
                                         toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})
                                 else:
-                                    result=StatisticTest.wilcoxon(a,b)
+                                    result=StatisticTest.mann_whitney_u(a,b)
                                     
                                     if result.pvalue<self.DIFFERENCE_THRESHOLD:
                                         toret.append({'variable':variable,'groupby':nominal,'pair':str(groupA+" , "+groupB),'pvalue':result.pvalue})

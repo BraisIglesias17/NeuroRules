@@ -162,6 +162,15 @@ def plot_histogram_grouped(data,x,group):
     g.despine(left=True)
     plt.show()
 
+def plot_histogram(data,x):
+    """
+    Function for ploting histogram of a variable
+    Args: data - whole dataset 
+        x - concrete variable to display
+    """
+    g = sns.histplot(data=data, x=x, kde=True)
+    plt.show()
+
 def plot_general_group(data,group):
     """
     Function for ploting the pair plot between variables 
