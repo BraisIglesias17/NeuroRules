@@ -1,6 +1,6 @@
 """Module for statistic test"""
 import numpy as np
-from scipy.stats import chi2,pearsonr,shapiro,kruskal,kstest,f_oneway,mannwhitneyu,ttest_ind
+from scipy.stats import pearsonr,shapiro,kruskal,ks_2samp,f_oneway,mannwhitneyu,ttest_ind
 from numpy.typing import ArrayLike
 import scipy.stats as stats
 import pandas as pd
@@ -72,7 +72,7 @@ class StatisticTest():
         """
             Return the result of CHI SQUARED test
         """
-        return chi2(x)
+        return stats.chisquare(x)
     
     @staticmethod
     def mann_whitney_u(x:ArrayLike,y:ArrayLike):
@@ -96,10 +96,7 @@ class StatisticTest():
         """
             Return the result of KOLMOROV test
         """
-        if StatisticTest.check_normality(x) and StatisticTest.check_normality(y):
-            return kstest(x,y)
-        else:
-            return None
+        return ks_2samp(x,y)
         
     
     @staticmethod

@@ -22,7 +22,7 @@ class Validator():
 
         returns: true if its integer, false if it is not
         """
-        valid_types = [int, np.int32, np.int16]
+        valid_types = [int, np.integer]
         return Validator._check_types(val,valid_types)
                
     @staticmethod
@@ -34,7 +34,7 @@ class Validator():
 
         returns: true if its float, false if it is not
         """
-        valid_types = [float,np.float32,np.float64]
+        valid_types = [float,np.floating]
         return Validator._check_types(val,valid_types)
     @staticmethod
     def check_parse_float(val):
@@ -84,6 +84,6 @@ class Validator():
         """
         if val=="" or val is None:
             return False
-        return re.match(r'^[a-zA-Z0-9_/]*$', val)
+        return bool(re.fullmatch(r'[a-zA-Z0-9_]+', val))
     
 
