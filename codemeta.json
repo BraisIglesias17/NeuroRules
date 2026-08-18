@@ -1,0 +1,25 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "NeuroRule",
+  "version": "0.1.0",
+  "description": "Desktop software for analysing small datasets with interpretable neurofuzzy networks and conventional machine-learning algorithms.",
+  "codeRepository": "https://github.com/BraisIglesias17/NeuroRules",
+  "issueTracker": "https://github.com/BraisIglesias17/NeuroRules/issues",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python 3.10 or later",
+  "applicationCategory": "Scientific software",
+  "license": "https://spdx.org/licenses/MIT",
+  "keywords": [
+    "neurofuzzy systems",
+    "interpretable machine learning",
+    "small datasets",
+    "data analysis",
+    "Sugeno inference"
+  ],
+  "author": {
+    "@type": "Person",
+    "identifier": "https://github.com/BraisIglesias17",
+    "name": "B. Iglesias Otero"
+  }
+}

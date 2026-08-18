@@ -6,7 +6,12 @@ __pycache__
 
 ./dist
 ./build
+results/smoke/
 ./main.spec
 ./.vscode
 
 back/ML/test.py
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/

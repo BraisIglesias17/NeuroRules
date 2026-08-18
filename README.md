@@ -114,8 +114,43 @@ back/                   Data handling, statistics, tasks, and ML models
 front/                  wxPython views, plots, settings, and resources
 main.py                 Application entry point
 requirements.txt        Python dependencies
+requirements-test.txt   Headless test and CI dependencies
 NeuroRule.spec          PyInstaller configuration
 ```
+
+## Testing and continuous integration
+
+Install the headless test dependencies and run the complete suite from the
+repository root:
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m pytest
+```
+
+To reproduce the coverage check used by GitHub Actions:
+
+```bash
+python -m pytest --cov=back --cov-report=term-missing --cov-fail-under=35
+```
+
+GitHub Actions runs the scientific-core tests with Python 3.10 and 3.11 on
+both Linux and Windows. GUI behaviour is kept outside this headless job and
+should also be checked manually on supported desktop platforms before a release.
+
+## Citation
+
+Machine-readable citation metadata is available in `CITATION.cff`; broader
+software metadata is provided in `codemeta.json`. Before creating a public
+release, replace the author alias with the author's full name and add an ORCID
+and institutional affiliation when applicable. After archiving a release in a
+repository such as Zenodo, add the resulting DOI to both metadata files.
+
+## License
+
+NeuroRule is distributed under the permissive [MIT License](LICENSE). You may
+use, modify, and redistribute it provided that the copyright and permission
+notices are retained.
 
 ## Troubleshooting
 
