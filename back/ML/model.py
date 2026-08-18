@@ -16,7 +16,6 @@ from numpy.typing import ArrayLike
 from .neurofuzzy import NeuroFuzzy
 from .neuroclassifier import NeuroClassifier
 from itertools import combinations
-from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
@@ -205,30 +204,12 @@ class ModelImplementation(Model):
 
 
     def _fit_rule_generating_regression(self,input: ArrayLike,target: ArrayLike,names_input:list[str],name_output: str,types:[]):
-        #filtrar por correlacion
-        toDel=[]
         self.discarded={}
-        for i in range(input.shape[1]):
-            col=input[:,i]
-            pvalue=pearsonr(col,target).pvalue
-            if pvalue>0.5:
-                toDel.append(i)
-                self.discarded[names_input[i]]=pvalue
-        
-        #eliminar columnas y nombres
-        tmp = [names_input[i] for i in range(len(names_input)) if i not in toDel]
-        names_input=tmp
-
-        tmp= np.delete(input, toDel, axis=1)
-        input=tmp
-        
         X_test=copy.deepcopy(self.X_test)
-        X_test=np.delete(X_test,toDel,axis=1)
        
         r2=-100
         combs=[]
         for n in range(1,self.params['max_inputs']+1):
-            print(n)
             combs.extend(combinations(names_input,n))
         
         
@@ -237,7 +218,6 @@ class ModelImplementation(Model):
         name="submodel_"
         i=1
 
-        print(combs)
         for combination in combs:
             name_=name+str(i)
             indexes=[]
@@ -253,12 +233,14 @@ class ModelImplementation(Model):
                 
             X=input[:,indexes]    
             X_test_tmp=X_test[:,indexes]
+            available_types=list(types)
+            selected_types=[available_types[index] for index in indexes]
 
             if len(names)==1:
                 X=X.reshape(-1,1)
     
-            self.model=NeuroFuzzy(input=X,output=target,types=types,n_membership_input=n_membership_input,n_membership_output=n_membership_output,output_name=name_output,input_names=names)
-            self.model.fit(self.params['learning_rate'])
+            self.model=NeuroFuzzy(input=X,output=target,types=selected_types,n_membership_input=n_membership_input,n_membership_output=n_membership_output,output_name=name_output,input_names=names,regularization=self.params.get('regularization',1e-6))
+            self.model.fit()
             scores=self.get_score(X=X,y=target)
             
             if len(X_test_tmp.shape)==1:
@@ -269,6 +251,9 @@ class ModelImplementation(Model):
             bestmodel=False
             if scores['r2']>r2:
                 bestmodel=True
+                r2=scores['r2']
+                for existing in self.submodels.values():
+                    existing['best']=False
             self.submodels[name_]={'model':self.model,'training_score':scores,'test_score':test_scores,'best':bestmodel,'inputs':names}            
             i+=1
         
@@ -374,7 +359,6 @@ class ModelImplementation(Model):
             self.ensembled_model=ensemble
             #METRICAS CON VALIDACION TEST
             self.ensembled_model_metrics=ensemble.score(X_test,self.y_test)
-            print(self.ensembled_model_metrics)
             #METRICAS CON VALIDACION TRAIN
             #self.ensembled_model_metrics=ensemble.score(inputs,y)
         else:

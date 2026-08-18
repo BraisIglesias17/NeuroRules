@@ -30,7 +30,7 @@ Available prediction algorithms include:
 - Random forests
 - Multilayer perceptrons
 - K-nearest neighbours for classification
-- Neurofuzzy models for regression rule generation
+- Fixed-antecedent Takagi-Sugeno neurofuzzy models for regression rule generation
 - Decision trees for classification rule generation
 
 ## Requirements
@@ -102,6 +102,8 @@ Saved tasks may depend on the versions of Python and scientific libraries used t
 ## Interpreting results
 
 Model reports can include accuracy, precision, recall, F1 score, R², mean squared error (MSE), root mean squared error (RMSE), and range-normalised RMSE (NRMSE), depending on the task type.
+
+The neurofuzzy regressor uses triangular memberships for numerical inputs, singleton memberships for categorical inputs, a product T-norm, and ridge-fitted constant Sugeno consequents. Its rules are interpretable approximations of the fitted relationship; it does not currently optimise the antecedent membership parameters as a full ANFIS implementation would.
 
 Statistical significance does not by itself establish practical importance or causality. When running many statistical tests, consider applying an appropriate multiple-comparison correction outside NeuroRule. Small datasets also produce uncertain validation estimates, particularly when a target class contains very few observations.
 

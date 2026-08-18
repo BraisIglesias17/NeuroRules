@@ -7,7 +7,7 @@ from skfuzzy import control as ctrl
 from sklearn.metrics import r2_score,mean_squared_error
 from numpy.typing import ArrayLike
 
-class NeuroFuzzy():
+class _LegacyNeuroFuzzy():
     """
 
     CLASE PARA MODELADO DE SISTEMA NEURO-FUZZY
@@ -805,6 +805,11 @@ class NeuroFuzzy():
             ant.view()
 
         self.consecuence.view()
+
+
+# Export the corrected implementation while retaining this module path for
+# compatibility with saved tasks and existing imports.
+from .neurofuzzy_robust import NeuroFuzzy
 
 
 

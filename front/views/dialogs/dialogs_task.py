@@ -132,7 +132,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.regression_vars=[]
         self.validation={'method':"Train test split",'params':{'subsets':3,'test_size':0.2}}
         self.classification_params={'criterion':'gini','splitter':'best'}
-        self.regression_params={'max_inputs':2,'mf_inputs':2,'mf_outputs':2,'auto':True,'learning_rate':0.01}
+        self.regression_params={'max_inputs':2,'mf_inputs':2,'mf_outputs':2,'auto':True,'regularization':1e-6}
         response=self.controller.get_target_process_type().get_response()
 
         if response['status']==Status.OK:
@@ -196,12 +196,12 @@ class RuleGeneratinglDialog(wx.Dialog):
         sizer_rg_6 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_rg_2.Add(sizer_rg_6, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 0)
 
-        sizer_rg_7 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Learning rate"), wx.VERTICAL)
+        sizer_rg_7 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Ridge regularization"), wx.VERTICAL)
         sizer_rg_6.Add(sizer_rg_7, 0, wx.ALL, 10)
 
-        self.spin_learning_rate = wx.SpinCtrlDouble(self.notebook_regression, wx.ID_ANY, initial=0.01, inc=0.01,min=0.0, max=10.0)
-        self.spin_learning_rate.SetDigits(2)
-        sizer_rg_7.Add(self.spin_learning_rate, 0, wx.ALL, 5)
+        self.spin_regularization = wx.SpinCtrlDouble(self.notebook_regression, wx.ID_ANY, initial=0.000001, inc=0.000001,min=0.0, max=10.0)
+        self.spin_regularization.SetDigits(6)
+        sizer_rg_7.Add(self.spin_regularization, 0, wx.ALL, 5)
 
         sizer_rg_8 = wx.StaticBoxSizer(wx.StaticBox(self.notebook_regression, wx.ID_ANY, "Output membership functions"), wx.VERTICAL)
         sizer_rg_6.Add(sizer_rg_8, 0, wx.ALL, 10)
@@ -273,7 +273,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.Bind(wx.EVT_SPINCTRL,self.OnChangeRegressionParameter,self.spin_max_inputs)
         self.Bind(wx.EVT_SPINCTRL,self.OnChangeRegressionParameter,self.spin_input_mf)
         self.Bind(wx.EVT_SPINCTRL,self.OnChangeRegressionParameter,self.spin_output_mf)
-        self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeRegressionParameter,self.spin_learning_rate)
+        self.Bind(wx.EVT_SPINCTRLDOUBLE,self.OnChangeRegressionParameter,self.spin_regularization)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_criterion)
         self.Bind(wx.EVT_CHOICE,self.OnChangeClassificationParameter,self.cb_splitter)
         self.Bind(wx.EVT_COMBOBOX,self.OnChangeOutput,self.combo_box_targets)
@@ -299,7 +299,7 @@ class RuleGeneratinglDialog(wx.Dialog):
             current_conf=self.model_selection[variable]['params']
             
             if prblm=="regression":
-                self.spin_learning_rate.SetValue(current_conf['learning_rate'])
+                self.spin_regularization.SetValue(current_conf.get('regularization',1e-6))
                 self.spin_max_inputs.SetValue(current_conf['max_inputs'])
                 self.spin_input_mf.SetValue(current_conf['mf_inputs'])
                 self.spin_output_mf.SetValue(current_conf['mf_outputs'])
@@ -314,14 +314,14 @@ class RuleGeneratinglDialog(wx.Dialog):
         return (value<min or value>max)
     
     def OnChangeRegressionParameter(self,evt):
-        learning_rate=self.spin_learning_rate.GetValue()
+        regularization=self.spin_regularization.GetValue()
         max_inputs=self.spin_max_inputs.GetValue()
         input_mf=self.spin_input_mf.GetValue()
         output_mf=self.spin_output_mf.GetValue()
         target=self.combo_box_targets.GetValue()
 
-        if learning_rate<0 or learning_rate>10:
-            wx.MessageBox("The learning rate must be between 0 and 10", "Error",wx.ICON_ERROR)
+        if regularization<0 or regularization>10:
+            wx.MessageBox("Regularization must be between 0 and 10", "Error",wx.ICON_ERROR)
         elif self._check_bounds(input_mf,2) or self._check_bounds(output_mf,2):
             wx.MessageBox("The value must be between 1 and 3", "Error",wx.ICON_ERROR)
         elif self._check_bounds(max_inputs,1,2):
@@ -332,7 +332,7 @@ class RuleGeneratinglDialog(wx.Dialog):
                     'mf_inputs':input_mf,
                     'mf_outputs':output_mf,
                     'auto':False,#self.checkbox_automatic.IsChecked(),
-                    'learning_rate':learning_rate}
+                    'regularization':regularization}
             
             if target=="All":
                 for output in self.display_list:
@@ -389,7 +389,7 @@ class RuleGeneratinglDialog(wx.Dialog):
         self.spin_output_mf.Enable(not value)
         self.spin_input_mf.Enable(not value)
         self.spin_max_inputs.Enable(not value)
-        self.spin_learning_rate.Enable(not value)
+        self.spin_regularization.Enable(not value)
         self.classification_params['auto']=value
 ##
 # Dialog for predicting, it shows the fields to the input variables and displays the output obtained
